@@ -1,0 +1,23 @@
+@use 'variables' as v;
+
+@mixin from($breakpoint) {
+  @media (min-width: $breakpoint) {
+    @content;
+  }
+}
+
+@mixin container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--space-sm);
+
+  @include from(v.$bp-md) {
+    padding-inline: var(--space-lg);
+  }
+}
+
+@mixin section {
+  padding-block: var(--section-padding-y);
+  scroll-margin-top: var(--header-height);
+}

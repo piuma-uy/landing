@@ -1,0 +1,54 @@
+@use 'variables' as v;
+@use 'mixins' as *;
+
+.about {
+  @include section;
+  background-color: var(--color-secondary);
+}
+
+.about__inner {
+  display: grid;
+  gap: var(--space-lg);
+
+  @include from(v.$bp-lg) {
+    grid-template-columns: 5fr 6fr;
+    align-items: center;
+    gap: var(--space-xl);
+  }
+}
+
+.about__media {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: var(--color-accent);
+
+  img {
+    width: 100%;
+    height: clamp(280px, 50vw, 560px);
+    object-fit: cover;
+  }
+}
+
+.about__values {
+  list-style: none;
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.about__value {
+  padding-left: var(--space-sm);
+  border-left: 2px solid var(--color-primary);
+
+  h3 {
+    margin-bottom: 0.2rem;
+    font-size: 1.05rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.92rem;
+  }
+}

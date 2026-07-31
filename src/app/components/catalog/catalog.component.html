@@ -1,0 +1,27 @@
+<section id="catalogo" class="catalog">
+  <div class="container">
+    <span class="eyebrow catalog__eyebrow">Catálogo</span>
+    <h2 class="section-title">Nuestra colección</h2>
+    <p class="section-subtitle">
+      Piezas pensadas para combinarse entre sí. Consultá disponibilidad, medidas y colores por
+      WhatsApp y te respondemos el mismo día.
+    </p>
+
+    @if (products$ | async; as products) {
+      @if (products.length) {
+        <div class="catalog__grid">
+          @for (product of products; track product.id) {
+            <app-product-card [product]="product" />
+          }
+        </div>
+      } @else {
+        <p class="catalog__empty">
+          No pudimos cargar el catálogo en este momento. Escribinos por WhatsApp y te contamos qué
+          hay disponible.
+        </p>
+      }
+    } @else {
+      <p class="catalog__empty">Cargando catálogo…</p>
+    }
+  </div>
+</section>

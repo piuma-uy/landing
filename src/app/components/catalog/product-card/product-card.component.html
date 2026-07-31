@@ -1,0 +1,24 @@
+<article class="card">
+  <div class="card__media">
+    <!-- Placeholder: el src viene del campo "image" de products.json. -->
+    <img [src]="product().image" [alt]="product().alt" loading="lazy" width="800" height="1000" />
+    <span class="card__tag">{{ product().category }}</span>
+  </div>
+
+  <div class="card__body">
+    <h3 class="card__name">{{ product().name }}</h3>
+    <p class="card__description">{{ product().shortDescription }}</p>
+
+    <p class="card__price">{{ formattedPrice() }}</p>
+
+    <a
+      [href]="whatsappLink()"
+      class="btn btn--whatsapp card__cta"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Consultar por WhatsApp
+      <span class="sr-only">sobre {{ product().name }}</span>
+    </a>
+  </div>
+</article>

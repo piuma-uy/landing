@@ -1,0 +1,35 @@
+@use 'variables' as v;
+@use 'mixins' as *;
+
+.catalog {
+  @include section;
+}
+
+.catalog__eyebrow {
+  text-align: center;
+}
+
+.catalog__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-sm);
+
+  @media (min-width: v.$bp-sm) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include from(v.$bp-lg) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+  }
+
+  @include from(v.$bp-xl) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.catalog__empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding-block: var(--space-lg);
+}

@@ -1,0 +1,34 @@
+<section id="inicio" class="hero">
+  <div class="hero__inner container">
+    <div class="hero__content">
+      <span class="eyebrow">Textiles para el hogar</span>
+      <h1 class="hero__title">{{ config.brandName }}</h1>
+      <p class="hero__tagline">
+        Ropa de cama en algodón y lino natural, elegida hilo por hilo para que dormir se sienta
+        distinto. Confort que dura lavado tras lavado.
+      </p>
+      <div class="hero__actions">
+        <a href="#catalogo" class="btn btn--primary">Ver catálogo</a>
+        <a
+          [href]="whatsappLink"
+          class="btn btn--outline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Consultar por WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <div class="hero__media">
+      <!-- Placeholder: reemplazar el src por la foto real (assets/images/hero.jpg). -->
+      <img
+        [src]="heroImage"
+        alt="Cama tendida con ropa de cama Piuma en tonos neutros"
+        width="1200"
+        height="1400"
+        fetchpriority="high"
+      />
+    </div>
+  </div>
+</section>

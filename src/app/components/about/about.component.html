@@ -1,0 +1,37 @@
+<section id="sobre-nosotros" class="about">
+  <div class="about__inner container">
+    <div class="about__media">
+      <!-- Placeholder: reemplazar por la foto real del taller / la marca. -->
+      <img
+        [src]="image"
+        alt="Detalle de textiles de cama doblados en tonos neutros"
+        loading="lazy"
+        width="900"
+        height="1100"
+      />
+    </div>
+
+    <div class="about__content">
+      <span class="eyebrow">Sobre nosotros</span>
+      <h2>Hecho para el descanso, no para la vidriera</h2>
+      <p>
+        Piuma nació de una obsesión simple: que meterse en la cama se sienta como el mejor momento
+        del día. Empezamos buscando telas para nuestra propia casa y terminamos armando una
+        colección para que otros durmieran igual de bien.
+      </p>
+      <p>
+        Elegimos pocos proveedores y los visitamos. Preferimos una colección corta y bien hecha antes
+        que un catálogo infinito, y cada pieza pasa por nuestras manos antes de llegar a las tuyas.
+      </p>
+
+      <ul class="about__values">
+        @for (value of values; track value.title) {
+          <li class="about__value">
+            <h3>{{ value.title }}</h3>
+            <p>{{ value.text }}</p>
+          </li>
+        }
+      </ul>
+    </div>
+  </div>
+</section>

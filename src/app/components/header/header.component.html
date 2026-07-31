@@ -1,0 +1,27 @@
+<header class="header" [class.header--scrolled]="scrolled()">
+  <div class="header__inner container">
+    <a href="#inicio" class="logo" (click)="closeMenu()">{{ config.brandName }}</a>
+
+    <button
+      type="button"
+      class="header__toggle"
+      [attr.aria-expanded]="menuOpen()"
+      aria-controls="nav-principal"
+      [attr.aria-label]="menuOpen() ? 'Cerrar menú' : 'Abrir menú'"
+      (click)="toggleMenu()"
+    >
+      <span class="header__toggle-bar" [class.is-open]="menuOpen()"></span>
+    </button>
+
+    <nav id="nav-principal" class="nav" [class.nav--open]="menuOpen()" aria-label="Navegación principal">
+      <ul class="nav__list">
+        @for (link of navLinks; track link.fragment) {
+          <li>
+            <a class="nav__link" [href]="'#' + link.fragment" (click)="closeMenu()">{{ link.label }}</a>
+          </li>
+        }
+      </ul>
+      <app-social-links class="nav__social" [networks]="['instagram', 'whatsapp']" />
+    </nav>
+  </div>
+</header>

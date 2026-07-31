@@ -1,0 +1,112 @@
+[
+  {
+    "id": "sabanas-lino-natural",
+    "name": "Juego de sábanas Lino Natural",
+    "category": "Sábanas",
+    "price": 4890,
+    "currency": "UYU",
+    "shortDescription": "Lino lavado 100% europeo, con caída suave y tacto fresco. Incluye sábana ajustable, encimera y dos fundas.",
+    "image": "https://picsum.photos/seed/piuma-sabanas-lino/800/1000",
+    "alt": "Juego de sábanas de lino natural sobre una cama tendida",
+    "featured": true
+  },
+  {
+    "id": "sabanas-percal-400",
+    "name": "Sábanas Percal 400 hilos",
+    "category": "Sábanas",
+    "price": 3450,
+    "currency": "UYU",
+    "shortDescription": "Algodón peinado de 400 hilos con terminación mate. Transpirable y resistente a los lavados.",
+    "image": "https://picsum.photos/seed/piuma-sabanas-percal/800/1000",
+    "alt": "Sábanas de algodón percal blanco dobladas",
+    "featured": false
+  },
+  {
+    "id": "sabanas-satin-blanco",
+    "name": "Sábanas Satén Blanco Roto",
+    "category": "Sábanas",
+    "price": 3980,
+    "currency": "UYU",
+    "shortDescription": "Tejido satén con brillo sutil y caída sedosa. Un clásico que suma calidez sin recargar.",
+    "image": "https://picsum.photos/seed/piuma-sabanas-saten/800/1000",
+    "alt": "Sábanas de satén color blanco roto",
+    "featured": false
+  },
+  {
+    "id": "funda-nordica-terracota",
+    "name": "Funda nórdica Terracota",
+    "category": "Fundas nórdicas",
+    "price": 5290,
+    "currency": "UYU",
+    "shortDescription": "Algodón lavado en tono terracota suave, con cierre oculto y botones de nácar.",
+    "image": "https://picsum.photos/seed/piuma-nordica-terracota/800/1000",
+    "alt": "Funda nórdica color terracota sobre una cama",
+    "featured": true
+  },
+  {
+    "id": "funda-nordica-arena",
+    "name": "Funda nórdica Arena",
+    "category": "Fundas nórdicas",
+    "price": 4990,
+    "currency": "UYU",
+    "shortDescription": "Beige cálido en algodón orgánico certificado. Combina con toda la línea neutra de Piuma.",
+    "image": "https://picsum.photos/seed/piuma-nordica-arena/800/1000",
+    "alt": "Funda nórdica color arena con textura de algodón",
+    "featured": false
+  },
+  {
+    "id": "almohada-pluma-natural",
+    "name": "Almohada Pluma Natural",
+    "category": "Almohadas",
+    "price": 2350,
+    "currency": "UYU",
+    "shortDescription": "Relleno de plumón con funda de batista. Firmeza media, ideal para quienes duermen de costado.",
+    "image": "https://picsum.photos/seed/piuma-almohada-pluma/800/1000",
+    "alt": "Almohada de plumón natural apoyada en un respaldo",
+    "featured": true
+  },
+  {
+    "id": "almohada-memory-soft",
+    "name": "Almohada Memory Soft",
+    "category": "Almohadas",
+    "price": 2790,
+    "currency": "UYU",
+    "shortDescription": "Viscoelástica de densidad media con canales de ventilación. Acompaña la curva cervical.",
+    "image": "https://picsum.photos/seed/piuma-almohada-memory/800/1000",
+    "alt": "Almohada viscoelástica blanca",
+    "featured": false
+  },
+  {
+    "id": "cubrecama-pique-crema",
+    "name": "Cubrecama Piqué Crema",
+    "category": "Cubrecamas",
+    "price": 6450,
+    "currency": "UYU",
+    "shortDescription": "Piqué de algodón con textura en relieve. Liviano para verano, perfecto como capa extra en invierno.",
+    "image": "https://picsum.photos/seed/piuma-cubrecama-pique/800/1000",
+    "alt": "Cubrecama de piqué color crema doblado a los pies de la cama",
+    "featured": true
+  },
+  {
+    "id": "cubrecama-matelasse-gris",
+    "name": "Cubrecama Matelassé Gris",
+    "category": "Cubrecamas",
+    "price": 6890,
+    "currency": "UYU",
+    "shortDescription": "Matelassé acolchado en gris cálido, con terminación reversible y bordes reforzados.",
+    "image": "https://picsum.photos/seed/piuma-cubrecama-matelasse/800/1000",
+    "alt": "Cubrecama matelassé gris sobre una cama matrimonial",
+    "featured": false
+  },
+  {
+    "id": "set-fundas-almohadon",
+    "name": "Set de fundas de almohadón",
+    "category": "Fundas nórdicas",
+    "price": 1690,
+    "currency": "UYU",
+    "shortDescription": "Par de fundas en algodón percal con vivo contrastante. Disponibles en beige, blanco y terracota.",
+    "image": "https://picsum.photos/seed/piuma-fundas-almohadon/800/1000",
+    "alt": "Par de fundas de almohadón en tonos neutros",
+    "featured": false
+  }
+]

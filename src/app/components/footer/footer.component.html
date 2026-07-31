@@ -1,0 +1,32 @@
+<footer class="footer">
+  <div class="footer__inner container">
+    <div class="footer__brand">
+      <a href="#inicio" class="footer__logo">{{ config.brandName }}</a>
+      <p>{{ config.tagline }}.<br />{{ config.city }}</p>
+      <app-social-links [networks]="['instagram', 'whatsapp', 'facebook']" />
+    </div>
+
+    <nav class="footer__nav" aria-label="Enlaces rápidos">
+      <h2 class="footer__heading">Navegación</h2>
+      <ul>
+        @for (link of links; track link.fragment) {
+          <li><a [href]="'#' + link.fragment">{{ link.label }}</a></li>
+        }
+      </ul>
+    </nav>
+
+    <div class="footer__contact">
+      <h2 class="footer__heading">Contacto</h2>
+      <ul>
+        <li>{{ config.whatsappDisplay }}</li>
+        <li><a [href]="'mailto:' + config.email">{{ config.email }}</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer__bottom">
+    <div class="container">
+      <p>© {{ year }} {{ config.brandName }}. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,101 @@
+<section id="contacto" class="contact">
+  <div class="contact__inner container">
+    <div class="contact__intro">
+      <span class="eyebrow">Contacto</span>
+      <h2>Hablemos de tu descanso</h2>
+      <p>
+        Escribinos por WhatsApp para respuestas rápidas sobre medidas, colores y envíos, o dejanos
+        tu mensaje en el formulario y te contestamos por mail.
+      </p>
+
+      <a
+        [href]="whatsappLink"
+        class="btn btn--whatsapp contact__whatsapp"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Escribinos por WhatsApp
+      </a>
+
+      <dl class="contact__details">
+        <div>
+          <dt>WhatsApp</dt>
+          <dd>{{ config.whatsappDisplay }}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd><a [href]="'mailto:' + config.email">{{ config.email }}</a></dd>
+        </div>
+        <div>
+          <dt>Dónde estamos</dt>
+          <dd>{{ config.city }}</dd>
+        </div>
+      </dl>
+
+      <app-social-links [networks]="['instagram', 'whatsapp', 'facebook']" />
+    </div>
+
+    <div class="contact__form-wrap">
+      @if (submitted()) {
+        <div class="contact__success" role="status">
+          <h3>¡Gracias por escribirnos!</h3>
+          <p>
+            Recibimos tu mensaje y te respondemos dentro de las próximas 24 horas hábiles. Si es
+            urgente, escribinos por WhatsApp.
+          </p>
+          <button type="button" class="btn btn--outline" (click)="resetForm()">
+            Enviar otro mensaje
+          </button>
+        </div>
+      } @else {
+        <form class="form" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="form__field">
+            <label for="name">Nombre</label>
+            <input
+              id="name"
+              type="text"
+              formControlName="name"
+              autocomplete="name"
+              [attr.aria-invalid]="isInvalid('name')"
+            />
+            @if (isInvalid('name')) {
+              <p class="form__error">Contanos cómo te llamás (mínimo 2 caracteres).</p>
+            }
+          </div>
+
+          <div class="form__field">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              [attr.aria-invalid]="isInvalid('email')"
+            />
+            @if (isInvalid('email')) {
+              <p class="form__error">Ingresá un email válido para poder responderte.</p>
+            }
+          </div>
+
+          <div class="form__field">
+            <label for="message">Mensaje</label>
+            <textarea
+              id="message"
+              rows="5"
+              formControlName="message"
+              [attr.aria-invalid]="isInvalid('message')"
+            ></textarea>
+            @if (isInvalid('message')) {
+              <p class="form__error">Escribí al menos 10 caracteres.</p>
+            }
+          </div>
+
+          <button type="submit" class="btn btn--primary form__submit">Enviar mensaje</button>
+          <p class="form__note">
+            No compartimos tus datos con nadie. Te escribimos sólo para responder tu consulta.
+          </p>
+        </form>
+      }
+    </div>
+  </div>
+</section>

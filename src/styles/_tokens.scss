@@ -1,0 +1,46 @@
+// =============================================================
+// Piuma — tokens de diseño.
+// Cambiando estos valores cambia toda la identidad visual del sitio.
+// Este archivo emite CSS, así que se importa SOLO desde styles.scss
+// (si lo importara cada componente, el bloque :root se duplicaría).
+// =============================================================
+
+:root {
+  // --- Paleta -------------------------------------------------
+  --color-primary: #b07a5c; // terracota suave (botones, acentos)
+  --color-primary-dark: #8c5e44; // hover / estados activos
+  --color-secondary: #efe6da; // beige (fondos de sección alternos)
+  --color-accent: #c9a68c; // terracota claro (detalles, bordes suaves)
+
+  --color-bg: #fbf8f4; // blanco roto (fondo general)
+  --color-surface: #ffffff; // tarjetas y superficies elevadas
+  --color-text: #2f2c29; // gris oscuro (texto principal)
+  --color-text-muted: #6e6862; // texto secundario
+  --color-border: #e5dcd2;
+
+  --color-success: #4f7a5b;
+  --color-error: #a2503f;
+
+  // --- Tipografía ---------------------------------------------
+  --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  // --- Espaciado ----------------------------------------------
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2.5rem;
+  --space-xl: 4rem;
+  --section-padding-y: clamp(3.5rem, 8vw, 6.5rem);
+
+  // --- Layout -------------------------------------------------
+  --container-max: 1200px;
+  --header-height: 68px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --shadow-sm: 0 1px 3px rgba(47, 44, 41, 0.06);
+  --shadow-md: 0 8px 24px rgba(47, 44, 41, 0.08);
+  --transition: 200ms ease;
+}
