@@ -3,17 +3,84 @@
     <span class="eyebrow catalog__eyebrow">Catálogo</span>
     <h2 class="section-title">Nuestra colección</h2>
     <p class="section-subtitle">
-      Piezas pensadas para combinarse entre sí. Consultá disponibilidad, medidas y colores por
-      WhatsApp y te respondemos el mismo día.
+      Elegí la categoría para ver los producto, las medidas y los colores disponibles.
     </p>
 
-    @if (products$ | async; as products) {
-      @if (products.length) {
-        <div class="catalog__grid">
-          @for (product of products; track product.id) {
-            <app-product-card [product]="product" />
+    @if (categories(); as cats) {
+      @if (cats.length) {
+        @if (activeCategory(); as category) {
+          <!-- Nivel 1 como tabs, para saltar de categoría sin volver atrás. -->
+          <div class="tabs" role="tablist" aria-label="Categorías del catálogo">
+            @for (item of cats; track item.id) {
+              <button
+                type="button"
+                role="tab"
+                class="tabs__tab"
+                [class.tabs__tab--active]="item.id === category.id"
+                [attr.aria-selected]="item.id === category.id"
+                (click)="openCategory(item.id)"
+              >
+                {{ item.name }}
+              </button>
+            }
+          </div>
+
+          @if (activeType(); as type) {
+            <!-- Nivel 3 -->
+            <app-product-detail
+              [type]="type"
+              [categoryName]="category.name"
+              (back)="backToTypes()"
+            />
+          } @else {
+            <!-- Nivel 2 -->
+            <div class="grid grid--types">
+              @for (type of category.types; track type.id) {
+                <button type="button" class="type-card" (click)="openType(type.id)">
+                  <span class="type-card__media">
+                    <img [src]="type.image" [alt]="type.alt" loading="lazy" width="800" height="1000" />
+                  </span>
+                  <span class="type-card__body">
+                    <span class="type-card__name">{{ type.name }}</span>
+                    @if (type.material; as material) {
+                      <span class="type-card__material">{{ material }}</span>
+                    }
+                    <span class="type-card__meta">{{ variantCountLabel(type) }}</span>
+                    <span class="type-card__price">
+                      <span class="type-card__price-label">Desde</span>
+                      {{ formatPriceFrom(type) }}
+                    </span>
+                  </span>
+                </button>
+              }
+            </div>
+
+            <button type="button" class="catalog__back" (click)="backToCategories()">
+              <span aria-hidden="true">←</span> Todas las categorías
+            </button>
           }
-        </div>
+        } @else {
+          <!-- Nivel 1: entrada al catálogo -->
+          <div class="grid grid--categories">
+            @for (category of cats; track category.id) {
+              <button type="button" class="category-card" (click)="openCategory(category.id)">
+                <span class="category-card__media">
+                  <img
+                    [src]="category.image"
+                    [alt]="category.alt"
+                    loading="lazy"
+                    width="800"
+                    height="1000"
+                  />
+                </span>
+                <span class="category-card__body">
+                  <span class="category-card__name">{{ category.name }}</span>
+                  <span class="category-card__meta">{{ typeCountLabel(category) }}</span>
+                </span>
+              </button>
+            }
+          </div>
+        }
       } @else {
         <p class="catalog__empty">
           No pudimos cargar el catálogo en este momento. Escribinos por WhatsApp y te contamos qué
@@ -22,6 +89,12 @@
       }
     } @else {
       <p class="catalog__empty">Cargando catálogo…</p>
+    }
+
+    @if (categories(); as cats) {
+      @if (cats.length) {
+        <app-size-guide [categories]="cats" [activeCategory]="activeCategory()" />
+      }
     }
   </div>
 </section>

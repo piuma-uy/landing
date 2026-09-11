@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SITE_CONFIG } from '../core/site-config';
+import { Variant } from '../models/catalog.model';
 
 /**
  * Arma los links de wa.me. El número sale de SITE_CONFIG.whatsappNumber.
@@ -17,10 +18,15 @@ export class WhatsappService {
     );
   }
 
-  /** Consulta por un producto puntual del catálogo. */
-  productLink(productName: string): string {
+  /**
+   * Consulta con el contexto ya elegido en el catálogo, para que la marca reciba
+   * producto, color y medida sin tener que repreguntar.
+   */
+  variantLink(productName: string, color: string, variant: Variant): string {
     return this.buildLink(
-      `¡Hola ${SITE_CONFIG.brandName}! Quiero consultar sobre "${productName}". ¿Está disponible?`,
+      `¡Hola ${SITE_CONFIG.brandName}! Quiero consultar sobre ${productName}, ` +
+        `color ${color.toLowerCase()}, medida ${variant.size} (${variant.productSize}). ` +
+        `¿Está disponible?`,
     );
   }
 }

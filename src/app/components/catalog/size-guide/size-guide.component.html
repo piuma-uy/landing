@@ -1,0 +1,62 @@
+<section class="guide" aria-labelledby="guia-medidas-titulo">
+  <button
+    type="button"
+    class="guide__toggle"
+    [attr.aria-expanded]="open()"
+    aria-controls="guia-medidas-contenido"
+    (click)="toggle()"
+  >
+    <span class="guide__heading">
+      <span class="guide__eyebrow">Guía de medidas</span>
+      <span id="guia-medidas-titulo" class="guide__title">¿Qué medida necesito?</span>
+    </span>
+    <span class="guide__chevron" [class.guide__chevron--open]="open()" aria-hidden="true"></span>
+  </button>
+
+  <div id="guia-medidas-contenido" class="guide__body" [hidden]="!open()">
+    <p class="guide__intro">
+      Buscá el tamaño de tu cama en la primera columna y mirá cuánto mide cada producto. Todas las
+      medidas están en centímetros.
+    </p>
+
+    <div class="guide__scroll">
+      <table class="guide__table">
+        <caption class="sr-only">
+          Medida de cada producto según el tamaño de la cama
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col" class="guide__col-size">Tamaño</th>
+            <th scope="col" [class.guide__col--active]="highlight() === 'linen'">
+              <span class="guide__col-main">Sábanas</span>
+              <span class="guide__col-sub">y fundas nórdicas Satén y Lino</span>
+            </th>
+            <th scope="col" [class.guide__col--active]="highlight() === 'duvet'">
+              <span class="guide__col-main">Acolchados</span>
+              <span class="guide__col-sub">y funda nórdica Downproof</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.size) {
+            <tr>
+              <th scope="row" class="guide__col-size">
+                <span class="guide__size-name">{{ row.size }}</span>
+                @if (row.bed; as bed) {
+                  <span class="guide__size-bed">cama {{ bed }}</span>
+                }
+              </th>
+              <td [class.guide__col--active]="highlight() === 'linen'">{{ row.linen }}</td>
+              <td [class.guide__col--active]="highlight() === 'duvet'">{{ row.duvet }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="guide__note">
+      <strong>Cubrecamas:</strong> miden igual que los acolchados, salvo el King, que mide
+      300 x 260.
+    </p>
+  </div>
+</section>

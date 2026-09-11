@@ -9,27 +9,184 @@
   text-align: center;
 }
 
-.catalog__grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-sm);
-
-  @media (min-width: v.$bp-sm) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @include from(v.$bp-lg) {
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-md);
-  }
-
-  @include from(v.$bp-xl) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
 .catalog__empty {
   text-align: center;
   color: var(--color-text-muted);
   padding-block: var(--space-lg);
+}
+
+// --- Tabs de categoría (nivel 1 una vez adentro) ----------------
+// En mobile scrollean en horizontal en vez de apilarse y comerse la pantalla.
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: var(--space-md);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @include from(v.$bp-md) {
+    justify-content: center;
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+.tabs__tab {
+  flex: 0 0 auto;
+  padding: 0.55rem 1.1rem;
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  color: var(--color-text);
+  transition: background-color var(--transition), border-color var(--transition),
+    color var(--transition);
+
+  &:hover {
+    border-color: var(--color-accent);
+  }
+
+  &--active {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+  }
+}
+
+// --- Grillas ----------------------------------------------------
+
+.grid {
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: repeat(2, 1fr);
+
+  @include from(v.$bp-lg) {
+    gap: var(--space-md);
+  }
+}
+
+.grid--categories {
+  @include from(v.$bp-md) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.grid--types {
+  @include from(v.$bp-md) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+// --- Tarjetas ---------------------------------------------------
+// Son <button>, así que hay que apagar los estilos nativos.
+
+.category-card,
+.type-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  text-align: left;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  transition: transform var(--transition), box-shadow var(--transition);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.category-card__media,
+.type-card__media {
+  display: block;
+  background-color: var(--color-secondary);
+  aspect-ratio: 4 / 5;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.category-card__body,
+.type-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: var(--space-sm);
+}
+
+.category-card__name {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.category-card__meta,
+.type-card__meta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.type-card__name {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  line-height: 1.25;
+  margin-bottom: 0.15rem;
+}
+
+.type-card__material {
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  color: var(--color-primary);
+  margin-bottom: 0.2rem;
+}
+
+.type-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin-top: auto;
+  padding-top: var(--space-xs);
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+}
+
+.type-card__price-label {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.catalog__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: var(--space-md);
+  padding: 0.5rem 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  transition: color var(--transition);
+
+  &:hover {
+    color: var(--color-primary);
+  }
 }

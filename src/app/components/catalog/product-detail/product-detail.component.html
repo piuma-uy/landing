@@ -1,0 +1,143 @@
+<article class="detail">
+  <button type="button" class="detail__back" (click)="back.emit()">
+    <span aria-hidden="true">←</span> Volver a {{ categoryName() }}
+  </button>
+
+  <div class="detail__grid">
+    <div class="detail__media">
+      <div class="detail__photo">
+        <img [src]="displayedPhoto().src" [alt]="displayedPhoto().alt" width="800" height="1000" />
+        @if (imageIsReference()) {
+          <p class="detail__image-note">
+            Foto de referencia — todavía no tenemos foto propia en {{ activeColor() | lowercase }}.
+          </p>
+        }
+      </div>
+
+      @if (hasGallery()) {
+        <ul class="thumbs" aria-label="Más fotos del producto">
+          @for (photo of photos(); track photo.src; let i = $index) {
+            <li>
+              <button
+                type="button"
+                class="thumbs__item"
+                [class.thumbs__item--active]="i === selectedPhotoIndex()"
+                [attr.aria-current]="i === selectedPhotoIndex()"
+                (click)="selectPhoto(i)"
+              >
+                <img [src]="photo.src" [alt]="photo.alt" loading="lazy" width="800" height="1000" />
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="detail__info">
+      <h3 class="detail__name">{{ type().fullName }}</h3>
+
+      @if (type().material; as material) {
+        <p class="detail__material">{{ material }}</p>
+      }
+
+      <p class="detail__description">{{ type().description }}</p>
+
+      @if (type().includes; as includes) {
+        <p class="detail__includes">{{ includes }}</p>
+      }
+
+      @if (type().longDescription; as paragraphs) {
+        <div class="detail__long">
+          @if (type().longDescriptionTitle; as longTitle) {
+            <h4 class="detail__long-title">{{ longTitle }}</h4>
+          }
+          @for (paragraph of paragraphs; track $index) {
+            <p>{{ paragraph }}</p>
+          }
+        </div>
+      }
+
+      @if (type().features; as features) {
+        <ul class="features">
+          @for (feature of features; track feature) {
+            <li class="features__item">{{ feature }}</li>
+          }
+        </ul>
+      }
+
+      <!-- Selector de medida: el precio se actualiza con lo elegido. -->
+      <fieldset class="selector">
+        <legend class="selector__legend">Medida</legend>
+        <div class="selector__options">
+          @for (option of type().variants; track option.size; let i = $index) {
+            <button
+              type="button"
+              class="chip"
+              [class.chip--active]="i === selectedSizeIndex()"
+              [attr.aria-pressed]="i === selectedSizeIndex()"
+              (click)="selectSize(i)"
+            >
+              <span class="chip__label">{{ option.size }}</span>
+              <span class="chip__size">{{ option.productSize }}</span>
+            </button>
+          }
+        </div>
+        @if (variant().bedSize; as bedSize) {
+          <p class="selector__hint">Para cama de {{ bedSize }}</p>
+        }
+      </fieldset>
+
+      <!-- Sólo los acolchados traen peso; el resto de los productos no muestra este bloque. -->
+      @if (weights().length) {
+        <section class="weights">
+          <h4 class="weights__title">Peso por medida</h4>
+          <table class="weights__table">
+            <tbody>
+              @for (option of weights(); track option.size) {
+                <tr [class.weights__row--active]="option.size === variant().size">
+                  <th scope="row">{{ option.size }}</th>
+                  <td class="weights__size">{{ option.productSize }}</td>
+                  <td class="weights__value">{{ option.weightGrams }} g</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+
+      <!-- Los colores dependen de la medida: no todas las medidas tienen todos los colores. -->
+      <fieldset class="selector">
+        <legend class="selector__legend">Color</legend>
+        <div class="selector__options selector__options--colors">
+          @for (color of availableColors(); track color) {
+            <button
+              type="button"
+              class="swatch"
+              [class.swatch--active]="color === activeColor()"
+              [attr.aria-pressed]="color === activeColor()"
+              [attr.aria-label]="'Color ' + color"
+              (click)="selectColor(color)"
+            >
+              <span class="swatch__dot" [style.background-color]="swatch(color)"></span>
+              <span class="swatch__name">{{ color }}</span>
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <p class="detail__price">{{ formattedPrice() }}</p>
+
+      <a
+        [href]="whatsappLink()"
+        class="btn btn--whatsapp detail__cta"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Consultar por WhatsApp
+        <span class="sr-only">
+          sobre {{ type().fullName }}, color {{ activeColor() }}, medida {{ variant().size }}
+        </span>
+      </a>
+    </div>
+  </div>
+</article>

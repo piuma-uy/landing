@@ -1,0 +1,186 @@
+@use 'variables' as v;
+@use 'mixins' as *;
+
+:host {
+  display: block;
+  margin-top: var(--space-lg);
+}
+
+.guide {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.guide__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  color: var(--color-text);
+
+  @include from(v.$bp-md) {
+    padding: var(--space-md);
+  }
+}
+
+.guide__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.guide__eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.guide__title {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+}
+
+// Chevron dibujado con bordes: evita sumar un SVG por un triangulito.
+.guide__chevron {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  rotate: 45deg;
+  translate: 0 -3px;
+  transition: rotate var(--transition), translate var(--transition);
+
+  &--open {
+    rotate: 225deg;
+    translate: 0 3px;
+  }
+}
+
+.guide__body {
+  padding: 0 var(--space-sm) var(--space-md);
+
+  @include from(v.$bp-md) {
+    padding: 0 var(--space-md) var(--space-md);
+  }
+}
+
+.guide__intro,
+.guide__note {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.guide__intro {
+  margin: 0 0 var(--space-sm);
+}
+
+.guide__note {
+  margin: var(--space-sm) 0 0;
+
+  strong {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+}
+
+// Las 3 columnas entran en un celular de 360px: encabezados en dos renglones,
+// medidas sin "cm" y el nombre del tamaño con la medida de cama debajo. El
+// scroll horizontal queda sólo como red de seguridad para pantallas más angostas.
+.guide__scroll {
+  overflow-x: auto;
+}
+
+.guide__table {
+  width: 100%;
+  min-width: 300px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.88rem;
+
+  th,
+  td {
+    padding: 0.6rem 0.5rem;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--color-border);
+
+    @include from(v.$bp-md) {
+      padding: 0.7rem 1rem;
+    }
+  }
+
+  thead th {
+    vertical-align: bottom;
+    font-family: var(--font-body);
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  tbody td {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text);
+  }
+
+  tbody tr:last-child th,
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+.guide__col-size {
+  width: 36%;
+
+  @include from(v.$bp-md) {
+    width: 30%;
+  }
+}
+
+.guide__col-main {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.guide__col-sub {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.guide__size-name {
+  display: block;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.guide__size-bed {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
+// Columna de la categoría abierta: si estás en Sábanas se resalta la de sábanas.
+.guide__col--active {
+  background-color: var(--color-secondary);
+
+  .guide__col-main {
+    color: var(--color-primary);
+  }
+}

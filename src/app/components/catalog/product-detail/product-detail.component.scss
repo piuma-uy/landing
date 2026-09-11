@@ -1,0 +1,351 @@
+@use 'variables' as v;
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+.detail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: var(--space-sm);
+  padding: 0.5rem 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  transition: color var(--transition);
+
+  &:hover {
+    color: var(--color-primary);
+  }
+}
+
+.detail__grid {
+  display: grid;
+  gap: var(--space-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+
+  @include from(v.$bp-md) {
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+}
+
+.detail__media {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail__photo {
+  position: relative;
+  background-color: var(--color-secondary);
+  aspect-ratio: 4 / 5;
+  flex: 1;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+// Miniaturas: fila con scroll horizontal en mobile, así nunca empujan el contenido.
+.thumbs {
+  display: flex;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.thumbs__item {
+  flex: 0 0 auto;
+  width: 60px;
+  height: 75px;
+  padding: 0;
+  overflow: hidden;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity var(--transition), border-color var(--transition);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &--active {
+    opacity: 1;
+    border-color: var(--color-primary);
+  }
+}
+
+// Aviso de que la foto no corresponde al color elegido.
+.detail__image-note {
+  position: absolute;
+  inset: auto 0 0;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(47, 44, 41, 0.72);
+  color: var(--color-secondary);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.detail__info {
+  padding: 0 var(--space-sm) var(--space-md);
+
+  @include from(v.$bp-md) {
+    padding: var(--space-lg);
+  }
+}
+
+.detail__name {
+  margin-bottom: 0.25rem;
+}
+
+.detail__material {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+}
+
+.detail__description {
+  color: var(--color-text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.detail__includes {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.detail__long-title {
+  font-family: var(--font-heading);
+  font-size: 1.02rem;
+  line-height: 1.35;
+  margin-bottom: 0.5rem;
+}
+
+.detail__long {
+  margin-bottom: var(--space-sm);
+
+  p {
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0 0 var(--space-md);
+  padding: 0;
+}
+
+.features__item {
+  padding: 0.3rem 0.7rem;
+  background-color: var(--color-secondary);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: var(--color-text);
+}
+
+// --- Selectores ------------------------------------------------
+
+.selector {
+  margin: 0 0 var(--space-md);
+  padding: 0;
+  border: 0;
+}
+
+.selector__legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.selector__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.selector__hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.5rem 0.85rem;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  transition: border-color var(--transition), background-color var(--transition);
+
+  &:hover {
+    border-color: var(--color-accent);
+  }
+
+  &--active {
+    border-color: var(--color-primary);
+    background-color: var(--color-secondary);
+  }
+}
+
+.chip__label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.chip__size {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
+// --- Peso por medida ---------------------------------------------
+// Bloque propio, fuera del selector: el peso es información de referencia,
+// no algo que se elija, y dentro del chip agrandaba los botones.
+.weights {
+  margin: 0 0 var(--space-md);
+}
+
+.weights__title {
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.weights__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th,
+  td {
+    padding: 0.4rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  tr:last-child th,
+  tr:last-child td {
+    border-bottom: 0;
+  }
+
+  th {
+    font-weight: 500;
+    color: var(--color-text);
+  }
+}
+
+.weights__size {
+  color: var(--color-text-muted);
+}
+
+.weights__value {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+// Resalta la fila de la medida elegida, para atar la tabla al selector de arriba.
+.weights__row--active {
+  background-color: var(--color-secondary);
+
+  .weights__value {
+    color: var(--color-primary);
+  }
+}
+
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-text);
+  transition: border-color var(--transition), background-color var(--transition);
+
+  &:hover {
+    border-color: var(--color-accent);
+  }
+
+  &--active {
+    border-color: var(--color-primary);
+    background-color: var(--color-secondary);
+  }
+}
+
+.swatch__dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  // Borde propio: sin él, el swatch blanco desaparece sobre el fondo claro.
+  border: 1px solid rgba(47, 44, 41, 0.18);
+}
+
+.detail__price {
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  margin: 0 0 var(--space-sm);
+}
+
+.detail__cta {
+  width: 100%;
+
+  @include from(v.$bp-md) {
+    width: auto;
+  }
+}
