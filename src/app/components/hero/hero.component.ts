@@ -15,6 +15,5 @@ export class HeroComponent {
   readonly config = SITE_CONFIG;
   readonly whatsappLink = this.whatsapp.generalLink();
 
-  /** Placeholder: reemplazar por assets/images/hero.jpg cuando estén las fotos reales. */
-  readonly heroImage = 'https://picsum.photos/seed/piuma-hero/1200/1400';
+  readonly heroImage = 'assets/images/hero-piuma.webp';
 }

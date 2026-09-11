@@ -8,21 +8,20 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   styleUrl: './about.component.scss',
 })
 export class AboutComponent {
-  /** Placeholder: reemplazar por assets/images/about.jpg. */
-  readonly image = 'https://picsum.photos/seed/piuma-about/900/1100';
+  readonly image = 'assets/images/sobre-nosotros-piuma.webp';
 
   readonly values = [
     {
-      title: 'Materiales honestos',
-      text: 'Trabajamos con algodón peinado y lino europeo, sin mezclas sintéticas que acorten la vida de la pieza.',
+      title: 'Más de 20 años',
+      text: 'Dos décadas en el rubro textil para el hogar, con la misma gente atendiendo del otro lado.',
     },
     {
-      title: 'Diseño sereno',
-      text: 'Una paleta neutra y cálida, pensada para que todo combine y el dormitorio se sienta en calma.',
+      title: '100% algodón',
+      text: 'Toda la línea es de algodón puro, salvo la funda nórdica de lino, que combina 55% lino y 45% algodón.',
     },
     {
-      title: 'Confort que dura',
-      text: 'Terminaciones reforzadas y tejidos que mejoran con cada lavado en lugar de desgastarse.',
+      title: 'Empresa familiar',
+      text: 'Elegimos cada tela nosotros mismos y respondemos personalmente cada consulta.',
     },
   ];
 }

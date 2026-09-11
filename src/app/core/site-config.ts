@@ -1,6 +1,6 @@
 /**
  * Configuración central de la marca.
- * Todo lo que cambia al pasar de placeholder a datos reales vive acá.
+ * Datos tomados del catálogo oficial 2026 (brand-assets/info/catalogo-2026-marzo.pdf).
  */
 export const SITE_CONFIG = {
   brandName: 'Piuma',
@@ -8,15 +8,17 @@ export const SITE_CONFIG = {
 
   /**
    * Número de WhatsApp en formato internacional, SOLO DÍGITOS (sin +, espacios ni guiones).
-   * Ejemplo actual: +598 99 999 999 → '59899999999'
+   * El catálogo lista otros dos contactos: 092 090 406 y 099 619 407.
    */
-  whatsappNumber: '59899999999',
+  whatsappNumber: '59891345454',
   /** Versión legible del mismo número, para mostrar en pantalla. */
-  whatsappDisplay: '+598 99 999 999',
+  whatsappDisplay: '091 345 454',
 
-  email: 'hola@piuma.uy',
-  instagramUrl: 'https://instagram.com/piuma',
+  email: 'distrifotosrl@gmail.com',
+  instagramUrl: 'https://instagram.com/piuma_uy',
+  // TODO: URL inventada — el catálogo sólo menciona Instagram. Confirmar si Piuma tiene
+  // Facebook; si no, sacar 'facebook' de los [networks] en contact y footer.
   facebookUrl: 'https://facebook.com/piuma',
 
-  city: 'Montevideo, Uruguay',
+  city: 'Barra de Carrasco, Montevideo, Uruguay',
 } as const;
