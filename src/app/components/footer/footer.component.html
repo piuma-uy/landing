@@ -1,7 +1,15 @@
 <footer class="footer">
   <div class="footer__inner container">
     <div class="footer__brand">
-      <a href="#inicio" class="footer__logo">{{ config.brandName }}</a>
+      <a href="#inicio" class="footer__logo">
+        <img
+          src="assets/images/logo/logo-piuma-blanco.webp"
+          [alt]="config.brandName + ' — ropa de cama'"
+          width="600"
+          height="316"
+          loading="lazy"
+        />
+      </a>
       <p>{{ config.tagline }}.<br />{{ config.city }}</p>
       <app-social-links [networks]="['instagram', 'whatsapp', 'facebook']" />
     </div>

@@ -28,12 +28,21 @@
   min-height: var(--header-height);
 }
 
+// El logo es vertical (pluma sobre el nombre), así que se limita por altura
+// para que entre en la barra sin empujarla.
 .logo {
-  font-family: var(--font-heading);
-  font-size: 1.65rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+
+  img {
+    height: 38px;
+    width: auto;
+
+    @include from(v.$bp-md) {
+      height: 46px;
+    }
+  }
 }
 
 .header__toggle {
