@@ -6,10 +6,16 @@
   <div class="detail__grid">
     <div class="detail__media">
       <div class="detail__photo">
-        <img [src]="displayedPhoto().src" [alt]="displayedPhoto().alt" width="800" height="1000" />
+        <img
+          [src]="displayedPhoto().src"
+          [alt]="displayedPhoto().alt"
+          width="800"
+          height="1000"
+        />
         @if (imageIsReference()) {
           <p class="detail__image-note">
-            Foto de referencia — todavía no tenemos foto propia en {{ activeColor() | lowercase }}.
+            Foto de referencia — todavía no tenemos foto propia en
+            {{ activeColor() | lowercase }}.
           </p>
         }
       </div>
@@ -25,7 +31,13 @@
                 [attr.aria-current]="i === selectedPhotoIndex()"
                 (click)="selectPhoto(i)"
               >
-                <img [src]="photo.src" [alt]="photo.alt" loading="lazy" width="800" height="1000" />
+                <img
+                  [src]="photo.src"
+                  [alt]="photo.alt"
+                  loading="lazy"
+                  width="800"
+                  height="1000"
+                />
               </button>
             </li>
           }
@@ -34,7 +46,9 @@
     </div>
 
     <div class="detail__info">
-      <h3 class="detail__name">{{ type().fullName }}</h3>
+      <h3 class="detail__name">
+        {{ selectedProduct()?.name ?? type().fullName }}
+      </h3>
 
       @if (type().material; as material) {
         <p class="detail__material">{{ material }}</p>
@@ -94,7 +108,9 @@
           <table class="weights__table">
             <tbody>
               @for (option of weights(); track option.size) {
-                <tr [class.weights__row--active]="option.size === variant().size">
+                <tr
+                  [class.weights__row--active]="option.size === variant().size"
+                >
                   <th scope="row">{{ option.size }}</th>
                   <td class="weights__size">{{ option.productSize }}</td>
                   <td class="weights__value">{{ option.weightGrams }} g</td>
@@ -118,7 +134,10 @@
               [attr.aria-label]="'Color ' + color"
               (click)="selectColor(color)"
             >
-              <span class="swatch__dot" [style.background-color]="swatch(color)"></span>
+              <span
+                class="swatch__dot"
+                [style.background-color]="swatch(color)"
+              ></span>
               <span class="swatch__name">{{ color }}</span>
             </button>
           }
@@ -127,17 +146,37 @@
 
       <p class="detail__price">{{ formattedPrice() }}</p>
 
-      <a
-        [href]="whatsappLink()"
-        class="btn btn--whatsapp detail__cta"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Consultar por WhatsApp
-        <span class="sr-only">
-          sobre {{ type().fullName }}, color {{ activeColor() }}, medida {{ variant().size }}
-        </span>
-      </a>
+      @if (shop.enabled) {
+        <p class="detail__stock">
+          {{
+            stock() > 0 ? stock() + " disponibles" : "Sin stock por el momento"
+          }}
+        </p>
+      }
+      <div class="detail__actions">
+        @if (shop.enabled) {
+          <button
+            type="button"
+            class="btn btn--primary detail__cta"
+            [disabled]="shop.busy() || !sku() || stock() < 1"
+            (click)="shop.add(sku()!)"
+          >
+            Agregar al carrito
+          </button>
+        }
+        <a
+          [href]="whatsappLink()"
+          class="btn btn--whatsapp detail__cta"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Consultar por WhatsApp
+          <span class="sr-only">
+            sobre {{ type().fullName }}, color {{ activeColor() }}, medida
+            {{ variant().size }}
+          </span>
+        </a>
+      </div>
     </div>
   </div>
 </article>

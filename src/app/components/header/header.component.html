@@ -1,6 +1,14 @@
-<header class="header" [class.header--scrolled]="scrolled()">
+<header
+  class="header"
+  [class.header--scrolled]="scrolled()"
+  [class.header--commerce]="shop.enabled"
+>
   <div class="header__inner container">
-    <a href="#inicio" class="logo" (click)="closeMenu()">
+    <a
+      href="#inicio"
+      class="logo"
+      (click)="closeMenu(); shop.section('inicio')"
+    >
       <img
         src="assets/images/logo/logo-piuma-terracota.webp"
         [alt]="config.brandName + ' — ropa de cama'"
@@ -20,15 +28,56 @@
       <span class="header__toggle-bar" [class.is-open]="menuOpen()"></span>
     </button>
 
-    <nav id="nav-principal" class="nav" [class.nav--open]="menuOpen()" aria-label="Navegación principal">
+    <nav
+      id="nav-principal"
+      class="nav"
+      [class.nav--open]="menuOpen()"
+      aria-label="Navegación principal"
+    >
       <ul class="nav__list">
         @for (link of navLinks; track link.fragment) {
           <li>
-            <a class="nav__link" [href]="'#' + link.fragment" (click)="closeMenu()">{{ link.label }}</a>
+            <a
+              class="nav__link"
+              [href]="'#' + link.fragment"
+              (click)="closeMenu(); shop.section(link.fragment)"
+              >{{ link.label }}</a
+            >
           </li>
         }
+        @if (shop.enabled) {
+          <li>
+            <button
+              class="nav__link nav__button"
+              (click)="closeMenu(); shop.open('cart')"
+            >
+              Carrito ({{ shop.cartCount() }})
+            </button>
+          </li>
+          <li>
+            <button
+              class="nav__link nav__button"
+              (click)="closeMenu(); shop.open('account')"
+            >
+              {{ shop.user() ? "Mi cuenta" : "Ingresar" }}
+            </button>
+          </li>
+          @if (shop.user()?.admin) {
+            <li>
+              <button
+                class="nav__link nav__button"
+                (click)="closeMenu(); shop.open('admin')"
+              >
+                Administrar
+              </button>
+            </li>
+          }
+        }
       </ul>
-      <app-social-links class="nav__social" [networks]="['instagram', 'whatsapp']" />
+      <app-social-links
+        class="nav__social"
+        [networks]="['instagram', 'whatsapp']"
+      />
     </nav>
   </div>
 </header>

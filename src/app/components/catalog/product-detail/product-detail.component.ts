@@ -6,21 +6,32 @@ import {
   input,
   output,
   signal,
-} from '@angular/core';
-import { LowerCasePipe } from '@angular/common';
-import { Photo, ProductType, Variant } from '../../../models/catalog.model';
-import { WhatsappService } from '../../../services/whatsapp.service';
-import { swatchFor } from '../../../core/color-swatches';
+} from "@angular/core";
+import { LowerCasePipe } from "@angular/common";
+import { Photo, ProductType, Variant } from "../../../models/catalog.model";
+import { WhatsappService } from "../../../services/whatsapp.service";
+import { CommerceService } from "../../../commerce/commerce.service";
+import { swatchFor } from "../../../core/color-swatches";
 
 @Component({
-  selector: 'app-product-detail',
+  selector: "app-product-detail",
   standalone: true,
   imports: [LowerCasePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './product-detail.component.html',
-  styleUrl: './product-detail.component.scss',
+  templateUrl: "./product-detail.component.html",
+  styleUrl: "./product-detail.component.scss",
 })
 export class ProductDetailComponent {
+  readonly shop = inject(CommerceService);
+  readonly sku = computed(
+    () => this.variant().skuByColor?.[this.activeColor()],
+  );
+  readonly selectedProduct = computed(() =>
+    this.shop.products()?.find((p) => p.sku === this.sku()),
+  );
+  readonly stock = computed(
+    () => this.variant().stockByColor?.[this.activeColor()] ?? 0,
+  );
   private readonly whatsapp = inject(WhatsappService);
 
   readonly type = input.required<ProductType>();
@@ -32,7 +43,9 @@ export class ProductDetailComponent {
   /** Color elegido por el usuario. Puede no existir en la medida activa: ver activeColor(). */
   private readonly pickedColor = signal<string | null>(null);
 
-  readonly variant = computed<Variant>(() => this.type().variants[this.selectedSizeIndex()]);
+  readonly variant = computed<Variant>(
+    () => this.type().variants[this.selectedSizeIndex()],
+  );
 
   readonly availableColors = computed(() => this.variant().colors);
 
@@ -91,15 +104,23 @@ export class ProductDetailComponent {
   });
 
   readonly formattedPrice = computed(() =>
-    new Intl.NumberFormat('es-UY', {
-      style: 'currency',
+    new Intl.NumberFormat("es-UY", {
+      style: "currency",
       currency: this.type().currency,
       maximumFractionDigits: 0,
-    }).format(this.variant().price),
+    }).format(
+      this.shop.enabled
+        ? (this.variant().priceByColor?.[this.activeColor()] ?? 0) / 100
+        : this.variant().price,
+    ),
   );
 
   readonly whatsappLink = computed(() =>
-    this.whatsapp.variantLink(this.type().fullName, this.activeColor(), this.variant()),
+    this.whatsapp.variantLink(
+      this.type().fullName,
+      this.activeColor(),
+      this.variant(),
+    ),
   );
 
   // Cambiar medida o color vuelve a la foto del color: si no, quedaría abierta una

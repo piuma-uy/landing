@@ -1,5 +1,5 @@
-@use 'variables' as v;
-@use 'mixins' as *;
+@use "variables" as v;
+@use "mixins" as *;
 
 :host {
   display: block;
@@ -82,7 +82,9 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   opacity: 0.65;
-  transition: opacity var(--transition), border-color var(--transition);
+  transition:
+    opacity var(--transition),
+    border-color var(--transition);
 
   img {
     width: 100%;
@@ -225,7 +227,9 @@
   cursor: pointer;
   font-family: var(--font-body);
   color: var(--color-text);
-  transition: border-color var(--transition), background-color var(--transition);
+  transition:
+    border-color var(--transition),
+    background-color var(--transition);
 
   &:hover {
     border-color: var(--color-accent);
@@ -316,7 +320,9 @@
   font-family: var(--font-body);
   font-size: 0.85rem;
   color: var(--color-text);
-  transition: border-color var(--transition), background-color var(--transition);
+  transition:
+    border-color var(--transition),
+    background-color var(--transition);
 
   &:hover {
     border-color: var(--color-accent);
@@ -340,6 +346,13 @@
   font-family: var(--font-heading);
   font-size: 1.9rem;
   margin: 0 0 var(--space-sm);
+}
+
+.detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 1rem;
 }
 
 .detail__cta {

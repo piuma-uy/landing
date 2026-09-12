@@ -1,13 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#b07a5c" />
-  <text
-    x="50%"
-    y="54%"
-    dominant-baseline="middle"
-    text-anchor="middle"
-    font-family="Georgia, 'Times New Roman', serif"
-    font-size="40"
-    font-weight="700"
-    fill="#fbf8f4"
-  >P</text>
+  <rect width="64" height="64" rx="14" fill="#fbf8f4" />
+  <path d="M55 9C34 6 12 16 13 35c0 9 9 12 17 8C45 36 49 20 55 9Z" fill="#b07a5c"/>
+  <g fill="none" stroke="#fbf8f4" stroke-width="1.8" stroke-linecap="round">
+    <path d="m23 35 4-16m2 10 7-16m-2 11 10-11M24 35l15-3m-9-4 14-4"/>
+  </g>
+  <path d="M10 55C17 38 32 22 48 14" fill="none" stroke="#895e46" stroke-width="2.5" stroke-linecap="round"/>
 </svg>

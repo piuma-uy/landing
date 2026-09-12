@@ -1,5 +1,5 @@
-@use 'variables' as v;
-@use 'mixins' as *;
+@use "variables" as v;
+@use "mixins" as *;
 
 :host {
   display: block;
@@ -12,7 +12,9 @@
   background-color: rgba(251, 248, 244, 0.92);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid transparent;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 
   &--scrolled {
     border-bottom-color: var(--color-border);
@@ -72,13 +74,15 @@
 
   &::before,
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     left: 0;
     width: 100%;
     height: 100%;
     background-color: currentColor;
-    transition: translate var(--transition), rotate var(--transition);
+    transition:
+      translate var(--transition),
+      rotate var(--transition);
   }
 
   &::before {
@@ -163,5 +167,53 @@
   @include from(v.$bp-md) {
     padding-top: 0;
     border-top: 0;
+  }
+}
+
+.nav__button {
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.header--commerce .nav__list {
+  gap: 1.5rem;
+}
+.header--commerce .nav__list li:first-child {
+  margin-right: 2rem;
+}
+.header--commerce .nav__list li:nth-child(2) {
+  order: 5;
+}
+.header--commerce .nav__list li:nth-child(2) button {
+  border: 1px solid var(--color-border);
+  border-radius: 30px;
+  padding: 0.6rem 1rem;
+}
+.header--commerce .nav__social {
+  display: none;
+}
+@media (max-width: 1050px) {
+  .header--commerce .header__toggle {
+    display: flex;
+  }
+  .header--commerce .nav {
+    display: none;
+    position: absolute;
+    inset: var(--header-height) 0 auto;
+    padding: 1rem 1.5rem;
+    background: var(--color-bg);
+    box-shadow: var(--shadow-md);
+  }
+  .header--commerce .nav.nav--open {
+    display: flex;
+  }
+  .header--commerce .nav__list {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.7rem;
+    width: 100%;
   }
 }

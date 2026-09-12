@@ -4,8 +4,8 @@
       <span class="eyebrow">Contacto</span>
       <h2>Hablemos de tu descanso</h2>
       <p>
-        Escribinos por WhatsApp para respuestas rápidas sobre medidas, colores y envíos, o dejanos
-        tu mensaje en el formulario y te contestamos por mail.
+        Escribinos por WhatsApp sobre medidas, colores y disponibilidad. También
+        podés preparar tu consulta con este formulario.
       </p>
 
       <a
@@ -24,7 +24,9 @@
         </div>
         <div>
           <dt>Email</dt>
-          <dd><a [href]="'mailto:' + config.email">{{ config.email }}</a></dd>
+          <dd>
+            <a [href]="'mailto:' + config.email">{{ config.email }}</a>
+          </dd>
         </div>
         <div>
           <dt>Dónde estamos</dt>
@@ -38,28 +40,42 @@
     <div class="contact__form-wrap">
       @if (submitted()) {
         <div class="contact__success" role="status">
-          <h3>¡Gracias por escribirnos!</h3>
+          <h3>Tu consulta está lista</h3>
           <p>
-            Recibimos tu mensaje y te respondemos dentro de las próximas 24 horas hábiles. Si es
-            urgente, escribinos por WhatsApp.
+            Abrí WhatsApp y confirmá el envío para que recibamos tu mensaje.
           </p>
+          <a
+            class="btn btn--whatsapp"
+            [href]="preparedLink()"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Abrir WhatsApp</a
+          >
           <button type="button" class="btn btn--outline" (click)="resetForm()">
-            Enviar otro mensaje
+            Preparar otra consulta
           </button>
         </div>
       } @else {
-        <form class="form" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <form
+          class="form"
+          [formGroup]="form"
+          (ngSubmit)="onSubmit()"
+          novalidate
+        >
           <div class="form__field">
             <label for="name">Nombre</label>
             <input
               id="name"
               type="text"
               formControlName="name"
+              maxlength="100"
               autocomplete="name"
               [attr.aria-invalid]="isInvalid('name')"
             />
-            @if (isInvalid('name')) {
-              <p class="form__error">Contanos cómo te llamás (mínimo 2 caracteres).</p>
+            @if (isInvalid("name")) {
+              <p class="form__error">
+                Contanos cómo te llamás (mínimo 2 caracteres).
+              </p>
             }
           </div>
 
@@ -69,11 +85,14 @@
               id="email"
               type="email"
               formControlName="email"
+              maxlength="254"
               autocomplete="email"
               [attr.aria-invalid]="isInvalid('email')"
             />
-            @if (isInvalid('email')) {
-              <p class="form__error">Ingresá un email válido para poder responderte.</p>
+            @if (isInvalid("email")) {
+              <p class="form__error">
+                Ingresá un email válido para poder responderte.
+              </p>
             }
           </div>
 
@@ -83,16 +102,19 @@
               id="message"
               rows="5"
               formControlName="message"
+              maxlength="1000"
               [attr.aria-invalid]="isInvalid('message')"
             ></textarea>
-            @if (isInvalid('message')) {
+            @if (isInvalid("message")) {
               <p class="form__error">Escribí al menos 10 caracteres.</p>
             }
           </div>
 
-          <button type="submit" class="btn btn--primary form__submit">Enviar mensaje</button>
+          <button type="submit" class="btn btn--primary form__submit">
+            Preparar consulta
+          </button>
           <p class="form__note">
-            No compartimos tus datos con nadie. Te escribimos sólo para responder tu consulta.
+            La consulta se envía cuando la confirmás en WhatsApp.
           </p>
         </form>
       }

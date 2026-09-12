@@ -1,7 +1,7 @@
 <footer class="footer">
   <div class="footer__inner container">
     <div class="footer__brand">
-      <a href="#inicio" class="footer__logo">
+      <a href="#inicio" class="footer__logo" (click)="shop.section('inicio')">
         <img
           src="assets/images/logo/logo-piuma-blanco.webp"
           [alt]="config.brandName + ' — ropa de cama'"
@@ -18,7 +18,13 @@
       <h2 class="footer__heading">Navegación</h2>
       <ul>
         @for (link of links; track link.fragment) {
-          <li><a [href]="'#' + link.fragment">{{ link.label }}</a></li>
+          <li>
+            <a
+              [href]="'#' + link.fragment"
+              (click)="shop.section(link.fragment)"
+              >{{ link.label }}</a
+            >
+          </li>
         }
       </ul>
     </nav>
@@ -27,7 +33,9 @@
       <h2 class="footer__heading">Contacto</h2>
       <ul>
         <li>{{ config.whatsappDisplay }}</li>
-        <li><a [href]="'mailto:' + config.email">{{ config.email }}</a></li>
+        <li>
+          <a [href]="'mailto:' + config.email">{{ config.email }}</a>
+        </li>
       </ul>
     </div>
   </div>

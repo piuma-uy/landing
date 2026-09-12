@@ -11,3 +11,4 @@ Thumbs.db
 # Es el archivo de trabajo, NO el sitio: lo que la web usa vive en src/assets/images.
 # Se deja fuera de git para no inflar el repo — la copia maestra es Google Drive.
 /brand-assets
+.vercel

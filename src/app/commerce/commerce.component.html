@@ -1,0 +1,582 @@
+@if (shop.enabled) {
+  <p class="preview-label">Tienda de prueba · Sin cobros</p>
+  @if (shop.error() || shop.notice()) {
+    <div
+      class="feedback container"
+      [class.feedback--error]="!!shop.error()"
+      [attr.role]="shop.error() ? 'alert' : 'status'"
+    >
+      {{ shop.error() || shop.notice() }}
+      <button
+        type="button"
+        aria-label="Cerrar mensaje"
+        (click)="shop.error.set(''); shop.notice.set('')"
+      >
+        ×
+      </button>
+    </div>
+  }
+  @if (shop.view() !== "shop") {
+    <section class="commerce container" aria-label="Tienda Piuma">
+      <button type="button" class="text-button" (click)="shop.open('shop')">
+        ← Seguir explorando
+      </button>
+      @switch (shop.view()) {
+        @case ("account") {
+          <div class="account-card panel">
+            <span class="eyebrow">Tu espacio Piuma</span>
+            @if (shop.user(); as user) {
+              <h1>Hola, {{ user.name }}</h1>
+              <p>{{ user.email }}</p>
+              <div class="actions">
+                @if (user.admin) {
+                  <button class="btn btn--primary" (click)="shop.open('admin')">
+                    Administrar
+                  </button>
+                } @else {
+                  <button
+                    class="btn btn--primary"
+                    (click)="shop.open('orders')"
+                  >
+                    Mis pedidos
+                  </button>
+                }
+                <button
+                  class="btn btn--outline"
+                  [disabled]="shop.busy()"
+                  (click)="shop.logout()"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            } @else {
+              <h1>
+                {{ registering() ? "Creá tu cuenta" : "Qué bueno verte" }}
+              </h1>
+              <p class="muted">Guardá tu carrito y seguí tus pedidos.</p>
+              <form (ngSubmit)="submitAccount()" #accountForm="ngForm">
+                @if (registering()) {
+                  <label
+                    >Nombre<input
+                      name="name"
+                      [(ngModel)]="name"
+                      required
+                      maxlength="100"
+                      autocomplete="name"
+                  /></label>
+                }
+                <label
+                  >Correo electrónico<input
+                    name="email"
+                    type="email"
+                    [(ngModel)]="email"
+                    required
+                    email
+                    maxlength="254"
+                    autocomplete="email"
+                /></label>
+                <label
+                  >Contraseña<input
+                    name="password"
+                    type="password"
+                    [(ngModel)]="password"
+                    required
+                    minlength="12"
+                    maxlength="128"
+                    [autocomplete]="
+                      registering() ? 'new-password' : 'current-password'
+                    "
+                /></label>
+                <p class="muted small">Al menos 12 caracteres.</p>
+                <button
+                  class="btn btn--primary wide"
+                  [disabled]="shop.busy() || !accountForm.valid"
+                >
+                  {{
+                    shop.busy()
+                      ? "Un momento…"
+                      : registering()
+                        ? "Crear cuenta"
+                        : "Ingresar"
+                  }}
+                </button>
+              </form>
+              <button
+                class="text-button"
+                (click)="registering.set(!registering()); shop.error.set('')"
+              >
+                {{
+                  registering()
+                    ? "Ya tengo una cuenta"
+                    : "Quiero crear una cuenta"
+                }}
+              </button>
+              <p class="muted small">
+                El ingreso con Google todavía no está disponible.
+              </p>
+            }
+          </div>
+        }
+        @case ("cart") {
+          <span class="eyebrow">Elegido para tu descanso</span>
+          <h1>Tu carrito</h1>
+          @if (shop.completed(); as order) {
+            <div class="panel receipt">
+              <span class="status">Pedido registrado</span>
+              <h2>Gracias por elegir Piuma</h2>
+              <p>
+                Pedido #{{ order.id.slice(0, 8) }} ·
+                {{ shop.money(order.totalMinor, order.currency) }}
+              </p>
+              <div class="payment-note" role="status">
+                <strong>El pago todavía no está disponible.</strong>
+                <p>
+                  Tu pedido quedó pendiente de pago. No se realizó ningún cobro.
+                </p>
+              </div>
+              <div class="actions">
+                <button class="btn btn--primary" (click)="shop.open('orders')">
+                  Ver mis pedidos</button
+                ><button
+                  class="btn btn--outline"
+                  [disabled]="shop.busy()"
+                  (click)="shop.payment(order)"
+                >
+                  Ver estado del pago
+                </button>
+              </div>
+            </div>
+          } @else if (!shop.cart().length) {
+            <div class="panel empty">
+              <h2>Tu próximo descanso empieza acá</h2>
+              <p class="muted">Todavía no agregaste productos al carrito.</p>
+              <button class="btn btn--primary" (click)="shop.open('shop')">
+                Explorar la colección
+              </button>
+            </div>
+          } @else {
+            <div class="cart-layout">
+              <div class="cart-lines">
+                @for (line of shop.cartRows(); track line.sku) {
+                  <article class="cart-line panel">
+                    @if (line.product; as p) {
+                      <img [src]="p.image" [alt]="p.name" />
+                      <div>
+                        <h3>{{ p.name }}</h3>
+                        <p class="muted">{{ p.size }} · {{ p.color }}</p>
+                        <strong>{{
+                          shop.money(p.priceMinor, p.currency)
+                        }}</strong>
+                        <p class="muted small">{{ p.stock }} disponibles</p>
+                      </div>
+                    } @else {
+                      <div>
+                        <h3>Producto no disponible</h3>
+                        <p class="muted">
+                          Retiralo del carrito para continuar.
+                        </p>
+                      </div>
+                    }
+                    <div class="quantity">
+                      <label [for]="'qty-' + line.sku">Cantidad</label
+                      ><input
+                        [id]="'qty-' + line.sku"
+                        type="number"
+                        min="1"
+                        max="20"
+                        [value]="line.quantity"
+                        [disabled]="shop.busy()"
+                        (change)="
+                          shop.quantity(line.sku, +$any($event.target).value)
+                        "
+                      /><button
+                        class="text-button"
+                        [disabled]="shop.busy()"
+                        (click)="shop.quantity(line.sku, 0)"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  </article>
+                }
+              </div>
+              <aside class="panel summary">
+                <form
+                  #checkoutForm="ngForm"
+                  (ngSubmit)="shop.checkout(contactPhone)"
+                >
+                  <span class="eyebrow">Resumen</span>
+                  <h2>
+                    {{
+                      shop.money(shop.quote()?.totalMinor ?? shop.subtotal())
+                    }}
+                  </h2>
+                  <p class="muted small">
+                    Retiro a coordinar. El pago aún no está habilitado.
+                  </p>
+                  @if (shop.user(); as user) {
+                    <p class="small">{{ user.name }} · {{ user.email }}</p>
+                    <label
+                      >Teléfono de contacto<input
+                        name="contactPhone"
+                        type="tel"
+                        [(ngModel)]="contactPhone"
+                        required
+                        pattern="[+0-9 ()-]{6,30}"
+                        autocomplete="tel"
+                    /></label>
+                  }
+                  @if (!shop.user()) {
+                    <p>Ingresá para guardar tu pedido.</p>
+                    <button
+                      type="button"
+                      class="btn btn--primary wide"
+                      (click)="shop.open('account')"
+                    >
+                      Ingresar o crear cuenta
+                    </button>
+                  } @else if (!shop.quote()) {
+                    <button
+                      type="button"
+                      class="btn btn--primary wide"
+                      [disabled]="shop.busy() || !checkoutForm.valid"
+                      (click)="shop.review()"
+                    >
+                      {{ shop.busy() ? "Revisando…" : "Revisar pedido" }}
+                    </button>
+                  } @else {
+                    <p class="small">
+                      Precios y disponibilidad verificados. Al confirmar
+                      reservamos los productos.
+                    </p>
+                    <button
+                      class="btn btn--primary wide"
+                      [disabled]="shop.busy() || !checkoutForm.valid"
+                    >
+                      {{ shop.busy() ? "Guardando…" : "Confirmar pedido" }}
+                    </button>
+                    <p class="muted small">
+                      Este paso no realiza ningún cobro.
+                    </p>
+                  }
+                </form>
+              </aside>
+            </div>
+          }
+        }
+        @case ("orders") {
+          <span class="eyebrow">Tu historia con Piuma</span>
+          <h1>Mis pedidos</h1>
+          @if (!shop.user()) {
+            <div class="panel">
+              <p>Ingresá para ver tus pedidos.</p>
+              <button class="btn btn--primary" (click)="shop.open('account')">
+                Ingresar
+              </button>
+            </div>
+          } @else if (shop.busy()) {
+            <p role="status">Cargando pedidos…</p>
+          } @else if (!shop.orders().length) {
+            <div class="panel empty">
+              <h2>Todavía no hay pedidos</h2>
+              <button class="btn btn--primary" (click)="shop.open('shop')">
+                Ver colección
+              </button>
+            </div>
+          } @else {
+            @for (order of shop.orders().slice().reverse(); track order.id) {
+              <article class="panel order">
+                <header>
+                  <div>
+                    <h2>Pedido #{{ order.id.slice(0, 8) }}</h2>
+                    <p class="muted">
+                      {{ order.createdAt | date: "dd/MM/yyyy HH:mm" }}
+                    </p>
+                  </div>
+                  <span
+                    class="status"
+                    [class.status--cancelled]="order.status === 'cancelled'"
+                    >{{ shop.status(order.status) }}</span
+                  >
+                </header>
+                <ul>
+                  @for (line of order.items; track line.sku) {
+                    <li>
+                      {{ line.quantity }} × {{ line.name }} · {{ line.size }} ·
+                      {{ line.color
+                      }}<strong>{{
+                        shop.money(
+                          line.priceMinor * line.quantity,
+                          order.currency
+                        )
+                      }}</strong>
+                    </li>
+                  }
+                </ul>
+                <div class="order-bottom">
+                  <strong
+                    >Total
+                    {{ shop.money(order.totalMinor, order.currency) }}</strong
+                  >
+                  @if (order.status.startsWith("pending")) {
+                    <button
+                      class="btn btn--outline"
+                      [disabled]="shop.busy()"
+                      (click)="shop.payment(order)"
+                    >
+                      Ir al pago
+                    </button>
+                  }
+                </div>
+                @if (order.cancelReason) {
+                  <p class="muted">
+                    Motivo de cancelación: {{ order.cancelReason }}
+                  </p>
+                }
+              </article>
+            }
+          }
+        }
+        @case ("admin") {
+          <span class="eyebrow">Administración</span>
+          <h1>Tu tienda, en un lugar</h1>
+          @if (!shop.user()?.admin) {
+            <p>No tenés permisos para acceder a esta sección.</p>
+          } @else {
+            <nav class="admin-tabs" aria-label="Secciones de administración">
+              <button
+                [class.active]="adminTab() === 'overview'"
+                (click)="adminTab.set('overview')"
+              >
+                Resumen</button
+              ><button
+                [class.active]="adminTab() === 'products'"
+                (click)="adminTab.set('products')"
+              >
+                Productos y stock
+              </button>
+            </nav>
+            @if (shop.busy()) {
+              <p role="status">Actualizando…</p>
+            }
+            @switch (adminTab()) {
+              @case ("overview") {
+                <div class="metrics">
+                  <article class="panel">
+                    <span class="muted">Ventas cobradas</span
+                    ><strong>{{ shop.money(sales()) }}</strong>
+                  </article>
+                  <article class="panel">
+                    <span class="muted">Pedidos pagados</span
+                    ><strong>{{ paidCount() }}</strong>
+                  </article>
+                  <article class="panel">
+                    <span class="muted">Productos</span
+                    ><strong>{{ productGroups().length }}</strong>
+                  </article>
+                  <article class="panel">
+                    <span class="muted">Variantes activas</span
+                    ><strong>{{ activeCount() }}</strong>
+                  </article>
+                </div>
+                <div class="payment-note">
+                  <strong>Los pagos todavía no están habilitados.</strong>
+                  <p>
+                    Los pedidos pendientes no se cuentan como ventas cobradas.
+                    Podés revisar y actualizar el inventario.
+                  </p>
+                </div>
+              }
+              @case ("products") {
+                <div class="toolbar">
+                  <label
+                    >Buscar producto<input
+                      [(ngModel)]="search"
+                      placeholder="Nombre, medida, color o SKU" /></label
+                  ><button
+                    class="btn btn--primary"
+                    [disabled]="shop.busy()"
+                    (click)="createProduct()"
+                  >
+                    Nuevo producto
+                  </button>
+                </div>
+                @if (editing; as p) {
+                  <form
+                    class="panel product-form"
+                    (ngSubmit)="save()"
+                    #productForm="ngForm"
+                  >
+                    <h2>
+                      {{ p.version ? "Editar producto" : "Nuevo producto" }}
+                    </h2>
+                    <div class="form-grid">
+                      <label
+                        >SKU<input
+                          name="sku"
+                          [(ngModel)]="p.sku"
+                          [readonly]="p.version > 0"
+                          required
+                          pattern="[A-Za-z0-9_-]{1,100}" /></label
+                      ><label
+                        >Nombre<input
+                          name="name"
+                          [(ngModel)]="p.name"
+                          required
+                          maxlength="200" /></label
+                      ><label
+                        >ID de producto<input
+                          name="productId"
+                          [(ngModel)]="p.productId"
+                          required
+                          pattern="[A-Za-z0-9_-]{1,100}" /></label
+                      ><label
+                        >Categoría<input
+                          name="categoryId"
+                          [(ngModel)]="p.categoryId"
+                          required
+                          pattern="[A-Za-z0-9_-]{1,100}" /></label
+                      ><label
+                        >Medida<input
+                          name="size"
+                          [(ngModel)]="p.size"
+                          required
+                          maxlength="100" /></label
+                      ><label
+                        >Color<input
+                          name="color"
+                          [(ngModel)]="p.color"
+                          required
+                          maxlength="100" /></label
+                      ><label
+                        >Precio UYU<input
+                          name="price"
+                          type="number"
+                          [(ngModel)]="price"
+                          required
+                          min="0.01"
+                          max="1000000"
+                          step="0.01" /></label
+                      ><label
+                        >Stock disponible<input
+                          name="stock"
+                          type="number"
+                          [(ngModel)]="p.stock"
+                          required
+                          min="0"
+                          max="1000000"
+                          step="1"
+                      /></label>
+                    </div>
+                    <label
+                      >Descripción<textarea
+                        name="description"
+                        [(ngModel)]="p.description"
+                        maxlength="4000"
+                        rows="3"
+                      ></textarea></label
+                    ><label
+                      >Imagen (ruta assets/ o URL HTTPS)<input
+                        name="image"
+                        [(ngModel)]="p.image"
+                        required
+                        maxlength="500" /></label
+                    ><label class="checkbox"
+                      ><input
+                        name="active"
+                        type="checkbox"
+                        [(ngModel)]="p.active"
+                      />
+                      Visible en el catálogo</label
+                    >
+                    <p class="muted small">
+                      El stock disponible excluye unidades reservadas en
+                      pedidos. Para retirar un producto, desactivá su
+                      visibilidad.
+                    </p>
+                    <div class="actions">
+                      <button
+                        class="btn btn--primary"
+                        [disabled]="shop.busy() || !productForm.valid"
+                      >
+                        Guardar producto</button
+                      ><button
+                        type="button"
+                        class="btn btn--outline"
+                        [disabled]="shop.busy()"
+                        (click)="editing = null"
+                      >
+                        Cerrar edición
+                      </button>
+                    </div>
+                  </form>
+                }
+                @for (group of productGroups(); track group.id) {
+                  @if (group.variants.some(matchesSearch)) {
+                    <details
+                      class="panel product-group"
+                      [open]="!!search"
+                      [attr.data-product-id]="group.id"
+                    >
+                      <summary>
+                        <strong>{{ group.name }}</strong>
+                        <span
+                          >{{ group.variants.length }} variantes ·
+                          {{ group.stock }} unidades disponibles</span
+                        >
+                      </summary>
+                      <div class="table-wrap">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Medida y color</th>
+                              <th>Precio</th>
+                              <th>Stock</th>
+                              <th>Estado</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of group.variants; track p.sku) {
+                              @if (matches(p)) {
+                                <tr>
+                                  <td>
+                                    {{ p.size }} · {{ p.color
+                                    }}<small>{{ p.sku }}</small>
+                                  </td>
+                                  <td>
+                                    {{ shop.money(p.priceMinor, p.currency) }}
+                                  </td>
+                                  <td>{{ p.stock }}</td>
+                                  <td>{{ p.active ? "Visible" : "Oculto" }}</td>
+                                  <td>
+                                    <button
+                                      class="text-button"
+                                      [disabled]="shop.busy()"
+                                      (click)="edit(p)"
+                                    >
+                                      Editar
+                                    </button>
+                                  </td>
+                                </tr>
+                              }
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  }
+                }
+                @if (!productGroups().some(groupMatches)) {
+                  <p class="panel empty">
+                    No encontramos productos con esa búsqueda.
+                  </p>
+                }
+              }
+            }
+          }
+        }
+      }
+    </section>
+  }
+}

@@ -15,6 +15,9 @@
  * (King y Super King no vienen en azul), por eso `colors` vive acá y no en ProductType.
  */
 export interface Variant {
+  skuByColor?: Record<string, string>;
+  priceByColor?: Record<string, number>;
+  stockByColor?: Record<string, number>;
   /** Nombre de la medida: "Queen", "Super King", "50x70"… */
   size: string;
   /** Medida de la cama, ej. "160x200 cm". Ausente cuando la lista de precios no la da. */
