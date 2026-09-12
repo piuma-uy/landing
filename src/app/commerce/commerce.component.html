@@ -135,9 +135,15 @@
                 </p>
               </div>
               <div class="actions">
-                <button class="btn btn--primary" (click)="shop.open('orders')">
-                  Ver mis pedidos</button
-                ><button
+                @if (!shop.user()?.admin) {
+                  <button
+                    class="btn btn--primary"
+                    (click)="shop.open('orders')"
+                  >
+                    Ver mis pedidos
+                  </button>
+                }
+                <button
                   class="btn btn--outline"
                   [disabled]="shop.busy()"
                   (click)="shop.payment(order)"
