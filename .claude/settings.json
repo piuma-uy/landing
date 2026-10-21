@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm ci)", "Bash(npm run:*)", "Bash(npm start:*)", "Bash(npx ng:*)",
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git add:*)", "Bash(git commit:*)",
+      "Bash(git checkout -b:*)", "Bash(git push -u origin feat/:*)", "Bash(gh pr create:*)", "Bash(gh pr view:*)",
+      "Bash(orca:*)"
+    ],
+    "deny": [
+      "Bash(git push origin main:*)", "Bash(git push origin tienda-local:*)", "Bash(git push --force:*)",
+      "Bash(vercel:*)"
+    ]
+  }
+}
