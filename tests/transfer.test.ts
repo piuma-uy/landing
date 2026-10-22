@@ -41,6 +41,10 @@ const settings: Settings = {
   transfer: { enabled: true, instructions, holdHours: 48 },
   contact: { whatsappNumber: "+59899000000" },
   notifications: { whatsappEnabled: true, shopEmail: "hola@piuma.uy" },
+  shipping: {
+    pickup: { enabled: true, details: "" },
+    delivery: { enabled: false, zones: [], freeFromMinor: null },
+  },
   version: 3,
   updatedAt: "2026-10-22T15:00:00.000Z",
   updatedBy: "admin",
@@ -130,6 +134,7 @@ test("settings body is a versioned full replacement with blanks as null", () => 
     },
     contact: { whatsappNumber: null },
     notifications: { whatsappEnabled: false, shopEmail: null },
+    shipping: settings.shipping,
     expectedVersion: 3,
   });
   assert.equal("version" in body, false);

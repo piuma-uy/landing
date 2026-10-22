@@ -10,8 +10,13 @@ se derivan a WhatsApp.
 npm install
 npm start        # http://localhost:4200
 npm run build    # genera dist/piuma-landing/browser
-npm test         # tests unitarios (node --test, requiere Node.js 22.18+ o 24)
+npm test         # typecheck de tests/ + unitarios (node --test, requiere Node.js 22.18+ o 24)
 ```
+
+Los unitarios (`tests/*.test.ts`) cubren la lógica sin Angular: catálogo (`core/catalog-adapter.ts`), carrito
+(`commerce/cart.ts`), login Cognito PKCE (`commerce/cognito.ts`), checkout e `Idempotency-Key`
+(`commerce/checkout.ts`), envíos, transferencia y tarjeta. Los componentes y el flujo completo en navegador (login,
+checkout aprobado/pendiente/rechazado, teléfono y desktop) se prueban con los e2e de `../piuma-backend`.
 
 > Requiere Node.js 20 o superior.
 
