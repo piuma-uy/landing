@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+} from "@angular/core";
+import { Meta } from "@angular/platform-browser";
+import { AnalyticsService } from "./services/analytics.service";
 import { CommerceService } from "./commerce/commerce.service";
 import { CommerceComponent } from "./commerce/commerce.component";
 import { HeaderComponent } from "./components/header/header.component";
@@ -39,5 +46,14 @@ export class AppComponent {
   readonly shop = inject(CommerceService);
   constructor() {
     void this.shop.initialize();
+    const analytics = inject(AnalyticsService);
+    analytics.pageview();
+    analytics.trackWhatsappClicks();
+    // Cuenta, carrito, pedidos y admin se ven en la misma URL pero no son contenido indexable.
+    const meta = inject(Meta);
+    effect(() => {
+      if (this.shop.view() === "shop") meta.removeTag('name="robots"');
+      else meta.updateTag({ name: "robots", content: "noindex" });
+    });
   }
 }

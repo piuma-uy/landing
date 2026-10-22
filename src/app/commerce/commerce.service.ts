@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { RUNTIME_CONFIG } from "./config";
 import { CognitoAuth } from "./cognito";
+import { AnalyticsService } from "../services/analytics.service";
 export interface User {
   id: string;
   email: string;
@@ -66,6 +67,7 @@ export type View = "shop" | "account" | "cart" | "orders" | "admin";
 export class CommerceService {
   readonly config = inject(RUNTIME_CONFIG);
   readonly enabled = this.config.commerceEnabled;
+  private readonly analytics = inject(AnalyticsService);
   // AWS mode (Cognito hosted UI + bearer token); null keeps the local cookie session.
   readonly cognito =
     this.config.auth === "cognito" && this.config.cognito
@@ -240,6 +242,10 @@ export class CommerceService {
     }
   }
   section(fragment: string) {
+    // Con <base href="/">, "#seccion" apunta a "/#seccion": desde una URL del catálogo eso
+    // recargaría la página. Volver antes a "/" lo deja en un salto dentro del mismo documento.
+    if (location.pathname !== "/")
+      history.replaceState(history.state, "", "/" + location.search);
     this.view.set("shop");
     requestAnimationFrame(() =>
       document.getElementById(fragment)?.scrollIntoView({ behavior: "smooth" }),
@@ -333,6 +339,7 @@ export class CommerceService {
           : [...this.cart(), { sku, quantity }],
       );
       this.notice.set("Producto agregado al carrito");
+      this.analytics.event("carrito", { sku });
     });
   }
   async quantity(sku: string, value: number) {
@@ -356,6 +363,7 @@ export class CommerceService {
           items: this.cart(),
         }),
       );
+      this.analytics.event("checkout", { items: this.cartCount() });
     });
   }
   async checkout(phone: string) {

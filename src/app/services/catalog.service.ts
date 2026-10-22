@@ -31,6 +31,10 @@ export class CatalogService {
   getCategories(): Observable<Category[] | undefined> {
     return this.categories;
   }
+  /** El catálogo del JSON: el mismo que scripts/prerender.ts convierte en páginas estáticas. */
+  getPrerendered(): Observable<Category[]> {
+    return this.source;
+  }
   private adapt(source: Category[], products: Product[]): Category[] {
     const categories = new Map<string, Category>();
     for (const p of products) {
