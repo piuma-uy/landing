@@ -322,7 +322,6 @@ export class CommerceService {
     const set = (patch: Partial<NonNullable<typeof current>>) =>
       this.paymentReturn.update((p) => p && { ...p, ...patch });
     set({ checking: true });
-    this.error.set("");
     // A rejected card can continue by transfer when the shop offers it.
     if (!this.paymentMethods())
       this.transfers.paymentMethods().then(
@@ -371,7 +370,7 @@ export class CommerceService {
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
     if (stale) {
-      this.paymentMethods.set(await this.transfers.paymentMethods());
+      this.paymentMethods.set(null);
       void this.followPayment();
     }
   }
