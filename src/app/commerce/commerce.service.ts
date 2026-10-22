@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { RUNTIME_CONFIG } from "./config";
+import { CognitoAuth } from "./cognito";
 export interface User {
   id: string;
   email: string;
@@ -65,6 +66,20 @@ export type View = "shop" | "account" | "cart" | "orders" | "admin";
 export class CommerceService {
   readonly config = inject(RUNTIME_CONFIG);
   readonly enabled = this.config.commerceEnabled;
+  // AWS mode (Cognito hosted UI + bearer token); null keeps the local cookie session.
+  readonly cognito =
+    this.config.auth === "cognito" && this.config.cognito
+      ? new CognitoAuth(
+          this.config.cognito,
+          {
+            fetch: (...args) => fetch(...args),
+            storage: sessionStorage,
+            crypto,
+            now: Date.now,
+          },
+          location.origin,
+        )
+      : null;
   readonly view = signal<View>("shop");
   readonly user = signal<User | null>(null);
   readonly products = signal<Product[] | null>(null);
@@ -105,19 +120,28 @@ export class CommerceService {
     method = "GET",
     body?: unknown,
     headers: Record<string, string> = {},
+    retried = false,
   ): Promise<T> {
+    const token = await this.cognito?.getAccessToken();
     const response = await fetch(this.base + path, {
       method,
-      credentials: "include",
+      credentials: this.cognito ? "omit" : "include",
       headers: {
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: "Bearer " + token } : {}),
         ...headers,
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
-    const data = await response.json();
+    if (response.status === 401 && token && !retried) {
+      // Expired or revoked access token: renew once and repeat (same Idempotency-Key).
+      if (await this.cognito!.refresh())
+        return this.request(path, method, body, headers, true);
+    }
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       if (response.status === 401) {
+        this.cognito?.clear();
         this.user.set(null);
         this.orders.set([]);
         this.adminOrders.set([]);
@@ -160,6 +184,19 @@ export class CommerceService {
   async initialize() {
     if (!this.enabled) return;
     await this.run(async () => {
+      if (this.cognito) {
+        const url = new URL(location.href);
+        if (this.cognito.isCallback(url)) {
+          // Remove code/state from the history before anything can fail or log it.
+          history.replaceState(history.state, "", url.pathname + url.hash);
+          await this.reloadProducts();
+          await this.signedIn(await this.cognito.handleCallback(url));
+          return;
+        }
+        await this.reloadProducts();
+        this.cart.set(this.readGuest());
+        return;
+      }
       await this.reloadProducts();
       const r = await this.request<{ user: User | null }>("/auth/me");
       this.user.set(r.user);
@@ -168,6 +205,13 @@ export class CommerceService {
       else this.cart.set(this.readGuest());
     });
     this.ready.set(true);
+  }
+  /** Cognito mode: leaves the page for the hosted UI (login, signup or Google). */
+  async redirectToLogin(options: { signup?: boolean; provider?: string } = {}) {
+    if (!this.cognito) return;
+    await this.run(async () => {
+      location.assign(await this.cognito!.authorizeUrl(options));
+    });
   }
   async reloadProducts() {
     try {
@@ -224,29 +268,35 @@ export class CommerceService {
         "POST",
         input,
       );
-      this.user.set(r.user);
-      const remote = (await this.request<{ items: Line[] }>("/cart")).items;
-      const merged = new Map(remote.map((l) => [l.sku, l.quantity]));
-      for (const l of this.readGuest())
-        merged.set(l.sku, Math.min(20, (merged.get(l.sku) ?? 0) + l.quantity));
-      if (merged.size > 20) {
-        this.cart.set(remote);
-        this.notice.set(
-          "Ingresaste. Tu carrito anterior tiene prioridad; revisá los productos antes de agregar otros.",
-        );
-      } else {
-        await this.saveCart(
-          [...merged].map(([sku, quantity]) => ({ sku, quantity })),
-        );
-        localStorage.removeItem("piuma-cart");
-      }
-      this.view.set(r.user.admin ? "admin" : "cart");
-      if (r.user.admin) await this.loadAdmin();
+      await this.signedIn(r.user);
     });
+  }
+  // Shared by both modes: keeps the server cart and merges the guest one into it.
+  private async signedIn(user: User) {
+    this.user.set(user);
+    const remote = (await this.request<{ items: Line[] }>("/cart")).items;
+    const merged = new Map(remote.map((l) => [l.sku, l.quantity]));
+    for (const l of this.readGuest())
+      merged.set(l.sku, Math.min(20, (merged.get(l.sku) ?? 0) + l.quantity));
+    if (merged.size > 20) {
+      this.cart.set(remote);
+      this.notice.set(
+        "Ingresaste. Tu carrito anterior tiene prioridad; revisá los productos antes de agregar otros.",
+      );
+    } else {
+      await this.saveCart(
+        [...merged].map(([sku, quantity]) => ({ sku, quantity })),
+      );
+      localStorage.removeItem("piuma-cart");
+    }
+    this.view.set(user.admin ? "admin" : "cart");
+    if (user.admin) await this.loadAdmin();
   }
   async logout() {
     await this.run(async () => {
-      await this.request("/auth/logout", "POST", {});
+      if (this.cognito) {
+        location.assign(await this.cognito.logout());
+      } else await this.request("/auth/logout", "POST", {});
       this.user.set(null);
       this.cart.set([]);
       this.orders.set([]);

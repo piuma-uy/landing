@@ -10,9 +10,38 @@ se derivan a WhatsApp.
 npm install
 npm start        # http://localhost:4200
 npm run build    # genera dist/piuma-landing/browser
+npm test         # tests unitarios (node --test, requiere Node.js 22.18+ o 24)
 ```
 
 > Requiere Node.js 20 o superior.
+
+### Tienda y autenticación (`public/runtime-config.json`)
+
+Por defecto el comercio está apagado (`{"commerceEnabled":false,"apiBaseUrl":""}`). Con `commerceEnabled: true`,
+`auth` elige cómo se inicia sesión:
+
+- `"cookie"` (o ausente): API local de Docker, formulario propio y cookie de sesión (`openapi.local.yaml`).
+- `"cognito"`: API en AWS. Login en la UI alojada de Cognito con code + PKCE S256; el access token queda sólo en
+  memoria y viaja como `Authorization: Bearer`. Al recargar la página hay que volver a ingresar (Cognito recuerda
+  la sesión, así que no pide la contraseña de nuevo).
+
+```json
+{
+  "commerceEnabled": true,
+  "apiBaseUrl": "<api_url>",
+  "auth": "cognito",
+  "cognito": {
+    "loginUrl": "<login_url>",
+    "clientId": "<client_id>",
+    "redirectUri": "https://<origen>/",
+    "logoutUri": "https://<origen>/",
+    "google": false
+  }
+}
+```
+
+Todos son valores públicos (outputs de Terraform); nunca va un secreto. `redirectUri`/`logoutUri` son opcionales
+(por defecto, el origen con `/`) y deben estar registrados en `callback_urls`/`logout_urls` del cliente Cognito.
 
 ## Arquitectura: una sola página con scroll
 
