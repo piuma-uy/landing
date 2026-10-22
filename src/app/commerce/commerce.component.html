@@ -149,37 +149,109 @@
           <span class="eyebrow">Elegido para tu descanso</span>
           <h1>Tu carrito</h1>
           @if (shop.completed(); as order) {
-            <div class="panel receipt">
-              <span class="status">Pedido registrado</span>
-              <h2>Gracias por elegir Piuma</h2>
-              <p>
-                Pedido #{{ order.id.slice(0, 8) }} ·
-                {{ shop.money(order.totalMinor, order.currency) }}
-              </p>
-              <div class="payment-note" role="status">
-                <strong>El pago todavía no está disponible.</strong>
+            @if (order.transfer; as t) {
+              <div class="panel receipt transfer">
+                <span class="status">Pendiente de transferencia</span>
+                <h2>Transferí para confirmar tu pedido</h2>
                 <p>
-                  Tu pedido quedó pendiente de pago. No se realizó ningún cobro.
+                  Reservamos tus productos hasta el
+                  <strong>{{
+                    t.expiresAt | date: "dd/MM/yyyy 'a las' HH:mm"
+                  }}</strong
+                  >. Si la transferencia no llega antes, el pedido se cancela.
+                </p>
+                <div class="transfer-amount">
+                  <span class="muted small">Monto exacto</span>
+                  <strong>{{ shop.money(t.amountMinor, t.currency) }}</strong>
+                  <span class="muted small">Referencia</span>
+                  <strong class="reference">{{ t.reference }}</strong>
+                </div>
+                <dl class="bank-details">
+                  <div>
+                    <dt>Banco</dt>
+                    <dd>{{ t.instructions.bank }}</dd>
+                  </div>
+                  <div>
+                    <dt>Tipo de cuenta</dt>
+                    <dd>{{ t.instructions.accountType }}</dd>
+                  </div>
+                  <div>
+                    <dt>Número de cuenta</dt>
+                    <dd>{{ t.instructions.accountNumber }}</dd>
+                  </div>
+                  <div>
+                    <dt>Titular</dt>
+                    <dd>{{ t.instructions.holder }}</dd>
+                  </div>
+                  <div>
+                    <dt>Moneda</dt>
+                    <dd>{{ t.instructions.currency }}</dd>
+                  </div>
+                </dl>
+                @if (t.instructions.note) {
+                  <p class="muted small">{{ t.instructions.note }}</p>
+                }
+                <p class="small">
+                  Indicá la referencia <strong>{{ t.reference }}</strong> en la
+                  transferencia y mandanos el comprobante.
+                </p>
+                <div class="actions">
+                  @if (whatsappLink(t); as wa) {
+                    <a
+                      class="btn btn--primary wide"
+                      [href]="wa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >Enviar comprobante por WhatsApp</a
+                    >
+                  }
+                  @if (!shop.user()?.admin) {
+                    <button
+                      class="btn btn--outline wide"
+                      (click)="shop.open('orders')"
+                    >
+                      Ver mis pedidos
+                    </button>
+                  }
+                </div>
+                <p class="payment-note" role="status">
+                  Te avisamos por mail cuando confirmemos el pago.
                 </p>
               </div>
-              <div class="actions">
-                @if (!shop.user()?.admin) {
+            } @else {
+              <div class="panel receipt">
+                <span class="status">Pedido registrado</span>
+                <h2>Gracias por elegir Piuma</h2>
+                <p>
+                  Pedido #{{ order.id.slice(0, 8) }} ·
+                  {{ shop.money(order.totalMinor, order.currency) }}
+                </p>
+                <div class="payment-note" role="status">
+                  <strong>El pago todavía no está disponible.</strong>
+                  <p>
+                    Tu pedido quedó pendiente de pago. No se realizó ningún
+                    cobro.
+                  </p>
+                </div>
+                <div class="actions">
+                  @if (!shop.user()?.admin) {
+                    <button
+                      class="btn btn--primary"
+                      (click)="shop.open('orders')"
+                    >
+                      Ver mis pedidos
+                    </button>
+                  }
                   <button
-                    class="btn btn--primary"
-                    (click)="shop.open('orders')"
+                    class="btn btn--outline"
+                    [disabled]="shop.busy()"
+                    (click)="shop.payment(order)"
                   >
-                    Ver mis pedidos
+                    Ver estado del pago
                   </button>
-                }
-                <button
-                  class="btn btn--outline"
-                  [disabled]="shop.busy()"
-                  (click)="shop.payment(order)"
-                >
-                  Ver estado del pago
-                </button>
+                </div>
               </div>
-            </div>
+            }
           } @else if (!shop.cart().length) {
             <div class="panel empty">
               <h2>Tu próximo descanso empieza acá</h2>
@@ -246,7 +318,12 @@
                     }}
                   </h2>
                   <p class="muted small">
-                    Retiro a coordinar. El pago aún no está habilitado.
+                    Retiro a coordinar.
+                    @if (!shop.quote()) {
+                      Elegís la forma de pago al revisar el pedido.
+                    } @else if (!shop.transferEnabled()) {
+                      El pago aún no está habilitado.
+                    }
                   </p>
                   @if (shop.user(); as user) {
                     <p class="small">{{ user.name }} · {{ user.email }}</p>
@@ -283,6 +360,28 @@
                       Precios y disponibilidad verificados. Al confirmar
                       reservamos los productos.
                     </p>
+                    @if (shop.transferEnabled()) {
+                      <fieldset class="pay-options">
+                        <legend>Forma de pago</legend>
+                        <label class="pay-option"
+                          ><input
+                            type="radio"
+                            name="payWith"
+                            value="transfer"
+                            [checked]="shop.payWith() === 'transfer'"
+                            (change)="shop.payWith.set('transfer')"
+                          />
+                          <span
+                            >Transferencia bancaria<small
+                              >Te mostramos los datos al confirmar. Reservamos
+                              tu pedido por
+                              {{ shop.paymentMethods()?.transfer?.holdHours }}
+                              horas.</small
+                            ></span
+                          ></label
+                        >
+                      </fieldset>
+                    }
                     <button
                       class="btn btn--primary wide"
                       [disabled]="shop.busy() || !checkoutForm.valid"
@@ -290,7 +389,11 @@
                       {{ shop.busy() ? "Guardando…" : "Confirmar pedido" }}
                     </button>
                     <p class="muted small">
-                      Este paso no realiza ningún cobro.
+                      @if (shop.payWith() === "transfer") {
+                        Pagás por transferencia; no se cobra nada en este paso.
+                      } @else {
+                        Este paso no realiza ningún cobro.
+                      }
                     </p>
                   }
                 </form>
@@ -330,7 +433,7 @@
                   <span
                     class="status"
                     [class.status--cancelled]="order.status === 'cancelled'"
-                    >{{ shop.status(order.status) }}</span
+                    >{{ shop.status(order) }}</span
                   >
                 </header>
                 <ul>
@@ -352,7 +455,7 @@
                     >Total
                     {{ shop.money(order.totalMinor, order.currency) }}</strong
                   >
-                  @if (order.status.startsWith("pending")) {
+                  @if (order.status === "pending_payment") {
                     <button
                       class="btn btn--outline"
                       [disabled]="shop.busy()"
@@ -362,6 +465,38 @@
                     </button>
                   }
                 </div>
+                @if (
+                  order.status === "pending_transfer" && order.transfer;
+                  as t
+                ) {
+                  <div class="payment-note">
+                    <p>
+                      Transferí
+                      <strong>{{
+                        shop.money(t.amountMinor, t.currency)
+                      }}</strong>
+                      a {{ t.instructions.bank }}, cuenta
+                      {{ t.instructions.accountType }}
+                      {{ t.instructions.accountNumber }} ({{
+                        t.instructions.holder
+                      }}), con la referencia <strong>{{ t.reference }}</strong
+                      >, antes del
+                      {{ t.expiresAt | date: "dd/MM/yyyy 'a las' HH:mm" }}.
+                    </p>
+                    @if (whatsappLink(t); as wa) {
+                      <a
+                        class="btn btn--outline"
+                        [href]="wa"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Enviar comprobante por WhatsApp</a
+                      >
+                    }
+                    <p class="small">
+                      Te avisamos por mail cuando confirmemos el pago.
+                    </p>
+                  </div>
+                }
                 @if (order.cancelReason) {
                   <p class="muted">
                     Motivo de cancelación: {{ order.cancelReason }}
@@ -380,14 +515,27 @@
             <nav class="admin-tabs" aria-label="Secciones de administración">
               <button
                 [class.active]="adminTab() === 'overview'"
-                (click)="adminTab.set('overview')"
+                (click)="openTab('overview')"
               >
                 Resumen</button
               ><button
                 [class.active]="adminTab() === 'products'"
-                (click)="adminTab.set('products')"
+                (click)="openTab('products')"
               >
-                Productos y stock
+                Productos y stock</button
+              ><button
+                [class.active]="adminTab() === 'transfers'"
+                (click)="openTab('transfers')"
+              >
+                Transferencias por confirmar
+                @if (shop.pendingTransfers().length) {
+                  ({{ shop.pendingTransfers().length }})
+                }</button
+              ><button
+                [class.active]="adminTab() === 'settings'"
+                (click)="openTab('settings')"
+              >
+                Configuración
               </button>
             </nav>
             @if (shop.busy()) {
@@ -414,12 +562,280 @@
                   </article>
                 </div>
                 <div class="payment-note">
-                  <strong>Los pagos todavía no están habilitados.</strong>
-                  <p>
-                    Los pedidos pendientes no se cuentan como ventas cobradas.
-                    Podés revisar y actualizar el inventario.
-                  </p>
+                  @if (shop.settings()?.transfer?.enabled) {
+                    <strong>Transferencia bancaria habilitada.</strong>
+                    <p>
+                      Un pedido cuenta como venta cobrada cuando confirmás su
+                      acreditación en "Transferencias por confirmar".
+                    </p>
+                  } @else {
+                    <strong>Los pagos todavía no están habilitados.</strong>
+                    <p>
+                      Los pedidos pendientes no se cuentan como ventas cobradas.
+                      Podés habilitar la transferencia en Configuración.
+                    </p>
+                  }
                 </div>
+              }
+              @case ("transfers") {
+                <p class="muted">
+                  Pedidos que esperan la transferencia, primero los que vencen
+                  antes. Confirmá sólo después de ver el dinero acreditado en el
+                  banco: una captura del cliente no alcanza.
+                </p>
+                @for (order of shop.pendingTransfers(); track order.id) {
+                  <article
+                    class="panel transfer-row"
+                    [attr.data-reference]="order.transfer?.reference"
+                  >
+                    <header>
+                      <h2>{{ order.transfer?.reference }}</h2>
+                      <strong>{{
+                        shop.money(
+                          order.transfer?.amountMinor ?? order.totalMinor,
+                          order.transfer?.currency ?? order.currency
+                        )
+                      }}</strong>
+                    </header>
+                    <p>
+                      {{ order.contact?.name }} · {{ order.contact?.email }} ·
+                      {{ order.contact?.phone }}
+                    </p>
+                    <p class="muted small">
+                      Vence el
+                      {{
+                        order.transfer?.expiresAt
+                          | date: "dd/MM/yyyy 'a las' HH:mm"
+                      }}
+                      · Pedido del
+                      {{ order.createdAt | date: "dd/MM/yyyy HH:mm" }}
+                    </p>
+                    @if (reviewing()?.id === order.id) {
+                      @if (reviewing()?.action === "confirm") {
+                        <form
+                          class="confirm-step"
+                          #confirmForm="ngForm"
+                          (ngSubmit)="confirmTransfer(order)"
+                        >
+                          <p>
+                            ¿Ya viste acreditados
+                            <strong>{{
+                              shop.money(
+                                order.transfer?.amountMinor ?? order.totalMinor,
+                                order.transfer?.currency ?? order.currency
+                              )
+                            }}</strong>
+                            con la referencia
+                            <strong>{{ order.transfer?.reference }}</strong
+                            >? El pedido pasa a pagado y no se puede deshacer.
+                          </p>
+                          <label
+                            >Referencia del movimiento en el banco<input
+                              name="bankReference"
+                              [(ngModel)]="bankReference"
+                              required
+                              minlength="3"
+                              maxlength="120"
+                              pattern="[A-Za-z0-9._\/\-]+"
+                              autocomplete="off"
+                          /></label>
+                          <div class="actions">
+                            <button
+                              class="btn btn--primary"
+                              [disabled]="shop.busy() || !confirmForm.valid"
+                            >
+                              Sí, confirmar acreditación</button
+                            ><button
+                              type="button"
+                              class="btn btn--outline"
+                              (click)="reviewing.set(null)"
+                            >
+                              Volver
+                            </button>
+                          </div>
+                        </form>
+                      } @else {
+                        <form
+                          class="confirm-step"
+                          #cancelForm="ngForm"
+                          (ngSubmit)="cancelTransfer(order)"
+                        >
+                          <p>
+                            El pedido se cancela y el stock vuelve a estar
+                            disponible.
+                          </p>
+                          <label
+                            >Motivo de cancelación<input
+                              name="cancelReason"
+                              [(ngModel)]="cancelReason"
+                              required
+                              minlength="3"
+                              maxlength="500"
+                          /></label>
+                          <div class="actions">
+                            <button
+                              class="btn btn--primary"
+                              [disabled]="shop.busy() || !cancelForm.valid"
+                            >
+                              Sí, cancelar pedido</button
+                            ><button
+                              type="button"
+                              class="btn btn--outline"
+                              (click)="reviewing.set(null)"
+                            >
+                              Volver
+                            </button>
+                          </div>
+                        </form>
+                      }
+                    } @else {
+                      <div class="actions">
+                        <button
+                          class="btn btn--primary"
+                          [disabled]="shop.busy()"
+                          (click)="review(order, 'confirm')"
+                        >
+                          Confirmar acreditación</button
+                        ><button
+                          class="btn btn--outline"
+                          [disabled]="shop.busy()"
+                          (click)="review(order, 'cancel')"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    }
+                  </article>
+                } @empty {
+                  <p class="panel empty">
+                    No hay transferencias por confirmar.
+                  </p>
+                }
+              }
+              @case ("settings") {
+                @if (draft(); as d) {
+                  <form
+                    class="settings-form"
+                    #settingsForm="ngForm"
+                    (ngSubmit)="saveSettings()"
+                  >
+                    <section class="panel">
+                      <h2>Transferencia bancaria</h2>
+                      <label class="checkbox"
+                        ><input
+                          name="transferEnabled"
+                          type="checkbox"
+                          [(ngModel)]="d.transfer.enabled"
+                        />
+                        Ofrecer transferencia en el checkout</label
+                      >
+                      <p class="muted small">
+                        Para activarla completá banco, tipo y número de cuenta,
+                        titular, moneda y el WhatsApp de Piuma.
+                      </p>
+                      <div class="form-grid">
+                        <label
+                          >Banco<input
+                            name="bank"
+                            [(ngModel)]="d.transfer.instructions.bank"
+                            maxlength="100" /></label
+                        ><label
+                          >Tipo de cuenta<input
+                            name="accountType"
+                            [(ngModel)]="d.transfer.instructions.accountType"
+                            maxlength="60"
+                            placeholder="Caja de ahorro" /></label
+                        ><label
+                          >Número de cuenta<input
+                            name="accountNumber"
+                            [(ngModel)]="d.transfer.instructions.accountNumber"
+                            maxlength="60"
+                            pattern="[0-9A-Za-z .\/\-]*" /></label
+                        ><label
+                          >Titular<input
+                            name="holder"
+                            [(ngModel)]="d.transfer.instructions.holder"
+                            maxlength="120" /></label
+                        ><label
+                          >Moneda<input
+                            name="currency"
+                            [(ngModel)]="d.transfer.instructions.currency"
+                            pattern="([A-Z]{3})?"
+                            placeholder="UYU" /></label
+                        ><label
+                          >Horas de reserva<input
+                            name="holdHours"
+                            type="number"
+                            [(ngModel)]="d.transfer.holdHours"
+                            required
+                            min="1"
+                            max="720"
+                            step="1"
+                        /></label>
+                      </div>
+                      <label
+                        >Nota para el cliente<textarea
+                          name="note"
+                          [(ngModel)]="d.transfer.instructions.note"
+                          maxlength="500"
+                          rows="2"
+                        ></textarea>
+                      </label>
+                    </section>
+                    <section class="panel">
+                      <h2>Contacto y avisos</h2>
+                      <div class="form-grid">
+                        <label
+                          >WhatsApp de Piuma<input
+                            name="whatsappNumber"
+                            type="tel"
+                            [(ngModel)]="d.contact.whatsappNumber"
+                            pattern="\+[1-9][0-9]{7,14}"
+                            placeholder="+59899123456" /></label
+                        ><label
+                          >Mail de Piuma<input
+                            name="shopEmail"
+                            type="email"
+                            [(ngModel)]="d.notifications.shopEmail"
+                            email
+                            maxlength="254"
+                        /></label>
+                      </div>
+                      <p class="muted small">
+                        El WhatsApp recibe los comprobantes: va con código de
+                        país, por ejemplo +59899123456.
+                      </p>
+                      <label class="checkbox"
+                        ><input
+                          name="whatsappEnabled"
+                          type="checkbox"
+                          role="switch"
+                          [(ngModel)]="d.notifications.whatsappEnabled"
+                        />
+                        Avisos por WhatsApp (Meta)</label
+                      >
+                      <p class="muted small">
+                        Si lo apagás, los avisos de venta llegan sólo por mail.
+                      </p>
+                    </section>
+                    <div class="actions">
+                      <button
+                        class="btn btn--primary"
+                        [disabled]="shop.busy() || !settingsForm.valid"
+                      >
+                        Guardar configuración
+                      </button>
+                    </div>
+                    @if (d.updatedAt) {
+                      <p class="muted small">
+                        Último cambio:
+                        {{ d.updatedAt | date: "dd/MM/yyyy HH:mm" }}
+                      </p>
+                    }
+                  </form>
+                } @else {
+                  <p role="status">Cargando configuración…</p>
+                }
               }
               @case ("products") {
                 <div class="toolbar">
