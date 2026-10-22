@@ -31,6 +31,15 @@ import {
   paymentState,
   pollOrder,
 } from "./card";
+import {
+  addUnit,
+  estimateMinor,
+  guestCart,
+  mergeGuest,
+  setQuantity,
+  unitCount,
+} from "./cart";
+import { checkoutAttempt, defaultPayWith, paymentMethodFor } from "./checkout";
 export interface User {
   id: string;
   email: string;
@@ -105,14 +114,8 @@ export interface Quote {
   totalMinor: number;
   currency: string;
 }
-/** Transfer first when the shop has it on, then card; otherwise the unpaid reservation. */
-function defaultPayWith(methods: PaymentMethods): PayWith {
-  return transferOffered(methods)
-    ? "transfer"
-    : cardOffered(methods)
-      ? "card"
-      : "pending";
-}
+const payWithDefault = (methods: PaymentMethods) =>
+  defaultPayWith(transferOffered(methods), cardOffered(methods));
 export type View = "shop" | "account" | "cart" | "orders" | "admin" | "payment";
 @Injectable({ providedIn: "root" })
 export class CommerceService {
@@ -168,9 +171,7 @@ export class CommerceService {
   readonly notice = signal("");
   readonly busy = signal(false);
   readonly ready = signal(false);
-  readonly cartCount = computed(() =>
-    this.cart().reduce((s, l) => s + l.quantity, 0),
-  );
+  readonly cartCount = computed(() => unitCount(this.cart()));
   readonly cartRows = computed(() =>
     this.cart().map((l) => ({
       ...l,
@@ -178,10 +179,7 @@ export class CommerceService {
     })),
   );
   readonly subtotal = computed(() =>
-    this.cartRows().reduce(
-      (s, l) => s + (l.product?.priceMinor ?? 0) * l.quantity,
-      0,
-    ),
+    estimateMinor(this.cart(), this.products()),
   );
   private readonly base = this.config.apiBaseUrl
     .replace(
@@ -390,22 +388,7 @@ export class CommerceService {
     }
   }
   private readGuest(): Line[] {
-    try {
-      const x = JSON.parse(localStorage.getItem("piuma-cart") ?? "[]");
-      return Array.isArray(x)
-        ? x
-            .filter(
-              (l: Line) =>
-                typeof l.sku === "string" &&
-                Number.isInteger(l.quantity) &&
-                l.quantity > 0 &&
-                l.quantity <= 20,
-            )
-            .slice(0, 20)
-        : [];
-    } catch {
-      return [];
-    }
+    return guestCart(localStorage.getItem("piuma-cart"));
   }
   section(fragment: string) {
     // Con <base href="/">, "#seccion" apunta a "/#seccion": desde una URL del catálogo eso
@@ -447,18 +430,14 @@ export class CommerceService {
   private async signedIn(user: User) {
     this.user.set(user);
     const remote = (await this.request<{ items: Line[] }>("/cart")).items;
-    const merged = new Map(remote.map((l) => [l.sku, l.quantity]));
-    for (const l of this.readGuest())
-      merged.set(l.sku, Math.min(20, (merged.get(l.sku) ?? 0) + l.quantity));
-    if (merged.size > 20) {
+    const merged = mergeGuest(remote, this.readGuest());
+    if (!merged) {
       this.cart.set(remote);
       this.notice.set(
         "Ingresaste. Tu carrito anterior tiene prioridad; revisá los productos antes de agregar otros.",
       );
     } else {
-      await this.saveCart(
-        [...merged].map(([sku, quantity]) => ({ sku, quantity })),
-      );
+      await this.saveCart(merged);
       localStorage.removeItem("piuma-cart");
     }
     this.view.set(user.admin ? "admin" : "cart");
@@ -495,35 +474,14 @@ export class CommerceService {
   }
   async add(sku: string) {
     await this.run(async () => {
-      const product = this.products()?.find((p) => p.sku === sku);
-      const existing = this.cart().find((l) => l.sku === sku);
-      const quantity = (existing?.quantity ?? 0) + 1;
-      if (!product || product.stock < quantity)
-        throw new Error("No hay más stock disponible de esta variante");
-      if (quantity > 20 || (!existing && this.cart().length >= 20))
-        throw new Error(
-          "Máximo 20 unidades por variante y 20 variantes por pedido",
-        );
-      await this.saveCart(
-        existing
-          ? this.cart().map((l) => (l.sku === sku ? { sku, quantity } : l))
-          : [...this.cart(), { sku, quantity }],
-      );
+      await this.saveCart(addUnit(this.cart(), this.products(), sku));
       this.notice.set("Producto agregado al carrito");
       this.analytics.event("carrito", { sku });
     });
   }
   async quantity(sku: string, value: number) {
     await this.run(async () => {
-      if (!Number.isInteger(value) || value < 0 || value > 20)
-        throw new Error("Cantidad válida: 0 a 20");
-      await this.saveCart(
-        value
-          ? this.cart().map((l) =>
-              l.sku === sku ? { sku, quantity: value } : l,
-            )
-          : this.cart().filter((l) => l.sku !== sku),
-      );
+      await this.saveCart(setQuantity(this.cart(), sku, value));
     });
   }
   async review() {
@@ -534,7 +492,7 @@ export class CommerceService {
         this.transfers.paymentMethods(),
       ]);
       this.paymentMethods.set(methods);
-      this.payWith.set(defaultPayWith(methods));
+      this.payWith.set(payWithDefault(methods));
       this.quote.set(await this.priceChoice(options));
       this.analytics.event("checkout", { items: this.cartCount() });
     });
@@ -594,29 +552,25 @@ export class CommerceService {
       if (!shipTo) throw new Error("Elegí retiro o envío");
       const payload = {
         items: this.cart(),
-        paymentMethod:
-          this.payWith() === "transfer" && this.transferEnabled()
-            ? "transfer"
-            : this.payWith() === "card" && this.cardEnabled()
-              ? "card"
-              : "pending",
+        paymentMethod: paymentMethodFor(
+          this.payWith(),
+          this.transferEnabled(),
+          this.cardEnabled(),
+        ),
         ...orderFulfillment(shipTo, address),
         contact: { name: this.user()!.name, email: this.user()!.email, phone },
       };
       const fingerprint = JSON.stringify([this.user()!.id, payload]);
-      let attempt: { fingerprint: string; key: string } | null = null;
-      try {
-        attempt = JSON.parse(
-          sessionStorage.getItem("piuma-checkout") ?? "null",
-        );
-      } catch {}
-      if (attempt?.fingerprint !== fingerprint)
-        attempt = { fingerprint, key: crypto.randomUUID() };
+      const attempt = checkoutAttempt(
+        sessionStorage.getItem("piuma-checkout"),
+        fingerprint,
+        () => crypto.randomUUID(),
+      );
       sessionStorage.setItem("piuma-checkout", JSON.stringify(attempt));
       let order: Order;
       try {
         order = await this.request<Order>("/orders", "POST", payload, {
-          "Idempotency-Key": attempt!.key,
+          "Idempotency-Key": attempt.key,
         });
       } catch (e) {
         // Transfer or card switched off meanwhile: refresh the options so the buyer can choose again.
@@ -627,7 +581,7 @@ export class CommerceService {
         ) {
           const methods = await this.transfers.paymentMethods();
           this.paymentMethods.set(methods);
-          this.payWith.set(defaultPayWith(methods));
+          this.payWith.set(payWithDefault(methods));
         }
         await this.shippingChanged(e);
         throw e;

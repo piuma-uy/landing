@@ -484,6 +484,12 @@ details p {
   .commerce {
     padding-top: calc(var(--header-height) + 1rem);
   }
+  // On a phone the message spans the width: at the top it covered "Seguir explorando".
+  .feedback {
+    top: auto;
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+    width: calc(100vw - 2rem);
+  }
 }
 @media (max-width: 480px) {
   .cart-line {
