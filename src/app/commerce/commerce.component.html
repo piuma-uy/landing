@@ -49,6 +49,34 @@
                   Cerrar sesión
                 </button>
               </div>
+            } @else if (shop.cognito) {
+              <h1>Qué bueno verte</h1>
+              <p class="muted">Guardá tu carrito y seguí tus pedidos.</p>
+              <div class="actions">
+                <button
+                  class="btn btn--primary wide"
+                  [disabled]="shop.busy()"
+                  (click)="shop.redirectToLogin()"
+                >
+                  {{ shop.busy() ? "Un momento…" : "Ingresar" }}
+                </button>
+                @if (shop.config.cognito?.google) {
+                  <button
+                    class="btn btn--outline wide"
+                    [disabled]="shop.busy()"
+                    (click)="shop.redirectToLogin({ provider: 'Google' })"
+                  >
+                    Continuar con Google
+                  </button>
+                }
+              </div>
+              <button
+                class="text-button"
+                [disabled]="shop.busy()"
+                (click)="shop.redirectToLogin({ signup: true })"
+              >
+                Quiero crear una cuenta
+              </button>
             } @else {
               <h1>
                 {{ registering() ? "Creá tu cuenta" : "Qué bueno verte" }}
