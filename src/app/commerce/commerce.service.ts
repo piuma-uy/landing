@@ -2,6 +2,16 @@ import { Injectable, computed, inject, signal } from "@angular/core";
 import { RUNTIME_CONFIG } from "./config";
 import { CognitoAuth } from "./cognito";
 import { AnalyticsService } from "../services/analytics.service";
+import {
+  ApiError,
+  OrderTransfer,
+  PaymentMethods,
+  SETTINGS_CONFLICT,
+  Settings,
+  TransferApi,
+  statusLabel,
+  transferOffered,
+} from "./transfer";
 export interface User {
   id: string;
   email: string;
@@ -43,8 +53,12 @@ export interface Order {
   paymentMethod: string;
   status: string;
   createdAt: string;
+  cancelledBy?: string;
   cancelReason?: string;
+  transfer?: OrderTransfer;
 }
+/** "pending" keeps the order reserved without a payment method (nothing to charge yet). */
+export type PayWith = "transfer" | "pending";
 export interface Metric {
   month: string;
   paidOrders: number;
@@ -89,6 +103,13 @@ export class CommerceService {
   readonly orders = signal<Order[]>([]);
   readonly adminProducts = signal<Product[]>([]);
   readonly adminOrders = signal<Order[]>([]);
+  readonly pendingTransfers = signal<Order[]>([]);
+  readonly settings = signal<Settings | null>(null);
+  readonly paymentMethods = signal<PaymentMethods | null>(null);
+  readonly payWith = signal<PayWith>("pending");
+  readonly transferEnabled = computed(() =>
+    transferOffered(this.paymentMethods()),
+  );
   readonly metrics = signal<Metric[]>([]);
   readonly quote = signal<Quote | null>(null);
   readonly completed = signal<Order | null>(null);
@@ -149,15 +170,22 @@ export class CommerceService {
         this.adminOrders.set([]);
         this.adminProducts.set([]);
         this.metrics.set([]);
+        this.pendingTransfers.set([]);
+        this.settings.set(null);
       }
-      throw new Error(
+      throw new ApiError(
         data.error?.message ??
           data.message ??
           "No se pudo completar la operación",
+        response.status,
+        data.error?.code,
       );
     }
     return data;
   }
+  private readonly transfers = new TransferApi((path, method, body) =>
+    this.request(path, method, body),
+  );
   private async pages<T>(path: string): Promise<T[]> {
     const rows: T[] = [];
     let cursor: string | undefined;
@@ -309,6 +337,9 @@ export class CommerceService {
       this.adminOrders.set([]);
       this.adminProducts.set([]);
       this.metrics.set([]);
+      this.pendingTransfers.set([]);
+      this.settings.set(null);
+      this.paymentMethods.set(null);
       this.completed.set(null);
       this.quote.set(null);
       this.view.set("shop");
@@ -358,11 +389,14 @@ export class CommerceService {
   async review() {
     await this.run(async () => {
       await this.reloadProducts();
-      this.quote.set(
-        await this.request<Quote>("/cart/quote", "POST", {
-          items: this.cart(),
-        }),
-      );
+      const [quote, methods] = await Promise.all([
+        this.request<Quote>("/cart/quote", "POST", { items: this.cart() }),
+        this.transfers.paymentMethods(),
+      ]);
+      this.paymentMethods.set(methods);
+      // Offer transfer first when the shop has it on; otherwise keep the unpaid reservation.
+      this.payWith.set(transferOffered(methods) ? "transfer" : "pending");
+      this.quote.set(quote);
       this.analytics.event("checkout", { items: this.cartCount() });
     });
   }
@@ -374,7 +408,10 @@ export class CommerceService {
         throw new Error("Revisá el pedido antes de confirmarlo");
       const payload = {
         items: this.cart(),
-        paymentMethod: "pending",
+        paymentMethod:
+          this.payWith() === "transfer" && this.transferEnabled()
+            ? "transfer"
+            : "pending",
         fulfillment: "pickup",
         contact: { name: this.user()!.name, email: this.user()!.email, phone },
       };
@@ -388,9 +425,19 @@ export class CommerceService {
       if (attempt?.fingerprint !== fingerprint)
         attempt = { fingerprint, key: crypto.randomUUID() };
       sessionStorage.setItem("piuma-checkout", JSON.stringify(attempt));
-      const order = await this.request<Order>("/orders", "POST", payload, {
-        "Idempotency-Key": attempt!.key,
-      });
+      let order: Order;
+      try {
+        order = await this.request<Order>("/orders", "POST", payload, {
+          "Idempotency-Key": attempt!.key,
+        });
+      } catch (e) {
+        // Transfer switched off meanwhile: refresh the options so the buyer can choose again.
+        if (e instanceof ApiError && e.code === "TRANSFER_UNAVAILABLE") {
+          this.paymentMethods.set(await this.transfers.paymentMethods());
+          this.payWith.set("pending");
+        }
+        throw e;
+      }
       this.completed.set(order);
       this.quote.set(null);
       this.cart.set([]);
@@ -410,12 +457,44 @@ export class CommerceService {
     });
   }
   async loadAdmin() {
-    const [p, m] = await Promise.all([
+    const [p, m, t, s] = await Promise.all([
       this.pages<Product>("/admin/products"),
       this.pages<Metric>("/admin/metrics"),
+      this.transfers.pending<Order>(),
+      this.transfers.settings(),
     ]);
     this.adminProducts.set(p);
     this.metrics.set(m);
+    this.pendingTransfers.set(t);
+    this.settings.set(s);
+  }
+  async confirmTransfer(order: Order, bankReference: string) {
+    await this.run(async () => {
+      await this.transfers.confirm(order, bankReference);
+      this.pendingTransfers.set(await this.transfers.pending<Order>());
+      this.metrics.set(await this.pages<Metric>("/admin/metrics"));
+      this.notice.set(
+        "Acreditación confirmada. Pedido " +
+          (order.transfer?.reference ?? order.id.slice(0, 8)) +
+          " pagado",
+      );
+    });
+  }
+  async cancelTransfer(order: Order, reason: string) {
+    await this.run(async () => {
+      await this.transfers.cancel(order, reason);
+      this.pendingTransfers.set(await this.transfers.pending<Order>());
+      await this.reloadProducts();
+      this.notice.set("Pedido cancelado y stock restituido");
+    });
+  }
+  async saveSettings(settings: Settings) {
+    await this.run(async () => {
+      const r = await this.transfers.saveSettings(settings);
+      this.settings.set(r.settings);
+      if (r.conflict) throw new Error(SETTINGS_CONFLICT);
+      this.notice.set("Configuración guardada");
+    });
   }
   async saveProduct(product: Product) {
     await this.run(async () => {
@@ -445,16 +524,7 @@ export class CommerceService {
       currency,
     }).format(minor / 100);
   }
-  status(status: string) {
-    return (
-      (
-        {
-          pending_payment: "Pendiente de pago",
-          pending_transfer: "Pendiente de transferencia",
-          paid: "Pagado",
-          cancelled: "Cancelado",
-        } as Record<string, string>
-      )[status] ?? status
-    );
+  status(order: Order) {
+    return statusLabel(order);
   }
 }

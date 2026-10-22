@@ -3,11 +3,13 @@ import {
   Component,
   computed,
   inject,
+  linkedSignal,
   signal,
 } from "@angular/core";
 import { DatePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { CommerceService, Product } from "./commerce.service";
+import { CommerceService, Order, Product } from "./commerce.service";
+import { Settings, whatsappLink } from "./transfer";
 @Component({
   selector: "app-commerce",
   standalone: true,
@@ -19,7 +21,22 @@ import { CommerceService, Product } from "./commerce.service";
 export class CommerceComponent {
   readonly shop = inject(CommerceService);
   readonly registering = signal(false);
-  readonly adminTab = signal<"overview" | "products">("overview");
+  readonly adminTab = signal<
+    "overview" | "products" | "transfers" | "settings"
+  >("overview");
+  /** Transfer row with an open confirmation step, and which action it confirms. */
+  readonly reviewing = signal<{
+    id: string;
+    action: "confirm" | "cancel";
+  } | null>(null);
+  bankReference = "";
+  cancelReason = "Transferencia no recibida";
+  /** Editable copy of the stored settings; replaced whenever the server sends new ones. */
+  readonly draft = linkedSignal<Settings | null>(() => {
+    const s = this.shop.settings();
+    return s && structuredClone(s);
+  });
+  readonly whatsappLink = whatsappLink;
   readonly sales = computed(() =>
     this.shop.metrics().reduce((s, m) => s + m.grossSalesMinor, 0),
   );
@@ -93,6 +110,28 @@ export class CommerceComponent {
       priceMinor: Math.round(this.price * 100),
     });
     if (!this.shop.error()) this.editing = null;
+  }
+  openTab(tab: "overview" | "products" | "transfers" | "settings") {
+    this.adminTab.set(tab);
+    this.reviewing.set(null);
+  }
+  saveSettings() {
+    // On success or 409 the service stores the server copy, which resets the draft.
+    const draft = this.draft();
+    if (draft) void this.shop.saveSettings(draft);
+  }
+  review(order: Order, action: "confirm" | "cancel") {
+    this.reviewing.set({ id: order.id, action });
+    this.bankReference = "";
+    this.cancelReason = "Transferencia no recibida";
+  }
+  async confirmTransfer(order: Order) {
+    await this.shop.confirmTransfer(order, this.bankReference);
+    if (!this.shop.error()) this.reviewing.set(null);
+  }
+  async cancelTransfer(order: Order) {
+    await this.shop.cancelTransfer(order, this.cancelReason);
+    if (!this.shop.error()) this.reviewing.set(null);
   }
   matches(p: Product) {
     return `${p.name} ${p.sku} ${p.size} ${p.color}`
