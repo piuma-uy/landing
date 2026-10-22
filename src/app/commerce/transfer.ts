@@ -23,7 +23,11 @@ export interface PaymentMethods {
     instructions: TransferInstructions | null;
     holdHours: number | null;
   };
-  card: { enabled: boolean; reason?: string };
+  card: {
+    enabled: boolean;
+    provider?: "mercadopago" | null;
+    reason?: string | null;
+  };
 }
 export interface Settings {
   transfer: {

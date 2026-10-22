@@ -222,6 +222,42 @@
                   Te avisamos por mail cuando confirmemos el pago.
                 </p>
               </div>
+            } @else if (order.paymentMethod === "card") {
+              <div class="panel receipt">
+                <span class="status">Pedido registrado</span>
+                <h2>Pagá con Mercado Pago para confirmarlo</h2>
+                <p>
+                  Pedido #{{ order.id.slice(0, 8) }} ·
+                  {{ shop.money(order.totalMinor, order.currency) }}
+                </p>
+                <p class="small shipping-line">
+                  {{ shippingSummary(order.shipping) }}
+                </p>
+                <p class="payment-note" role="status">
+                  Reservamos tus productos. El pedido se confirma cuando Mercado
+                  Pago aprueba el pago.
+                </p>
+                <div class="actions">
+                  <button
+                    class="btn btn--primary wide"
+                    [disabled]="shop.busy()"
+                    (click)="shop.payWithCard(order)"
+                  >
+                    {{
+                      shop.busy()
+                        ? "Abriendo Mercado Pago…"
+                        : "Pagar con Mercado Pago"
+                    }}
+                  </button>
+                  <button
+                    class="btn btn--outline wide"
+                    [disabled]="shop.busy()"
+                    (click)="shop.open('orders')"
+                  >
+                    Ver mis pedidos
+                  </button>
+                </div>
+              </div>
             } @else {
               <div class="panel receipt">
                 <span class="status">Pedido registrado</span>
@@ -329,7 +365,9 @@
                     @if (!shop.quote()) {
                       Elegís retiro o envío y la forma de pago al revisar el
                       pedido.
-                    } @else if (!shop.transferEnabled()) {
+                    } @else if (
+                      !shop.transferEnabled() && !shop.cardEnabled()
+                    ) {
                       El pago aún no está habilitado.
                     }
                   </p>
@@ -506,26 +544,45 @@
                       Precios, envío y disponibilidad verificados. Al confirmar
                       reservamos los productos.
                     </p>
-                    @if (shop.transferEnabled()) {
+                    @if (shop.transferEnabled() || shop.cardEnabled()) {
                       <fieldset class="pay-options">
                         <legend>Forma de pago</legend>
-                        <label class="pay-option"
-                          ><input
-                            type="radio"
-                            name="payWith"
-                            value="transfer"
-                            [checked]="shop.payWith() === 'transfer'"
-                            (change)="shop.payWith.set('transfer')"
-                          />
-                          <span
-                            >Transferencia bancaria<small
-                              >Te mostramos los datos al confirmar. Reservamos
-                              tu pedido por
-                              {{ shop.paymentMethods()?.transfer?.holdHours }}
-                              horas.</small
-                            ></span
-                          ></label
-                        >
+                        @if (shop.cardEnabled()) {
+                          <label class="pay-option"
+                            ><input
+                              type="radio"
+                              name="payWith"
+                              value="card"
+                              [checked]="shop.payWith() === 'card'"
+                              (change)="shop.payWith.set('card')"
+                            />
+                            <span
+                              >Tarjeta con Mercado Pago<small
+                                >Débito, crédito o saldo en Mercado Pago. Te
+                                llevamos a su sitio seguro para pagar.</small
+                              ></span
+                            ></label
+                          >
+                        }
+                        @if (shop.transferEnabled()) {
+                          <label class="pay-option"
+                            ><input
+                              type="radio"
+                              name="payWith"
+                              value="transfer"
+                              [checked]="shop.payWith() === 'transfer'"
+                              (change)="shop.payWith.set('transfer')"
+                            />
+                            <span
+                              >Transferencia bancaria<small
+                                >Te mostramos los datos al confirmar. Reservamos
+                                tu pedido por
+                                {{ shop.paymentMethods()?.transfer?.holdHours }}
+                                horas.</small
+                              ></span
+                            ></label
+                          >
+                        }
                       </fieldset>
                     }
                     <button
@@ -537,6 +594,10 @@
                     <p class="muted small">
                       @if (shop.payWith() === "transfer") {
                         Pagás por transferencia; no se cobra nada en este paso.
+                      } @else if (shop.payWith() === "card") {
+                        Al confirmar reservamos los productos y te llevamos a
+                        Mercado Pago. Tus datos de tarjeta nunca pasan por
+                        Piuma.
                       } @else {
                         Este paso no realiza ningún cobro.
                       }
@@ -618,10 +679,23 @@
                       [disabled]="shop.busy()"
                       (click)="shop.payment(order)"
                     >
-                      Ir al pago
+                      {{
+                        order.paymentMethod === "card"
+                          ? "Pagar con Mercado Pago"
+                          : "Ir al pago"
+                      }}
                     </button>
                   }
                 </div>
+                @if (
+                  order.status === "pending_payment" &&
+                  order.cardStatus === "failed"
+                ) {
+                  <p class="small">
+                    Mercado Pago rechazó el último intento. Podés volver a
+                    intentarlo.
+                  </p>
+                }
                 @if (
                   order.status === "pending_transfer" && order.transfer;
                   as t
@@ -660,6 +734,164 @@
                   </p>
                 }
               </article>
+            }
+          }
+        }
+        @case ("payment") {
+          <span class="eyebrow">Tu pago</span>
+          @if (shop.paymentReturn(); as ret) {
+            @if (!shop.user()) {
+              <h1>Ingresá para ver tu pago</h1>
+              <div class="panel">
+                <p>
+                  Volviste de Mercado Pago. Ingresá con tu cuenta para ver el
+                  estado de tu pedido.
+                </p>
+                <button
+                  class="btn btn--primary"
+                  (click)="
+                    shop.cognito ? shop.redirectToLogin() : shop.open('account')
+                  "
+                >
+                  Ingresar
+                </button>
+              </div>
+            } @else if (ret.order) {
+              @let order = ret.order;
+              @switch (shop.paymentState()) {
+                @case ("paid") {
+                  <h1>¡Pago aprobado!</h1>
+                  <div class="panel receipt">
+                    <span class="status">Pagado</span>
+                    <h2>Gracias por elegir Piuma</h2>
+                    <p>
+                      Pedido #{{ order.id.slice(0, 8) }} ·
+                      {{ shop.money(order.totalMinor, order.currency) }}
+                    </p>
+                    <p class="small shipping-line">
+                      {{ shippingSummary(order.shipping) }}
+                    </p>
+                    <p class="payment-note" role="status">
+                      Mercado Pago confirmó el pago. Te mandamos el detalle por
+                      mail.
+                    </p>
+                    <div class="actions">
+                      <button
+                        class="btn btn--primary wide"
+                        (click)="shop.open('orders')"
+                      >
+                        Ver mis pedidos
+                      </button>
+                    </div>
+                  </div>
+                }
+                @case ("failed") {
+                  <h1>El pago no se aprobó</h1>
+                  <div class="panel receipt">
+                    <span class="status status--cancelled">Pago rechazado</span>
+                    <h2>No se realizó ningún cobro</h2>
+                    <p>
+                      Pedido #{{ order.id.slice(0, 8) }} ·
+                      {{ shop.money(order.totalMinor, order.currency) }}. Tus
+                      productos siguen reservados.
+                    </p>
+                    <div class="actions">
+                      <button
+                        class="btn btn--primary wide"
+                        [disabled]="shop.busy()"
+                        (click)="shop.payWithCard(order)"
+                      >
+                        Reintentar con tarjeta
+                      </button>
+                      @if (shop.transferEnabled()) {
+                        <button
+                          class="btn btn--outline wide"
+                          [disabled]="shop.busy()"
+                          (click)="shop.switchToTransfer(order)"
+                        >
+                          Pagar por transferencia
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+                @case ("pending") {
+                  <h1>
+                    {{
+                      ret.checking
+                        ? "Estamos confirmando tu pago"
+                        : "Tu pago está en proceso"
+                    }}
+                  </h1>
+                  <div class="panel receipt">
+                    <span class="status">Pendiente de pago</span>
+                    <p>
+                      Pedido #{{ order.id.slice(0, 8) }} ·
+                      {{ shop.money(order.totalMinor, order.currency) }}
+                    </p>
+                    <p class="payment-note" role="status">
+                      @if (ret.checking) {
+                        Consultando a Mercado Pago…
+                      } @else {
+                        Mercado Pago todavía no confirmó el pago. Te avisamos
+                        por mail cuando se acredite; no hace falta pagar de
+                        nuevo.
+                      }
+                    </p>
+                    <div class="actions">
+                      <button
+                        class="btn btn--primary wide"
+                        [disabled]="ret.checking"
+                        (click)="shop.followPayment()"
+                      >
+                        Actualizar estado
+                      </button>
+                      <button
+                        class="btn btn--outline wide"
+                        (click)="shop.open('orders')"
+                      >
+                        Ver mis pedidos
+                      </button>
+                    </div>
+                  </div>
+                }
+                @default {
+                  <h1>Estado de tu pedido</h1>
+                  <div class="panel receipt">
+                    <span
+                      class="status"
+                      [class.status--cancelled]="order.status === 'cancelled'"
+                      >{{ shop.status(order) }}</span
+                    >
+                    <p>
+                      Pedido #{{ order.id.slice(0, 8) }} ·
+                      {{ shop.money(order.totalMinor, order.currency) }}
+                    </p>
+                    <div class="actions">
+                      <button
+                        class="btn btn--primary wide"
+                        (click)="shop.open('orders')"
+                      >
+                        Ver mis pedidos
+                      </button>
+                    </div>
+                  </div>
+                }
+              }
+            } @else {
+              <h1>Estamos confirmando tu pago</h1>
+              <div class="panel">
+                @if (ret.checking) {
+                  <p role="status">Consultando a Mercado Pago…</p>
+                } @else {
+                  <button
+                    class="btn btn--primary"
+                    (click)="shop.followPayment()"
+                  >
+                    Actualizar estado
+                  </button>
+                }
+              </div>
             }
           }
         }
