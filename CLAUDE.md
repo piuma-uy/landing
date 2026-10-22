@@ -17,7 +17,7 @@ conectada al API). `main` es la landing pública en Vercel: no la toques ni merg
 - Auth AWS: Cognito code + PKCE S256, access token en memoria (ver `../piuma-backend/docs/frontend-integration.md`).
 - Checkout: generar y conservar la `Idempotency-Key` por intento; el pago se confirma sólo con el estado del backend.
 - Tráfico casi todo mobile desde Instagram: probar en viewport de teléfono; mantener diseño y tokens de `src/styles/`.
-- Una tarea = rama `feat/<id>-<slug>` desde `tienda-local` = un PR.
+- Una tarea = rama `feat/<id>-<slug>` desde `tienda-local` = un PR. Sin pedir permisos: ejecutar, commitear, pushear y abrir PR.
 
 ## Harness
 
