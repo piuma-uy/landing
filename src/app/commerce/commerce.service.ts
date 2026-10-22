@@ -22,6 +22,15 @@ import {
   orderFulfillment,
   quoteBody,
 } from "./shipping";
+import {
+  CardApi,
+  Checkout,
+  cardOffered,
+  checkoutUrl,
+  paymentReturn,
+  paymentState,
+  pollOrder,
+} from "./card";
 export interface User {
   id: string;
   email: string;
@@ -69,9 +78,13 @@ export interface Order {
   cancelledBy?: string;
   cancelReason?: string;
   transfer?: OrderTransfer;
+  /** Card, unpaid only: last Mercado Pago state the webhook reported. */
+  cardStatus?: "pending" | "failed";
+  checkout?: Checkout;
+  paidAt?: string;
 }
 /** "pending" keeps the order reserved without a payment method (nothing to charge yet). */
-export type PayWith = "transfer" | "pending";
+export type PayWith = "transfer" | "card" | "pending";
 export interface Metric {
   month: string;
   paidOrders: number;
@@ -92,7 +105,15 @@ export interface Quote {
   totalMinor: number;
   currency: string;
 }
-export type View = "shop" | "account" | "cart" | "orders" | "admin";
+/** Transfer first when the shop has it on, then card; otherwise the unpaid reservation. */
+function defaultPayWith(methods: PaymentMethods): PayWith {
+  return transferOffered(methods)
+    ? "transfer"
+    : cardOffered(methods)
+      ? "card"
+      : "pending";
+}
+export type View = "shop" | "account" | "cart" | "orders" | "admin" | "payment";
 @Injectable({ providedIn: "root" })
 export class CommerceService {
   readonly config = inject(RUNTIME_CONFIG);
@@ -126,6 +147,17 @@ export class CommerceService {
   readonly transferEnabled = computed(() =>
     transferOffered(this.paymentMethods()),
   );
+  readonly cardEnabled = computed(() => cardOffered(this.paymentMethods()));
+  /** Order the buyer came back to from Mercado Pago, as GET /orders/{id} reports it. */
+  readonly paymentReturn = signal<{
+    orderId: string;
+    order: Order | null;
+    checking: boolean;
+  } | null>(null);
+  readonly paymentState = computed(() => {
+    const order = this.paymentReturn()?.order;
+    return order ? paymentState(order) : null;
+  });
   readonly shippingOptions = signal<ShippingOptions | null>(null);
   /** Pickup or a delivery zone; the API prices it in the quote. */
   readonly shipTo = signal<Fulfillment | null>(null);
@@ -205,6 +237,11 @@ export class CommerceService {
   private readonly transfers = new TransferApi((path, method, body) =>
     this.request(path, method, body),
   );
+  private readonly cards = new CardApi(
+    (path, method, body, headers) => this.request(path, method, body, headers),
+    sessionStorage,
+    () => crypto.randomUUID(),
+  );
   private async pages<T>(path: string): Promise<T[]> {
     const rows: T[] = [];
     let cursor: string | undefined;
@@ -242,10 +279,12 @@ export class CommerceService {
           await this.signedIn(await this.cognito.handleCallback(url));
           return;
         }
+        this.noteReturn(url);
         await this.reloadProducts();
         this.cart.set(this.readGuest());
         return;
       }
+      this.noteReturn(new URL(location.href));
       await this.reloadProducts();
       const r = await this.request<{ user: User | null }>("/auth/me");
       this.user.set(r.user);
@@ -254,6 +293,87 @@ export class CommerceService {
       else this.cart.set(this.readGuest());
     });
     this.ready.set(true);
+    this.resumeReturn();
+  }
+  /**
+   * Back from Mercado Pago: remember the order (the Cognito login leaves the page) and drop
+   * the provider's query params, which are never trusted.
+   */
+  private noteReturn(url: URL) {
+    const orderId = paymentReturn(url);
+    if (!orderId) return;
+    sessionStorage.setItem("piuma-payment-return", orderId);
+    history.replaceState(history.state, "", "/");
+  }
+  private resumeReturn() {
+    const orderId = sessionStorage.getItem("piuma-payment-return");
+    if (!orderId) return;
+    this.paymentReturn.set({ orderId, order: null, checking: false });
+    this.view.set("payment");
+    if (this.user()) {
+      sessionStorage.removeItem("piuma-payment-return");
+      void this.followPayment();
+    }
+  }
+  /** Polls the order until the webhook settles it (or ~30 s pass); never decides by itself. */
+  async followPayment() {
+    const current = this.paymentReturn();
+    if (!current || current.checking) return;
+    const set = (patch: Partial<NonNullable<typeof current>>) =>
+      this.paymentReturn.update((p) => p && { ...p, ...patch });
+    set({ checking: true });
+    this.error.set("");
+    // A rejected card can continue by transfer when the shop offers it.
+    if (!this.paymentMethods())
+      this.transfers.paymentMethods().then(
+        (m) => this.paymentMethods.set(m),
+        () => {},
+      );
+    try {
+      await pollOrder(() => this.cards.order<Order>(current.orderId), {
+        onUpdate: (order) => set({ order }),
+      });
+    } catch (e) {
+      this.error.set(
+        e instanceof ApiError && e.status === 404
+          ? "No encontramos ese pedido en tu cuenta."
+          : "No pudimos consultar el estado del pago. Probá actualizar en unos segundos.",
+      );
+    } finally {
+      set({ checking: false });
+    }
+  }
+  /** Leaves for Mercado Pago's hosted checkout of this order (same preference every time). */
+  private async goToCheckout(order: Order) {
+    const url = checkoutUrl(await this.cards.checkout(order.id));
+    if (!url) throw new Error("No pudimos abrir el pago. Probá de nuevo.");
+    this.analytics.event("pago_tarjeta", {});
+    location.assign(url);
+  }
+  async payWithCard(order: Order) {
+    await this.run(() => this.goToCheckout(order));
+  }
+  /** Card rejected: the same order and reservation continue by bank transfer. */
+  async switchToTransfer(order: Order) {
+    let stale = false;
+    await this.run(async () => {
+      let updated: Order;
+      try {
+        updated = await this.cards.switchToTransfer<Order>(order.id);
+      } catch (e) {
+        // Paid or cancelled meanwhile, or transfer switched off: show what the API has now.
+        stale = e instanceof ApiError && e.status === 409;
+        throw e;
+      }
+      this.paymentReturn.set(null);
+      this.completed.set(updated);
+      this.view.set("cart");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    if (stale) {
+      this.paymentMethods.set(await this.transfers.paymentMethods());
+      void this.followPayment();
+    }
   }
   /** Cognito mode: leaves the page for the hosted UI (login, signup or Google). */
   async redirectToLogin(options: { signup?: boolean; provider?: string } = {}) {
@@ -344,6 +464,7 @@ export class CommerceService {
     }
     this.view.set(user.admin ? "admin" : "cart");
     if (user.admin) await this.loadAdmin();
+    if (sessionStorage.getItem("piuma-payment-return")) this.resumeReturn();
   }
   async logout() {
     await this.run(async () => {
@@ -360,6 +481,7 @@ export class CommerceService {
       this.settings.set(null);
       this.paymentMethods.set(null);
       this.completed.set(null);
+      this.paymentReturn.set(null);
       this.quote.set(null);
       this.view.set("shop");
     });
@@ -413,8 +535,7 @@ export class CommerceService {
         this.transfers.paymentMethods(),
       ]);
       this.paymentMethods.set(methods);
-      // Offer transfer first when the shop has it on; otherwise keep the unpaid reservation.
-      this.payWith.set(transferOffered(methods) ? "transfer" : "pending");
+      this.payWith.set(defaultPayWith(methods));
       this.quote.set(await this.priceChoice(options));
       this.analytics.event("checkout", { items: this.cartCount() });
     });
@@ -477,7 +598,9 @@ export class CommerceService {
         paymentMethod:
           this.payWith() === "transfer" && this.transferEnabled()
             ? "transfer"
-            : "pending",
+            : this.payWith() === "card" && this.cardEnabled()
+              ? "card"
+              : "pending",
         ...orderFulfillment(shipTo, address),
         contact: { name: this.user()!.name, email: this.user()!.email, phone },
       };
@@ -497,10 +620,15 @@ export class CommerceService {
           "Idempotency-Key": attempt!.key,
         });
       } catch (e) {
-        // Transfer switched off meanwhile: refresh the options so the buyer can choose again.
-        if (e instanceof ApiError && e.code === "TRANSFER_UNAVAILABLE") {
-          this.paymentMethods.set(await this.transfers.paymentMethods());
-          this.payWith.set("pending");
+        // Transfer or card switched off meanwhile: refresh the options so the buyer can choose again.
+        if (
+          e instanceof ApiError &&
+          (e.code === "TRANSFER_UNAVAILABLE" ||
+            e.code === "CARD_PROVIDER_NOT_CONFIGURED")
+        ) {
+          const methods = await this.transfers.paymentMethods();
+          this.paymentMethods.set(methods);
+          this.payWith.set(defaultPayWith(methods));
         }
         await this.shippingChanged(e);
         throw e;
@@ -516,9 +644,13 @@ export class CommerceService {
         );
       }
       await this.reloadProducts();
+      // The order (and its reservation) exists: from here on only its own checkout is paid.
+      if (order.paymentMethod === "card" && order.status === "pending_payment")
+        await this.goToCheckout(order);
     });
   }
   async payment(order: Order) {
+    if (order.paymentMethod === "card") return this.payWithCard(order);
     await this.run(async () => {
       await this.request("/orders/" + order.id + "/payment", "POST", {});
     });
