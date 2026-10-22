@@ -12,6 +12,16 @@ import {
   statusLabel,
   transferOffered,
 } from "./transfer";
+import {
+  Address,
+  Fulfillment,
+  SHIPPING_CHANGED,
+  ShippingOptions,
+  ShippingQuote,
+  defaultChoice,
+  orderFulfillment,
+  quoteBody,
+} from "./shipping";
 export interface User {
   id: string;
   email: string;
@@ -48,6 +58,9 @@ export interface Order {
     size: string;
     color: string;
   })[];
+  /** Absent on orders created before shipping existed (pickup, no charge). */
+  subtotalMinor?: number;
+  shipping?: ShippingQuote;
   totalMinor: number;
   currency: string;
   paymentMethod: string;
@@ -73,6 +86,9 @@ export interface Quote {
     size: string;
     color: string;
   })[];
+  subtotalMinor: number;
+  /** null only when the quote was asked without a fulfillment choice. */
+  shipping: ShippingQuote | null;
   totalMinor: number;
   currency: string;
 }
@@ -110,6 +126,9 @@ export class CommerceService {
   readonly transferEnabled = computed(() =>
     transferOffered(this.paymentMethods()),
   );
+  readonly shippingOptions = signal<ShippingOptions | null>(null);
+  /** Pickup or a delivery zone; the API prices it in the quote. */
+  readonly shipTo = signal<Fulfillment | null>(null);
   readonly metrics = signal<Metric[]>([]);
   readonly quote = signal<Quote | null>(null);
   readonly completed = signal<Order | null>(null);
@@ -389,30 +408,77 @@ export class CommerceService {
   async review() {
     await this.run(async () => {
       await this.reloadProducts();
-      const [quote, methods] = await Promise.all([
-        this.request<Quote>("/cart/quote", "POST", { items: this.cart() }),
+      const [options, methods] = await Promise.all([
+        this.loadShippingOptions(),
         this.transfers.paymentMethods(),
       ]);
       this.paymentMethods.set(methods);
       // Offer transfer first when the shop has it on; otherwise keep the unpaid reservation.
       this.payWith.set(transferOffered(methods) ? "transfer" : "pending");
-      this.quote.set(quote);
+      this.quote.set(await this.priceChoice(options));
       this.analytics.event("checkout", { items: this.cartCount() });
     });
   }
-  async checkout(phone: string) {
+  /** Pickup or another zone: the API prices it again; the browser never adds shipping. */
+  async chooseShipping(choice: Fulfillment) {
+    await this.run(async () => {
+      this.shipTo.set(choice);
+      try {
+        this.quote.set(
+          await this.request<Quote>(
+            "/cart/quote",
+            "POST",
+            quoteBody(this.cart(), choice),
+          ),
+        );
+      } catch (e) {
+        // Never leave a price on screen that does not match the choice.
+        this.quote.set(null);
+        await this.shippingChanged(e);
+        throw e;
+      }
+    });
+  }
+  private async loadShippingOptions() {
+    const options = await this.request<ShippingOptions>("/shipping-options");
+    this.shippingOptions.set(options);
+    this.shipTo.set(defaultChoice(options, this.shipTo()));
+    return options;
+  }
+  private priceChoice(options: ShippingOptions) {
+    return this.request<Quote>(
+      "/cart/quote",
+      "POST",
+      quoteBody(this.cart(), defaultChoice(options, this.shipTo())),
+    );
+  }
+  /** Zone or method withdrawn meanwhile: reload the options and price the new default. */
+  private async shippingChanged(e: unknown) {
+    if (
+      !(e instanceof ApiError) ||
+      (e.code !== "FULFILLMENT_UNAVAILABLE" &&
+        e.code !== "SHIPPING_ZONE_UNAVAILABLE")
+    )
+      return;
+    this.quote.set(null);
+    this.quote.set(await this.priceChoice(await this.loadShippingOptions()));
+    throw new Error(SHIPPING_CHANGED);
+  }
+  async checkout(phone: string, address: Address) {
     await this.run(async () => {
       if (!this.user())
         throw new Error("Ingresá a tu cuenta para crear el pedido");
       if (!this.quote())
         throw new Error("Revisá el pedido antes de confirmarlo");
+      const shipTo = this.shipTo();
+      if (!shipTo) throw new Error("Elegí retiro o envío");
       const payload = {
         items: this.cart(),
         paymentMethod:
           this.payWith() === "transfer" && this.transferEnabled()
             ? "transfer"
             : "pending",
-        fulfillment: "pickup",
+        ...orderFulfillment(shipTo, address),
         contact: { name: this.user()!.name, email: this.user()!.email, phone },
       };
       const fingerprint = JSON.stringify([this.user()!.id, payload]);
@@ -436,6 +502,7 @@ export class CommerceService {
           this.paymentMethods.set(await this.transfers.paymentMethods());
           this.payWith.set("pending");
         }
+        await this.shippingChanged(e);
         throw e;
       }
       this.completed.set(order);
