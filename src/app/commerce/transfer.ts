@@ -1,4 +1,5 @@
 // Bank transfer and shop settings (T23 contract). Framework-free so node --test can load it.
+import type { ShippingSettings } from "./shipping";
 export interface TransferInstructions {
   bank: string;
   accountType: string;
@@ -32,6 +33,7 @@ export interface Settings {
   };
   contact: { whatsappNumber: string | null };
   notifications: { whatsappEnabled: boolean; shopEmail: string | null };
+  shipping: ShippingSettings;
   version: number;
   updatedAt: string | null;
   updatedBy: string | null;
@@ -98,7 +100,10 @@ export function whatsappLink(transfer: OrderTransfer | undefined) {
     return null;
   }
 }
-/** PUT /admin/settings body: full replacement, blanks become null, versioned. */
+/**
+ * PUT /admin/settings body: full replacement, blanks become null, versioned. shipping goes
+ * as given (normalize it with shippingInput first); without it the API keeps the saved one.
+ */
 export function settingsInput(s: Settings) {
   const text = (v: string | null) => v?.trim() || null;
   return {
@@ -114,6 +119,7 @@ export function settingsInput(s: Settings) {
       whatsappEnabled: s.notifications.whatsappEnabled,
       shopEmail: text(s.notifications.shopEmail),
     },
+    ...(s.shipping ? { shipping: s.shipping } : {}),
     expectedVersion: s.version,
   };
 }

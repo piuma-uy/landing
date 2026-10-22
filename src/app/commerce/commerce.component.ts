@@ -10,6 +10,15 @@ import { DatePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { CommerceService, Order, Product } from "./commerce.service";
 import { Settings, whatsappLink } from "./transfer";
+import {
+  DEPARTMENTS,
+  PICKUP_FALLBACK,
+  emptyAddress,
+  shippingInput,
+  shippingProblem,
+  shippingSummary,
+  toMinor,
+} from "./shipping";
 @Component({
   selector: "app-commerce",
   standalone: true,
@@ -37,6 +46,13 @@ export class CommerceComponent {
     return s && structuredClone(s);
   });
   readonly whatsappLink = whatsappLink;
+  readonly shippingSummary = shippingSummary;
+  readonly shippingProblem = shippingProblem;
+  readonly toMinor = toMinor;
+  readonly departments = DEPARTMENTS;
+  readonly pickupFallback = PICKUP_FALLBACK;
+  /** Delivery address; sent only when the buyer picks a delivery zone. */
+  address = emptyAddress();
   readonly sales = computed(() =>
     this.shop.metrics().reduce((s, m) => s + m.grossSalesMinor, 0),
   );
@@ -118,7 +134,27 @@ export class CommerceComponent {
   saveSettings() {
     // On success or 409 the service stores the server copy, which resets the draft.
     const draft = this.draft();
-    if (draft) void this.shop.saveSettings(draft);
+    if (draft)
+      void this.shop.saveSettings({
+        ...draft,
+        shipping: shippingInput(draft.shipping),
+      });
+  }
+  /** The API quoted this zone with the free-shipping threshold applied. */
+  freeZone(zoneId: string) {
+    const s = this.shop.quote()?.shipping;
+    return s?.method === "delivery" && s.zoneId === zoneId && s.freeShipping;
+  }
+  addZone(d: Settings) {
+    d.shipping.delivery.zones.push({
+      id: "",
+      name: "",
+      priceMinor: 0,
+      leadTime: "",
+    });
+  }
+  removeZone(d: Settings, index: number) {
+    d.shipping.delivery.zones.splice(index, 1);
   }
   review(order: Order, action: "confirm" | "cancel") {
     this.reviewing.set({ id: order.id, action });

@@ -160,6 +160,9 @@
                   }}</strong
                   >. Si la transferencia no llega antes, el pedido se cancela.
                 </p>
+                <p class="small shipping-line">
+                  {{ shippingSummary(order.shipping) }}
+                </p>
                 <div class="transfer-amount">
                   <span class="muted small">Monto exacto</span>
                   <strong>{{ shop.money(t.amountMinor, t.currency) }}</strong>
@@ -208,6 +211,7 @@
                   @if (!shop.user()?.admin) {
                     <button
                       class="btn btn--outline wide"
+                      [disabled]="shop.busy()"
                       (click)="shop.open('orders')"
                     >
                       Ver mis pedidos
@@ -226,6 +230,9 @@
                   Pedido #{{ order.id.slice(0, 8) }} ·
                   {{ shop.money(order.totalMinor, order.currency) }}
                 </p>
+                <p class="small shipping-line">
+                  {{ shippingSummary(order.shipping) }}
+                </p>
                 <div class="payment-note" role="status">
                   <strong>El pago todavía no está disponible.</strong>
                   <p>
@@ -237,6 +244,7 @@
                   @if (!shop.user()?.admin) {
                     <button
                       class="btn btn--primary"
+                      [disabled]="shop.busy()"
                       (click)="shop.open('orders')"
                     >
                       Ver mis pedidos
@@ -309,7 +317,7 @@
               <aside class="panel summary">
                 <form
                   #checkoutForm="ngForm"
-                  (ngSubmit)="shop.checkout(contactPhone)"
+                  (ngSubmit)="shop.checkout(contactPhone, address)"
                 >
                   <span class="eyebrow">Resumen</span>
                   <h2>
@@ -318,9 +326,9 @@
                     }}
                   </h2>
                   <p class="muted small">
-                    Retiro a coordinar.
                     @if (!shop.quote()) {
-                      Elegís la forma de pago al revisar el pedido.
+                      Elegís retiro o envío y la forma de pago al revisar el
+                      pedido.
                     } @else if (!shop.transferEnabled()) {
                       El pago aún no está habilitado.
                     }
@@ -356,8 +364,146 @@
                       {{ shop.busy() ? "Revisando…" : "Revisar pedido" }}
                     </button>
                   } @else {
+                    @if (shop.shippingOptions(); as opts) {
+                      <fieldset class="pay-options ship-options">
+                        <legend>Entrega</legend>
+                        @if (opts.pickup.enabled) {
+                          <label class="pay-option"
+                            ><input
+                              type="radio"
+                              name="shipTo"
+                              value="pickup"
+                              [checked]="shop.shipTo()?.method === 'pickup'"
+                              [disabled]="shop.busy()"
+                              (change)="
+                                shop.chooseShipping({ method: 'pickup' })
+                              "
+                            />
+                            <span>
+                              @if (opts.pickup.details.trim()) {
+                                Retiro<small>{{ opts.pickup.details }}</small>
+                              } @else {
+                                {{ pickupFallback }}
+                              }</span
+                            ><strong class="option-price"
+                              >Sin costo</strong
+                            ></label
+                          >
+                        }
+                        @if (opts.delivery.enabled) {
+                          @for (zone of opts.delivery.zones; track zone.id) {
+                            <label class="pay-option"
+                              ><input
+                                type="radio"
+                                name="shipTo"
+                                [value]="zone.id"
+                                [checked]="
+                                  shop.shipTo()?.method === 'delivery' &&
+                                  $any(shop.shipTo()).zoneId === zone.id
+                                "
+                                [disabled]="shop.busy()"
+                                (change)="
+                                  shop.chooseShipping({
+                                    method: 'delivery',
+                                    zoneId: zone.id,
+                                  })
+                                "
+                              />
+                              <span
+                                >Envío a {{ zone.name }}
+                                @if (zone.leadTime) {
+                                  <small>{{ zone.leadTime }}</small>
+                                }</span
+                              ><strong class="option-price">{{
+                                freeZone(zone.id)
+                                  ? "Gratis"
+                                  : shop.money(zone.priceMinor, opts.currency)
+                              }}</strong></label
+                            >
+                          }
+                          @if (opts.delivery.freeFromMinor) {
+                            <p class="muted small">
+                              Envío gratis en compras desde
+                              {{
+                                shop.money(
+                                  opts.delivery.freeFromMinor,
+                                  opts.currency
+                                )
+                              }}.
+                            </p>
+                          }
+                        }
+                      </fieldset>
+                    }
+                    @if (shop.shipTo()?.method === "delivery") {
+                      <fieldset class="address">
+                        <legend>Dirección de entrega</legend>
+                        <label
+                          >Calle, número y apartamento<input
+                            name="street"
+                            [(ngModel)]="address.street"
+                            required
+                            maxlength="200"
+                            autocomplete="street-address" /></label
+                        ><label
+                          >Ciudad o barrio<input
+                            name="city"
+                            [(ngModel)]="address.city"
+                            required
+                            maxlength="100"
+                            autocomplete="address-level2" /></label
+                        ><label
+                          >Departamento<select
+                            name="department"
+                            [(ngModel)]="address.department"
+                            required
+                            autocomplete="address-level1"
+                          >
+                            @for (d of departments; track d) {
+                              <option [value]="d">{{ d }}</option>
+                            }
+                          </select></label
+                        ><label
+                          >Indicaciones para la entrega (opcional)<textarea
+                            name="notes"
+                            [(ngModel)]="address.notes"
+                            maxlength="300"
+                            rows="2"
+                            placeholder="Horario, referencias, portería"
+                          ></textarea>
+                        </label>
+                      </fieldset>
+                    }
+                    @if (shop.quote(); as q) {
+                      <dl class="totals" aria-label="Detalle del total">
+                        <div>
+                          <dt>Productos</dt>
+                          <dd>{{ shop.money(q.subtotalMinor, q.currency) }}</dd>
+                        </div>
+                        @if (q.shipping; as sh) {
+                          <div>
+                            <dt>
+                              {{ sh.method === "pickup" ? "Retiro" : "Envío" }}
+                            </dt>
+                            <dd class="shipping-cost">
+                              @if (sh.method === "pickup") {
+                                Sin costo
+                              } @else if (sh.freeShipping) {
+                                Gratis
+                              } @else {
+                                {{ shop.money(sh.priceMinor, q.currency) }}
+                              }
+                            </dd>
+                          </div>
+                        }
+                        <div class="total">
+                          <dt>Total</dt>
+                          <dd>{{ shop.money(q.totalMinor, q.currency) }}</dd>
+                        </div>
+                      </dl>
+                    }
                     <p class="small">
-                      Precios y disponibilidad verificados. Al confirmar
+                      Precios, envío y disponibilidad verificados. Al confirmar
                       reservamos los productos.
                     </p>
                     @if (shop.transferEnabled()) {
@@ -450,6 +596,17 @@
                     </li>
                   }
                 </ul>
+                <p class="small shipping-line">
+                  {{ shippingSummary(order.shipping) }}
+                  @if (order.shipping?.method === "delivery") {
+                    ·
+                    {{
+                      order.shipping!.priceMinor
+                        ? shop.money(order.shipping!.priceMinor, order.currency)
+                        : "envío gratis"
+                    }}
+                  }
+                </p>
                 <div class="order-bottom">
                   <strong
                     >Total
@@ -600,6 +757,9 @@
                     <p>
                       {{ order.contact?.name }} · {{ order.contact?.email }} ·
                       {{ order.contact?.phone }}
+                    </p>
+                    <p class="small shipping-line">
+                      {{ shippingSummary(order.shipping, true) }}
                     </p>
                     <p class="muted small">
                       Vence el
@@ -782,6 +942,110 @@
                         ></textarea>
                       </label>
                     </section>
+                    <section class="panel shipping-settings">
+                      <h2>Retiro y envíos</h2>
+                      <label class="checkbox"
+                        ><input
+                          name="pickupEnabled"
+                          type="checkbox"
+                          [(ngModel)]="d.shipping.pickup.enabled"
+                        />
+                        Ofrecer retiro</label
+                      >
+                      <label
+                        >Cómo y dónde se retira<textarea
+                          name="pickupDetails"
+                          [(ngModel)]="d.shipping.pickup.details"
+                          maxlength="300"
+                          rows="2"
+                          placeholder="Si lo dejás vacío se muestra «Retiro a coordinar»"
+                        ></textarea>
+                      </label>
+                      <label class="checkbox"
+                        ><input
+                          name="deliveryEnabled"
+                          type="checkbox"
+                          [(ngModel)]="d.shipping.delivery.enabled"
+                        />
+                        Ofrecer envío a domicilio</label
+                      >
+                      @for (
+                        zone of d.shipping.delivery.zones;
+                        track $index;
+                        let i = $index
+                      ) {
+                        <fieldset class="zone">
+                          <legend>Zona {{ i + 1 }}</legend>
+                          <div class="form-grid">
+                            <label
+                              >Nombre de la zona<input
+                                [name]="'zoneName' + i"
+                                [(ngModel)]="zone.name"
+                                required
+                                maxlength="100"
+                                placeholder="Montevideo" /></label
+                            ><label
+                              >Costo en pesos<input
+                                [name]="'zonePrice' + i"
+                                type="number"
+                                inputmode="decimal"
+                                [ngModel]="zone.priceMinor / 100"
+                                (ngModelChange)="
+                                  zone.priceMinor = toMinor($event) ?? 0
+                                "
+                                required
+                                min="0"
+                                step="0.01" /></label
+                            ><label
+                              >Plazo<input
+                                [name]="'zoneLeadTime' + i"
+                                [(ngModel)]="zone.leadTime"
+                                maxlength="100"
+                                placeholder="24 a 48 h hábiles"
+                            /></label>
+                          </div>
+                          <button
+                            type="button"
+                            class="text-button"
+                            (click)="removeZone(d, i)"
+                          >
+                            Quitar zona {{ i + 1 }}
+                          </button>
+                        </fieldset>
+                      }
+                      <button
+                        type="button"
+                        class="btn btn--outline add-zone"
+                        [disabled]="d.shipping.delivery.zones.length >= 30"
+                        (click)="addZone(d)"
+                      >
+                        Agregar zona
+                      </button>
+                      <label
+                        >Envío gratis desde (pesos, opcional)<input
+                          name="freeFrom"
+                          type="number"
+                          inputmode="decimal"
+                          [ngModel]="
+                            d.shipping.delivery.freeFromMinor === null
+                              ? null
+                              : d.shipping.delivery.freeFromMinor / 100
+                          "
+                          (ngModelChange)="
+                            d.shipping.delivery.freeFromMinor = toMinor($event)
+                          "
+                          min="0.01"
+                          step="0.01"
+                      /></label>
+                      <p class="muted small">
+                        El costo de cada zona se suma al total del pedido; con
+                        compras desde el monto de envío gratis, el envío es sin
+                        costo. Los pedidos ya hechos no cambian.
+                      </p>
+                      @if (shippingProblem(d.shipping); as problem) {
+                        <p class="form-problem">{{ problem }}</p>
+                      }
+                    </section>
                     <section class="panel">
                       <h2>Contacto y avisos</h2>
                       <div class="form-grid">
@@ -821,7 +1085,11 @@
                     <div class="actions">
                       <button
                         class="btn btn--primary"
-                        [disabled]="shop.busy() || !settingsForm.valid"
+                        [disabled]="
+                          shop.busy() ||
+                          !settingsForm.valid ||
+                          !!shippingProblem(d.shipping)
+                        "
                       >
                         Guardar configuración
                       </button>
