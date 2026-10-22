@@ -47,25 +47,60 @@ Todos son valores públicos (outputs de Terraform); nunca va un secreto. `redire
 
 Es **single page con anclas** (`#inicio`, `#catalogo`, `#sobre-nosotros`, `#contacto`), no rutas.
 El motivo: el tráfico va a llegar mayormente desde el link de Instagram, y en ese contexto el
-recorrido natural es un scroll continuo hasta el CTA de WhatsApp. Además evita cargar el Router,
-elimina el riesgo de 404 en el hosting estático y permite que Google indexe todo el contenido en
-una sola URL. Si más adelante hacés falta una ficha por producto o un blog, ahí sí conviene
-agregar `provideRouter` y convertir cada sección en una ruta.
+recorrido natural es un scroll continuo hasta el CTA de WhatsApp. Además evita cargar el Router y
+elimina el riesgo de 404 en el hosting estático. Las fichas del catálogo sí tienen URL propia e
+indexable (ver abajo), sin Router.
 
-### El catálogo tampoco usa rutas
+### El catálogo tampoco usa el Router
 
 Los 3 niveles (categorías → tipos → detalle) se manejan con **signals dentro de
-`CatalogComponent`**, no con rutas tipo `/catalogo/acolchados`. Razones:
+`CatalogComponent`**, no con el Router de Angular. Razones:
 
-- El catálogo es **una sección** de una página de scroll único. Una ruta por categoría obligaría a
+- El catálogo es **una sección** de una página de scroll único. Rutas de Angular obligarían a
   partir la landing en páginas separadas (perdiendo el recorrido continuo hasta el CTA de WhatsApp)
   o a montar el Router sólo para recordar qué tarjeta está abierta.
-- Lo único que las rutas aportarían es un link compartible por categoría. Para eso no hace falta el
-  Router: alcanza con reflejar `selectedCategoryId` en un query param con la History API.
 - Menos bundle y ningún riesgo de 404 en hosting estático.
 
-**Cuándo reconsiderarlo**: si cada producto pasa a tener su propia ficha indexable por Google —ahí
-el SEO de URLs propias sí justifica el Router, y conviene hacerlo junto con SSR/prerender.
+Lo que sí hay son **URLs propias por categoría y producto**, reflejadas con la History API:
+`/catalogo/<categoría>/` y `/catalogo/<categoría>/<producto>/` (ver
+[`catalog-seo.ts`](src/app/core/catalog-seo.ts)). Entrar directo a una abre esa categoría o ficha, y
+el botón atrás del navegador vuelve al nivel anterior. Son las páginas que se prerenderizan (abajo).
+
+## SEO y prerender
+
+No hay SSR: el hosting es estático (S3 + CloudFront, hoy Vercel). `npm run build` corre `ng build`
+y después [`scripts/prerender.ts`](scripts/prerender.ts), que a partir de `catalog.json` escribe en
+`dist/piuma-landing/browser/`:
+
+- `index.html` y `catalogo/<categoría>/[<producto>/]index.html`: el mismo index del build con
+  title, description, canonical y Open Graph de cada página, datos estructurados JSON-LD (`Store`,
+  `Product` con `AggregateOffer`, `ItemList`, `BreadcrumbList`) y el contenido como HTML semántico
+  dentro de `<app-root>` para crawlers sin JavaScript. Ese HTML se oculta con CSS (sólo se ve en
+  `<noscript>`) y Angular lo reemplaza al arrancar; no se agregan scripts inline (CSP `script-src 'self'`).
+- `robots.txt` y `sitemap.xml` (con imágenes).
+
+El dominio sale de `SITE_URL` al compilar (por defecto `https://piuma.uy`):
+`SITE_URL=https://piuma-landing.vercel.app npm run build`. `<base href="/">` en `index.html` es
+necesario para que los assets relativos funcionen en las subrutas. Cuenta, carrito, pedidos y admin
+son vistas en la misma URL y llevan `<meta name="robots" content="noindex">` mientras están abiertas.
+
+El hosting tiene que servir `catalogo/.../index.html` en esas rutas (Vercel lo hace solo; la
+CloudFront Function de `piuma-backend/infra/frontend.tf` necesita reescribirlas a su `index.html`).
+Un producto que existe sólo en el API (no en `catalog.json`) no tiene página: se abre en la landing
+sin cambiar la URL.
+
+## Analytics
+
+Apagado por defecto. Con la clave `analytics` en `runtime-config.json` se mandan eventos a
+[Umami](https://umami.is) (open source, sin cookies, self-hosted o Umami Cloud), sin cargar su script:
+
+```json
+"analytics": { "provider": "umami", "hostUrl": "https://<umami>", "websiteId": "<uuid>" }
+```
+
+Envía páginas vistas (inicio y cada URL del catálogo) y los eventos `whatsapp`, `categoria`,
+`producto`, `carrito` y `checkout`, sin query ni hash en la URL. Respeta Do Not Track. Al activarlo,
+sumar el origen de `hostUrl` a `connect-src` de la CSP.
 
 ## Estructura
 
@@ -88,10 +123,12 @@ src/
    ├─ app.component.ts             arma la página completa
    ├─ core/
    │  ├─ site-config.ts            WHATSAPP, email y redes sociales
+   │  ├─ catalog-seo.ts            URLs y title/description de las páginas del catálogo
    │  └─ color-swatches.ts         hex aproximados de los colores (ver TODO adentro)
    ├─ models/catalog.model.ts      Category → ProductType → Variant
    ├─ services/
    │  ├─ catalog.service.ts        lee catalog.json
+   │  ├─ analytics.service.ts      eventos sin cookies (Umami), apagado por defecto
    │  └─ whatsapp.service.ts       arma los links wa.me (genérico y por variante)
    ├─ shared/social-links/         íconos SVG de Instagram / WhatsApp / Facebook
    └─ components/
