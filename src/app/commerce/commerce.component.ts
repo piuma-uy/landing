@@ -6,10 +6,10 @@ import {
   linkedSignal,
   signal,
 } from "@angular/core";
-import { DatePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { CommerceService, Order, Product } from "./commerce.service";
 import { Settings, whatsappLink } from "./transfer";
+import { dateTime, reservedUntil } from "./orders";
 import {
   DEPARTMENTS,
   PICKUP_FALLBACK,
@@ -22,7 +22,7 @@ import {
 @Component({
   selector: "app-commerce",
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./commerce.component.html",
   styleUrl: "./commerce.component.scss",
@@ -46,6 +46,8 @@ export class CommerceComponent {
     return s && structuredClone(s);
   });
   readonly whatsappLink = whatsappLink;
+  readonly dateTime = dateTime;
+  readonly reservedUntil = reservedUntil;
   readonly shippingSummary = shippingSummary;
   readonly shippingProblem = shippingProblem;
   readonly toMinor = toMinor;

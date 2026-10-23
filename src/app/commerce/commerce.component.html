@@ -7,8 +7,18 @@
       [attr.role]="shop.error() ? 'alert' : 'status'"
     >
       {{ shop.error() || shop.notice() }}
+      @if (shop.error() && shop.errorCode() === "TOO_MANY_OPEN_ORDERS") {
+        <button
+          type="button"
+          class="feedback__action"
+          (click)="shop.open('orders')"
+        >
+          Ir a Mis pedidos
+        </button>
+      }
       <button
         type="button"
+        class="feedback__close"
         aria-label="Cerrar mensaje"
         (click)="shop.error.set(''); shop.notice.set('')"
       >
@@ -156,7 +166,7 @@
                 <p>
                   Reservamos tus productos hasta el
                   <strong>{{
-                    t.expiresAt | date: "dd/MM/yyyy 'a las' HH:mm"
+                    dateTime(t.expiresAt, true)
                   }}</strong
                   >. Si la transferencia no llega antes, el pedido se cancela.
                 </p>
@@ -234,8 +244,14 @@
                   {{ shippingSummary(order.shipping) }}
                 </p>
                 <p class="payment-note" role="status">
-                  Reservamos tus productos. El pedido se confirma cuando Mercado
-                  Pago aprueba el pago.
+                  @if (reservedUntil(order); as until) {
+                    Reservamos tus productos hasta el
+                    <strong>{{ dateTime(until, true) }}</strong>. El pedido se
+                    confirma cuando Mercado Pago aprueba el pago.
+                  } @else {
+                    Reservamos tus productos. El pedido se confirma cuando
+                    Mercado Pago aprueba el pago.
+                  }
                 </p>
                 <div class="actions">
                   <button
@@ -275,6 +291,13 @@
                     Tu pedido quedó pendiente de pago. No se realizó ningún
                     cobro.
                   </p>
+                  @if (reservedUntil(order); as until) {
+                    <p>
+                      Reservamos tus productos hasta el
+                      <strong>{{ dateTime(until, true) }}</strong>. Después el
+                      pedido se cancela y los productos se liberan.
+                    </p>
+                  }
                 </div>
                 <div class="actions">
                   @if (!shop.user()?.admin) {
@@ -634,7 +657,7 @@
                   <div>
                     <h2>Pedido #{{ order.id.slice(0, 8) }}</h2>
                     <p class="muted">
-                      {{ order.createdAt | date: "dd/MM/yyyy HH:mm" }}
+                      {{ dateTime(order.createdAt) }}
                     </p>
                   </div>
                   <span
@@ -688,6 +711,16 @@
                   }
                 </div>
                 @if (
+                  order.status === "pending_payment" && reservedUntil(order);
+                  as until
+                ) {
+                  <p class="small reserved-until">
+                    Reservado hasta el
+                    <strong>{{ dateTime(until, true) }}</strong>. Si no se paga
+                    antes, el pedido se cancela y los productos se liberan.
+                  </p>
+                }
+                @if (
                   order.status === "pending_payment" &&
                   order.cardStatus === "failed"
                 ) {
@@ -712,7 +745,7 @@
                         t.instructions.holder
                       }}), con la referencia <strong>{{ t.reference }}</strong
                       >, antes del
-                      {{ t.expiresAt | date: "dd/MM/yyyy 'a las' HH:mm" }}.
+                      {{ dateTime(t.expiresAt, true) }}.
                     </p>
                     @if (whatsappLink(t); as wa) {
                       <a
@@ -792,8 +825,13 @@
                     <h2>No se realizó ningún cobro</h2>
                     <p>
                       Pedido #{{ order.id.slice(0, 8) }} ·
-                      {{ shop.money(order.totalMinor, order.currency) }}. Tus
-                      productos siguen reservados.
+                      {{ shop.money(order.totalMinor, order.currency) }}.
+                      @if (reservedUntil(order); as until) {
+                        Tus productos siguen reservados hasta el
+                        <strong>{{ dateTime(until, true) }}</strong>.
+                      } @else {
+                        Tus productos siguen reservados.
+                      }
                     </p>
                     <div class="actions">
                       <button
@@ -838,6 +876,12 @@
                         nuevo.
                       }
                     </p>
+                    @if (reservedUntil(order); as until) {
+                      <p class="small">
+                        Reservamos tus productos hasta el
+                        <strong>{{ dateTime(until, true) }}</strong>.
+                      </p>
+                    }
                     <div class="actions">
                       <button
                         class="btn btn--primary wide"
@@ -996,11 +1040,10 @@
                     <p class="muted small">
                       Vence el
                       {{
-                        order.transfer?.expiresAt
-                          | date: "dd/MM/yyyy 'a las' HH:mm"
+                        dateTime(order.transfer?.expiresAt, true)
                       }}
                       · Pedido del
-                      {{ order.createdAt | date: "dd/MM/yyyy HH:mm" }}
+                      {{ dateTime(order.createdAt) }}
                     </p>
                     @if (reviewing()?.id === order.id) {
                       @if (reviewing()?.action === "confirm") {
@@ -1174,6 +1217,49 @@
                         ></textarea>
                       </label>
                     </section>
+                    <section class="panel">
+                      <h2>Pedidos sin pagar</h2>
+                      <p class="muted small">
+                        Cada pedido sin pagar reserva stock. Al llegar al
+                        máximo, el cliente tiene que pagar uno o esperar a que
+                        venza para crear otro.
+                      </p>
+                      <div class="form-grid">
+                        <label
+                          >Máximo de pedidos sin pagar por cliente<input
+                            name="maxOpenPerUser"
+                            type="number"
+                            [(ngModel)]="d.orders.maxOpenPerUser"
+                            required
+                            min="1"
+                            max="20"
+                            step="1" /></label
+                        ><label
+                          >Horas para pagar con tarjeta<input
+                            name="cardHoldHours"
+                            type="number"
+                            [(ngModel)]="d.card.holdHours"
+                            required
+                            min="1"
+                            max="720"
+                            step="1" /></label
+                        ><label
+                          >Horas de reserva sin forma de pago<input
+                            name="pendingHoldHours"
+                            type="number"
+                            [(ngModel)]="d.orders.pendingHoldHours"
+                            required
+                            min="1"
+                            max="720"
+                            step="1"
+                        /></label>
+                      </div>
+                      <p class="muted small">
+                        La reserva de una transferencia se configura arriba.
+                        Pasado el plazo, el pedido se cancela y el stock vuelve
+                        a estar disponible.
+                      </p>
+                    </section>
                     <section class="panel shipping-settings">
                       <h2>Retiro y envíos</h2>
                       <label class="checkbox"
@@ -1329,7 +1415,7 @@
                     @if (d.updatedAt) {
                       <p class="muted small">
                         Último cambio:
-                        {{ d.updatedAt | date: "dd/MM/yyyy HH:mm" }}
+                        {{ dateTime(d.updatedAt) }}
                       </p>
                     }
                   </form>

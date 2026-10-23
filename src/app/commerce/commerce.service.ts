@@ -40,6 +40,7 @@ import {
   unitCount,
 } from "./cart";
 import { CheckoutAttempts, defaultPayWith, paymentMethodFor } from "./checkout";
+import { OPEN_ORDERS_LIMIT, TOO_MANY_OPEN_ORDERS } from "./orders";
 export interface User {
   id: string;
   email: string;
@@ -90,6 +91,10 @@ export interface Order {
   /** Card, unpaid only: last Mercado Pago state the webhook reported. */
   cardStatus?: "pending" | "failed";
   checkout?: Checkout;
+  /** Card orders: the reservation is released after this moment unless Mercado Pago paid. */
+  cardExpiresAt?: string;
+  /** Orders without payment method: the reservation is released after this moment. */
+  pendingExpiresAt?: string;
   paidAt?: string;
 }
 /** "pending" keeps the order reserved without a payment method (nothing to charge yet). */
@@ -168,6 +173,8 @@ export class CommerceService {
   readonly quote = signal<Quote | null>(null);
   readonly completed = signal<Order | null>(null);
   readonly error = signal("");
+  /** API code of the last error, for errors that offer a way out (TOO_MANY_OPEN_ORDERS). */
+  readonly errorCode = signal("");
   readonly notice = signal("");
   readonly busy = signal(false);
   readonly ready = signal(false);
@@ -259,11 +266,13 @@ export class CommerceService {
     if (this.busy()) return;
     this.busy.set(true);
     this.error.set("");
+    this.errorCode.set("");
     this.notice.set("");
     try {
       await fn();
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : "Ocurrió un error");
+      this.errorCode.set((e instanceof ApiError && e.code) || "");
     } finally {
       this.busy.set(false);
     }
@@ -582,6 +591,9 @@ export class CommerceService {
           this.payWith.set(payWithDefault(methods));
         }
         await this.shippingChanged(e);
+        // Nothing reserved: the buyer pays one of the open orders or waits for it to expire.
+        if (e instanceof ApiError && e.code === TOO_MANY_OPEN_ORDERS)
+          throw new ApiError(OPEN_ORDERS_LIMIT, e.status, e.code);
         throw e;
       }
       // Created: a later purchase of the same cart is a new order, never a replay of this one.
