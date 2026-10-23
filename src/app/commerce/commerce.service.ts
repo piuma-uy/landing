@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { RUNTIME_CONFIG } from "./config";
-import { CognitoAuth } from "./cognito";
+import { CognitoAuth, decodeJwt } from "./cognito";
 import { AnalyticsService } from "../services/analytics.service";
 import {
   ApiError,
@@ -41,6 +41,22 @@ import {
   unitCount,
 } from "./cart";
 import { CheckoutAttempts, defaultPayWith, paymentMethodFor } from "./checkout";
+import {
+  EnrollmentError,
+  MFA_CHECK_UNAVAILABLE,
+  MFA_REQUIRED,
+  MFA_UNAVAILABLE_MESSAGE,
+  TotpEnrollment,
+  otpauthUrl,
+  totpCode,
+} from "./mfa";
+import {
+  SettingsHistoryEntry,
+  SettingsHistoryPage,
+  bankChange,
+  needsOlder,
+  ALERT_MAX_PAGES,
+} from "./settings-history";
 import {
   ORDERS_LINK_CODES,
   PAYMENT_METHOD_REQUIRED,
@@ -155,6 +171,15 @@ export class CommerceService {
   readonly adminOrders = signal<Order[]>([]);
   readonly pendingTransfers = signal<Order[]>([]);
   readonly settings = signal<Settings | null>(null);
+  /** The API refused /admin/* with MFA_REQUIRED: the panel shows only the TOTP enrollment. */
+  readonly mfaRequired = signal(false);
+  /** Enrollment in progress: secret and otpauth URL for the authenticator app (memory only). */
+  readonly totp = signal<{ secret: string; url: string } | null>(null);
+  /** GET /admin/settings/history read so far, newest first, and the cursor for older ones. */
+  readonly history = signal<SettingsHistoryEntry[]>([]);
+  readonly historyCursor = signal<string | undefined>(undefined);
+  /** Bank details changed in the last 7 days: when and by whom. */
+  readonly bankAlert = computed(() => bankChange(this.history(), Date.now()));
   readonly paymentMethods = signal<PaymentMethods | null>(null);
   readonly payWith = signal<PayWith>("pending");
   readonly transferEnabled = computed(() =>
@@ -180,6 +205,10 @@ export class CommerceService {
   readonly error = signal("");
   /** API code of the last error, for errors that offer a way out (TOO_MANY_OPEN_ORDERS). */
   readonly errorCode = signal("");
+  /** The token cannot enroll TOTP (session older than the scope, or revoked): log in again. */
+  readonly needsRelogin = computed(
+    () => this.errorCode() === "NotAuthorizedException",
+  );
   /** The error is a reservation limit the buyer gets past from "Mis pedidos". */
   readonly ordersLink = computed(
     () => !!this.error() && ORDERS_LINK_CODES.includes(this.errorCode()),
@@ -231,23 +260,41 @@ export class CommerceService {
       if (response.status === 401) {
         this.cognito?.clear();
         this.user.set(null);
-        this.orders.set([]);
-        this.adminOrders.set([]);
-        this.adminProducts.set([]);
-        this.metrics.set([]);
-        this.pendingTransfers.set([]);
-        this.settings.set(null);
+        this.clearAdmin();
+      }
+      const code = data.error?.code;
+      // Second factor missing (or turned off meanwhile): hide the panel until it is enrolled.
+      if (response.status === 403 && code === MFA_REQUIRED) {
+        this.clearAdmin();
+        this.mfaRequired.set(true);
       }
       throw new ApiError(
-        data.error?.message ??
-          data.message ??
-          "No se pudo completar la operación",
+        code === MFA_CHECK_UNAVAILABLE
+          ? MFA_UNAVAILABLE_MESSAGE
+          : (data.error?.message ??
+              data.message ??
+              "No se pudo completar la operación"),
         response.status,
-        data.error?.code,
+        code,
       );
     }
     return data;
   }
+  /** Everything the panel loaded; nothing of it survives a lost session or a missing factor. */
+  private clearAdmin() {
+    this.orders.set([]);
+    this.adminOrders.set([]);
+    this.adminProducts.set([]);
+    this.metrics.set([]);
+    this.pendingTransfers.set([]);
+    this.settings.set(null);
+    this.history.set([]);
+    this.historyCursor.set(undefined);
+  }
+  private readonly enrollment = new TotpEnrollment(
+    (...args) => fetch(...args),
+    decodeJwt,
+  );
   private readonly transfers = new TransferApi((path, method, body) =>
     this.request(path, method, body),
   );
@@ -281,7 +328,11 @@ export class CommerceService {
       await fn();
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : "Ocurrió un error");
-      this.errorCode.set((e instanceof ApiError && e.code) || "");
+      this.errorCode.set(
+        (e instanceof ApiError && e.code) ||
+          (e instanceof EnrollmentError && e.type) ||
+          "",
+      );
     } finally {
       this.busy.set(false);
     }
@@ -312,6 +363,14 @@ export class CommerceService {
       else this.cart.set(this.readGuest());
     });
     this.ready.set(true);
+    // "Administrar" clicked while the session was still loading: run() skipped that load.
+    if (
+      this.view() === "admin" &&
+      this.user()?.admin &&
+      !this.settings() &&
+      !this.mfaRequired()
+    )
+      void this.run(() => this.loadAdmin());
     this.resumeReturn();
   }
   /**
@@ -473,12 +532,9 @@ export class CommerceService {
       } else await this.request("/auth/logout", "POST", {});
       this.user.set(null);
       this.cart.set([]);
-      this.orders.set([]);
-      this.adminOrders.set([]);
-      this.adminProducts.set([]);
-      this.metrics.set([]);
-      this.pendingTransfers.set([]);
-      this.settings.set(null);
+      this.clearAdmin();
+      this.mfaRequired.set(false);
+      this.totp.set(null);
       this.paymentMethods.set(null);
       this.completed.set(null);
       this.paymentReturn.set(null);
@@ -633,18 +689,88 @@ export class CommerceService {
       await this.request("/orders/" + order.id + "/payment", "POST", {});
     });
   }
+  /** Loads the panel; without a second factor it only leaves the enrollment on screen. */
   async loadAdmin() {
-    const [p, m, t, s] = await Promise.all([
-      this.pages<Product>("/admin/products"),
-      this.pages<Metric>("/admin/metrics"),
-      this.transfers.pending<Order>(),
-      this.transfers.settings(),
-    ]);
-    this.adminProducts.set(p);
-    this.metrics.set(m);
-    this.pendingTransfers.set(t);
-    this.settings.set(s);
+    try {
+      const [p, m, t, s] = await Promise.all([
+        this.pages<Product>("/admin/products"),
+        this.pages<Metric>("/admin/metrics"),
+        this.transfers.pending<Order>(),
+        this.transfers.settings(),
+        this.loadHistory(),
+      ]);
+      this.mfaRequired.set(false);
+      this.adminProducts.set(p);
+      this.metrics.set(m);
+      this.pendingTransfers.set(t);
+      this.settings.set(s);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === MFA_REQUIRED) return;
+      throw e;
+    }
   }
+  /**
+   * First page of the settings history, plus older ones while they could still hold a bank
+   * details change of the alert window (the alert never depends on scrolling the list).
+   */
+  private async loadHistory() {
+    const now = Date.now();
+    const rows: SettingsHistoryEntry[] = [];
+    let cursor: string | undefined;
+    let pages = 0;
+    do {
+      const page = await this.historyPage(cursor);
+      rows.push(...page.items);
+      cursor = page.nextCursor;
+    } while (++pages < ALERT_MAX_PAGES && needsOlder(rows, cursor, now));
+    this.history.set(rows);
+    this.historyCursor.set(cursor);
+  }
+  private historyPage(cursor?: string) {
+    return this.request<SettingsHistoryPage>(
+      "/admin/settings/history" +
+        (cursor ? "?cursor=" + encodeURIComponent(cursor) : ""),
+    );
+  }
+  async moreHistory() {
+    await this.run(async () => {
+      const cursor = this.historyCursor();
+      if (!cursor) return;
+      const page = await this.historyPage(cursor);
+      this.history.update((rows) => [...rows, ...page.items]);
+      this.historyCursor.set(page.nextCursor);
+    });
+  }
+  /** AWS: asks Cognito for a new TOTP secret and shows it as QR, link and text. */
+  async startTotp() {
+    await this.run(async () => {
+      const user = this.user();
+      if (!this.cognito || !user) return;
+      const secret = await this.enrollment.associate(
+        await this.cognito.getAccessToken(),
+      );
+      this.totp.set({ secret, url: otpauthUrl(user.email, secret) });
+    });
+  }
+  /** Verifies the first code, makes TOTP the second factor and opens the panel. */
+  async confirmTotp(input: string) {
+    await this.run(async () => {
+      if (!this.cognito || !this.totp()) return;
+      const code = totpCode(input);
+      if (!code) throw new Error("Escribí los 6 números que muestra la app.");
+      await this.enrollment.verify(await this.cognito.getAccessToken(), code);
+      this.totp.set(null);
+      await this.loadAdmin();
+      if (this.mfaRequired())
+        throw new Error(
+          "Activamos el segundo factor, pero el panel todavía no lo ve. Probá de nuevo en unos segundos.",
+        );
+      this.notice.set(
+        "Segundo factor activado. Desde el próximo ingreso te vamos a pedir el código de la app.",
+      );
+    });
+  }
+
   async confirmTransfer(order: Order, bankReference: string) {
     await this.run(async () => {
       await this.transfers.confirm(order, bankReference);

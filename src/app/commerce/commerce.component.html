@@ -946,7 +946,125 @@
           <h1>Tu tienda, en un lugar</h1>
           @if (!shop.user()?.admin) {
             <p>No tenés permisos para acceder a esta sección.</p>
+          } @else if (shop.mfaRequired()) {
+            <section
+              class="panel second-factor"
+              aria-labelledby="second-factor-title"
+            >
+              <h2 id="second-factor-title">Activá el segundo factor</h2>
+              <p>
+                Para entrar al panel, además de tu contraseña, necesitás un
+                código de una app autenticadora (Google Authenticator, Microsoft
+                Authenticator, 1Password u otra). Así nadie puede cambiar los
+                datos bancarios de la tienda aunque sepa tu contraseña.
+              </p>
+              @if (!shop.cognito) {
+                <p class="muted small">
+                  En el entorno local el ingreso local reemplaza al segundo
+                  factor. La API está simulando un administrador sin segundo
+                  factor (<code>LOCAL_ADMIN_MFA=missing</code>): levantala sin
+                  esa variable y reintentá.
+                </p>
+                <div class="actions">
+                  <button
+                    class="btn btn--outline"
+                    [disabled]="shop.busy()"
+                    (click)="shop.open('admin')"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              } @else if (shop.totp()) {
+                <ol class="steps">
+                  <li>
+                    <strong>Agregá Piuma a la app.</strong> Escaneá el código
+                    con la app o, si estás en el teléfono, abrila con el botón.
+                    @if (totpQr(); as q) {
+                      <svg
+                        class="qr"
+                        [attr.viewBox]="'0 0 ' + q.size + ' ' + q.size"
+                        role="img"
+                        aria-label="Código QR para la app autenticadora"
+                        shape-rendering="crispEdges"
+                      >
+                        <rect width="100%" height="100%" fill="#fff" />
+                        <path [attr.d]="q.d" fill="#000" />
+                      </svg>
+                    }
+                    <a class="btn btn--outline" [href]="totpLink()"
+                      >Abrir en la app autenticadora</a
+                    >
+                    <p class="muted small">
+                      ¿No podés escanearlo? Cargá esta clave a mano:
+                      <code class="secret">{{ totpSecret() }}</code>
+                    </p>
+                  </li>
+                  <li>
+                    <strong>Confirmá con el primer código.</strong>
+                    <form
+                      class="totp-form"
+                      #totpForm="ngForm"
+                      (ngSubmit)="confirmTotp()"
+                    >
+                      <label
+                        >Código de 6 números<input
+                          name="totpCode"
+                          [(ngModel)]="totpInput"
+                          inputmode="numeric"
+                          autocomplete="one-time-code"
+                          pattern="[0-9 ]{6,7}"
+                          maxlength="7"
+                          required
+                      /></label>
+                      <button
+                        class="btn btn--primary"
+                        [disabled]="shop.busy() || !totpForm.valid"
+                      >
+                        Activar segundo factor
+                      </button>
+                    </form>
+                  </li>
+                </ol>
+              } @else {
+                <div class="actions">
+                  <button
+                    class="btn btn--primary"
+                    [disabled]="shop.busy()"
+                    (click)="shop.startTotp()"
+                  >
+                    Generar código QR
+                  </button>
+                </div>
+              }
+              @if (shop.needsRelogin()) {
+                <div class="actions">
+                  <button
+                    class="btn btn--outline"
+                    [disabled]="shop.busy()"
+                    (click)="shop.redirectToLogin()"
+                  >
+                    Volver a ingresar
+                  </button>
+                </div>
+              }
+            </section>
           } @else {
+            @if (shop.bankAlert(); as alert) {
+              <aside class="security-alert" aria-label="Aviso de seguridad">
+                <p>
+                  Los datos bancarios cambiaron el
+                  {{ dateTime(alert.changedAt, true) }} por {{ alert.by }}. Si
+                  no fuiste vos, avisá enseguida.
+                </p>
+                <button
+                  type="button"
+                  class="text-button"
+                  (click)="showHistory()"
+                >
+                  Ver historial de cambios
+                </button>
+              </aside>
+            }
             <nav class="admin-tabs" aria-label="Secciones de administración">
               <button
                 [class.active]="adminTab() === 'overview'"
@@ -1447,6 +1565,58 @@
                 } @else {
                   <p role="status">Cargando configuración…</p>
                 }
+                <section
+                  class="panel history"
+                  id="settings-history"
+                  aria-labelledby="settings-history-title"
+                >
+                  <h2 id="settings-history-title">Historial de cambios</h2>
+                  <p class="muted small">
+                    Cada vez que se guarda la configuración: cuándo, quién y qué
+                    cambió. Del número de cuenta se muestran sólo los últimos 4
+                    dígitos.
+                  </p>
+                  @for (item of historyRows(); track item.entry.version) {
+                    <article class="history-entry">
+                      <header>
+                        <strong>{{
+                          dateTime(item.entry.changedAt, true)
+                        }}</strong>
+                        <span class="muted">{{ item.by }}</span>
+                      </header>
+                      <ul>
+                        @for (row of item.rows; track $index) {
+                          <li>
+                            <strong>{{ row.label }}</strong>
+                            @if (row.values; as v) {
+                              <span class="history-value"
+                                ><span class="muted">Antes:</span>
+                                {{ v.before }}</span
+                              >
+                              <span class="history-value"
+                                ><span class="muted">Ahora:</span>
+                                {{ v.after }}</span
+                              >
+                            } @else {
+                              <span class="muted">cambió</span>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    </article>
+                  } @empty {
+                    <p class="muted">Todavía no hay cambios registrados.</p>
+                  }
+                  @if (shop.historyCursor()) {
+                    <button
+                      class="btn btn--outline"
+                      [disabled]="shop.busy()"
+                      (click)="shop.moreHistory()"
+                    >
+                      Ver cambios anteriores
+                    </button>
+                  }
+                </section>
               }
               @case ("products") {
                 <div class="toolbar">
