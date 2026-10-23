@@ -4,6 +4,8 @@ import {
   ATTEMPT_SLOT,
   CheckoutAttempts,
   checkoutAttempt,
+  clearSession,
+  fingerprintHash,
   defaultPayWith,
   paymentMethodFor,
 } from "../src/app/commerce/checkout.ts";
@@ -71,31 +73,70 @@ function attempts() {
   };
 }
 
-test("retries of one attempt keep its key until the result is known", () => {
+test("retries of one attempt keep its key until the result is known", async () => {
   const { storage, attempts: a } = attempts();
   // Timeout, 5xx or lost response: the buyer confirms again with the same key.
-  assert.equal(a.key("fp-1"), "key-1");
-  assert.equal(a.key("fp-1"), "key-1");
+  assert.equal(await a.key("fp-1"), "key-1");
+  assert.equal(await a.key("fp-1"), "key-1");
   // A reload builds a new service on the same sessionStorage.
   const reloaded = new CheckoutAttempts(storage, () => "other");
-  assert.equal(reloaded.key("fp-1"), "key-1");
+  assert.equal(await reloaded.key("fp-1"), "key-1");
 });
 
-test("after the order is created the same purchase gets a new key (FE-01)", () => {
+test("after the order is created the same purchase gets a new key (FE-01)", async () => {
   const { storage, attempts: a } = attempts();
-  assert.equal(a.key("fp-1"), "key-1");
+  assert.equal(await a.key("fp-1"), "key-1");
   a.end();
   assert.equal(storage.slots.has(ATTEMPT_SLOT), false);
   // Same user, cart, delivery and phone: a second order, never a replay of the first.
-  assert.equal(a.key("fp-1"), "key-2");
+  assert.equal(await a.key("fp-1"), "key-2");
 });
 
-test("a changed cart or a logout starts a new attempt", () => {
+test("a changed cart or a logout starts a new attempt", async () => {
   const { attempts: a } = attempts();
-  assert.equal(a.key("fp-1"), "key-1");
+  assert.equal(await a.key("fp-1"), "key-1");
   // Different payload: new key even without end().
-  assert.equal(a.key("fp-2"), "key-2");
+  assert.equal(await a.key("fp-2"), "key-2");
   // Cart saved back to the first content, or logout: end() drops the attempt.
   a.end();
-  assert.equal(a.key("fp-1"), "key-3");
+  assert.equal(await a.key("fp-1"), "key-3");
+});
+
+test("only a hash of the fingerprint reaches sessionStorage (FE-06)", async () => {
+  const { storage, attempts: a } = attempts();
+  const fingerprint = JSON.stringify([
+    "user-1",
+    { contact: { email: "ana@example.com", phone: "099123456" } },
+  ]);
+  await a.key(fingerprint);
+  const stored = storage.slots.get(ATTEMPT_SLOT)!;
+  assert.doesNotMatch(stored, /ana@example\.com|099123456|user-1/);
+  assert.equal(
+    JSON.parse(stored).fingerprint,
+    await fingerprintHash(fingerprint),
+  );
+  assert.match(await fingerprintHash(fingerprint), /^[0-9a-f]{64}$/);
+  // The SHA-256 test vector, so the hash is stable across reloads and browsers.
+  assert.equal(
+    await fingerprintHash("abc"),
+    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  );
+});
+
+test("logout drops every piuma-* slot and nothing else (FE-06)", () => {
+  const slots = new Map([
+    ["piuma-checkout", "{}"],
+    ["piuma-switch-abc", "key"],
+    ["piuma-payment-return", "abc"],
+    ["piuma-oauth", "{}"],
+    ["other-app", "kept"],
+  ]);
+  clearSession({
+    get length() {
+      return slots.size;
+    },
+    key: (i: number) => [...slots.keys()][i] ?? null,
+    removeItem: (k: string) => void slots.delete(k),
+  });
+  assert.deepEqual([...slots.keys()], ["other-app"]);
 });

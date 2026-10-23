@@ -1,5 +1,7 @@
 @if (shop.enabled) {
-  <p class="preview-label">Tienda de prueba · Sin cobros</p>
+  @if (shop.config.testMode) {
+    <p class="preview-label">Tienda de prueba · Sin cobros</p>
+  }
   @if (shop.error() || shop.notice()) {
     <div
       class="feedback container"

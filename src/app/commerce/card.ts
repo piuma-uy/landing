@@ -49,15 +49,29 @@ export function paymentState(order: CardOrder): PaymentState {
   return order.cardStatus === "failed" ? "failed" : "pending";
 }
 
+/** Hosts of Mercado Pago's hosted checkout (Checkout Pro init_point and its sandbox). */
+export const CHECKOUT_HOSTS = [
+  "www.mercadopago.com.uy",
+  "sandbox.mercadopago.com.uy",
+  "mercadopago.com.uy",
+];
+const LOCAL_HOSTS = ["localhost", "127.0.0.1"];
+
 /**
- * Only the hosted checkout of Mercado Pago (or a local http simulator) is followed: an
- * unexpected URL from a misconfigured API is not opened.
+ * Only the hosted checkout of Mercado Pago is followed, plus the local simulator when the API
+ * itself is local (Docker): an unexpected URL from a misconfigured API is not opened (FE-04).
  */
-export function checkoutUrl(checkout: Checkout | undefined) {
+export function checkoutUrl(checkout: Checkout | undefined, apiBaseUrl = "") {
   try {
     const url = new URL(checkout?.redirectUrl ?? "");
-    const local = ["localhost", "127.0.0.1"].includes(url.hostname);
-    return url.protocol === "https:" || (local && url.protocol === "http:")
+    if (url.protocol === "https:" && CHECKOUT_HOSTS.includes(url.hostname))
+      return url.href;
+    const localApi = LOCAL_HOSTS.includes(
+      URL.canParse(apiBaseUrl) ? new URL(apiBaseUrl).hostname : "",
+    );
+    return localApi &&
+      LOCAL_HOSTS.includes(url.hostname) &&
+      (url.protocol === "http:" || url.protocol === "https:")
       ? url.href
       : null;
   } catch {
@@ -89,11 +103,11 @@ export async function pollOrder<T extends CardOrder>(
 
 export class CardApi {
   private readonly request: CardRequest;
-  private readonly storage: Pick<Storage, "getItem" | "setItem">;
+  private readonly storage: Pick<Storage, "getItem" | "setItem" | "removeItem">;
   private readonly newKey: () => string;
   constructor(
     request: CardRequest,
-    storage: Pick<Storage, "getItem" | "setItem">,
+    storage: Pick<Storage, "getItem" | "setItem" | "removeItem">,
     newKey: () => string,
   ) {
     this.request = request;
@@ -113,20 +127,30 @@ export class CardApi {
   }
   /**
    * Card rejected: move the same order (and its reservation) to bank transfer. One key per
-   * order, kept until the answer arrives, so a retry after a timeout replays it.
+   * order, kept until the answer arrives, so a retry after a timeout replays it; dropped once
+   * the API answered (2xx or 4xx), since the outcome is then known.
    */
-  switchToTransfer<T extends CardOrder>(orderId: string) {
+  async switchToTransfer<T extends CardOrder>(orderId: string) {
     const slot = "piuma-switch-" + orderId;
     let key = this.storage.getItem(slot);
     if (!key) {
       key = this.newKey();
       this.storage.setItem(slot, key);
     }
-    return this.request<T>(
-      "/orders/" + encodeURIComponent(orderId) + "/payment-method",
-      "POST",
-      { paymentMethod: "transfer" },
-      { "Idempotency-Key": key },
-    );
+    try {
+      const order = await this.request<T>(
+        "/orders/" + encodeURIComponent(orderId) + "/payment-method",
+        "POST",
+        { paymentMethod: "transfer" },
+        { "Idempotency-Key": key },
+      );
+      this.storage.removeItem(slot);
+      return order;
+    } catch (e) {
+      const status = (e as { status?: unknown } | null)?.status;
+      if (typeof status === "number" && status >= 400 && status < 500)
+        this.storage.removeItem(slot);
+      throw e;
+    }
   }
 }
