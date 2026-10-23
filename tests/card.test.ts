@@ -74,16 +74,37 @@ test("payment state comes from the order, never from result=approved", () => {
   );
 });
 
-test("only https checkouts (or a local simulator) are followed", () => {
-  const url = (redirectUrl: string) =>
-    checkoutUrl({ checkoutId: "pref", redirectUrl });
+test("only Mercado Pago checkouts (or a local simulator with a local API) are followed", () => {
+  const url = (redirectUrl: string, api = "https://api.piuma.uy") =>
+    checkoutUrl({ checkoutId: "pref", redirectUrl }, api);
+  for (const host of [
+    "www.mercadopago.com.uy",
+    "sandbox.mercadopago.com.uy",
+    "mercadopago.com.uy",
+  ])
+    assert.equal(
+      url(`https://${host}/checkout/v1/redirect?pref_id=1`),
+      `https://${host}/checkout/v1/redirect?pref_id=1`,
+    );
+  // FE-04: any other https origin, a look-alike or http to Mercado Pago is refused.
+  assert.equal(url("https://evil.example/checkout"), null);
+  assert.equal(url("https://mercadopago.com.uy.evil.example/checkout"), null);
+  assert.equal(url("https://evilmercadopago.com.uy/checkout"), null);
+  assert.equal(url("http://www.mercadopago.com.uy/checkout"), null);
+  // The simulator only with the Docker API.
+  assert.equal(url("http://localhost:8080/checkout/pref"), null);
+  assert.equal(url("http://localhost:8080/checkout/pref", ""), null);
   assert.equal(
-    url("https://sandbox.mercadopago.com.uy/checkout/v1/redirect?pref_id=1"),
-    "https://sandbox.mercadopago.com.uy/checkout/v1/redirect?pref_id=1",
+    url("http://localhost:8080/checkout/pref", "http://localhost:3000"),
+    "http://localhost:8080/checkout/pref",
   );
   assert.equal(
-    url("http://localhost:8080/checkout/pref"),
-    "http://localhost:8080/checkout/pref",
+    url("http://127.0.0.1:8080/checkout/pref", "http://127.0.0.1:3000"),
+    "http://127.0.0.1:8080/checkout/pref",
+  );
+  assert.equal(
+    url("http://evil.example/checkout", "http://localhost:3000"),
+    null,
   );
   assert.equal(url("http://evil.example/checkout"), null);
   assert.equal(url("javascript:alert(1)"), null);
@@ -150,6 +171,8 @@ function cards() {
     headers?: Record<string, string>;
   }[] = [];
   const store = new Map<string, string>();
+  /** Failures for the next requests, in order: thrown instead of answering. */
+  const failures: unknown[] = [];
   let n = 0;
   const api = new CardApi(
     async <T>(
@@ -159,15 +182,18 @@ function cards() {
       headers?: Record<string, string>,
     ) => {
       calls.push({ path, method, body, headers });
+      const failure = failures.shift();
+      if (failure) throw failure;
       return {} as T;
     },
     {
       getItem: (k) => store.get(k) ?? null,
       setItem: (k, v) => void store.set(k, v),
+      removeItem: (k) => void store.delete(k),
     },
     () => "key-" + ++n,
   );
-  return { api, calls, store };
+  return { api, calls, store, failures };
 }
 
 test("checkout asks the API for the order's own preference (no amount sent)", async () => {
@@ -191,10 +217,17 @@ test("checkout asks the API for the order's own preference (no amount sent)", as
 });
 
 test("switching to transfer keeps one Idempotency-Key per order across retries", async () => {
-  const { api, calls } = cards();
+  const { api, calls, store, failures } = cards();
+  // Lost response (network or 5xx): the retry replays the same key.
+  failures.push(new TypeError("Failed to fetch"));
+  await assert.rejects(api.switchToTransfer(id));
+  assert.equal(store.get("piuma-switch-" + id), "key-1");
   await api.switchToTransfer(id);
-  await api.switchToTransfer(id);
-  await api.switchToTransfer("b".repeat(64));
+  // Answered: the outcome is known and the slot is dropped (FE-06).
+  assert.equal(store.has("piuma-switch-" + id), false);
+  failures.push(Object.assign(new Error("Conflict"), { status: 409 }));
+  await assert.rejects(api.switchToTransfer("b".repeat(64)));
+  assert.equal(store.size, 0);
   assert.deepEqual(
     calls.map((c) => [c.path, c.method, c.body, c.headers]),
     [

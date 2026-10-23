@@ -8,6 +8,8 @@ export interface CognitoConfig {
   clientId: string;
   redirectUri?: string;
   logoutUri?: string;
+  /** `https://cognito-idp.<region>.amazonaws.com/<userPoolId>`: the id_token's `iss` must match. */
+  issuer?: string;
   google?: boolean;
 }
 
@@ -45,6 +47,8 @@ const ATTEMPT_KEY = "piuma-oauth";
 const ADMIN_GROUP = "admins";
 // Refresh a bit before expiry so a request never leaves with a stale token.
 const SKEW_MS = 60_000;
+// Clock difference tolerated between the device and Cognito when reading exp/iat.
+export const CLOCK_TOLERANCE_MS = 5 * 60_000;
 
 export function base64Url(bytes: Uint8Array): string {
   let s = "";
@@ -87,6 +91,37 @@ function groupsOf(raw: unknown): string[] {
     .replace(/^\[|\]$/g, "")
     .split(/[ ,]+/)
     .filter(Boolean);
+}
+
+/**
+ * Why the id_token's claims are refused, or null (FE-05). Signature is not checked here: the
+ * token only feeds the display, and the API authorizes with the access token.
+ */
+export function idTokenProblem(
+  claims: Record<string, unknown>,
+  expected: { clientId: string; issuer?: string; nonce?: string; now: number },
+): string | null {
+  const aud = claims["aud"];
+  if (
+    !(Array.isArray(aud)
+      ? aud.includes(expected.clientId)
+      : aud === expected.clientId)
+  )
+    return "aud";
+  if (expected.issuer && claims["iss"] !== expected.issuer.replace(/\/$/, ""))
+    return "iss";
+  const exp = claims["exp"];
+  if (typeof exp !== "number" || exp * 1000 < expected.now - CLOCK_TOLERANCE_MS)
+    return "exp";
+  const iat = claims["iat"];
+  if (
+    iat !== undefined &&
+    (typeof iat !== "number" || iat * 1000 > expected.now + CLOCK_TOLERANCE_MS)
+  )
+    return "iat";
+  if (expected.nonce !== undefined && claims["nonce"] !== expected.nonce)
+    return "nonce";
+  return null;
 }
 
 export class CognitoAuth {
@@ -248,10 +283,14 @@ export class CognitoAuth {
     let profile = this.profile;
     if (tokens.id_token) {
       const claims = decodeJwt(tokens.id_token);
-      if (claims["aud"] !== this.config.clientId)
-        throw new Error("Token de otra aplicación");
-      if (nonce !== undefined && claims["nonce"] !== nonce)
-        throw new Error("El ingreso no es válido. Probá de nuevo.");
+      const problem = idTokenProblem(claims, {
+        clientId: this.config.clientId,
+        issuer: this.config.issuer,
+        nonce,
+        now: this.deps.now(),
+      });
+      if (problem === "aud") throw new Error("Token de otra aplicación");
+      if (problem) throw new Error("El ingreso no es válido. Probá de nuevo.");
       const email = typeof claims["email"] === "string" ? claims["email"] : "";
       profile = {
         id: String(claims["sub"] ?? ""),

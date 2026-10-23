@@ -2,13 +2,22 @@ import { provideZoneChangeDetection } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideHttpClient, withFetch } from "@angular/common/http";
 import { AppComponent } from "./app/app.component";
-import { RUNTIME_CONFIG, RuntimeConfig } from "./app/commerce/config";
+import { RUNTIME_CONFIG } from "./app/commerce/config";
+import {
+  COMMERCE_OFF,
+  parseRuntimeConfig,
+  type RuntimeConfig,
+} from "./app/commerce/runtime-config";
 
 async function start() {
-  let config: RuntimeConfig = { commerceEnabled: false, apiBaseUrl: "" };
+  let config: RuntimeConfig = COMMERCE_OFF;
   try {
     const response = await fetch("/runtime-config.json", { cache: "no-store" });
-    if (response.ok) config = await response.json();
+    // Validated: a malformed or incoherent file leaves commerce off (FE-09).
+    if (response.ok)
+      config = parseRuntimeConfig(await response.json(), (m) =>
+        console.warn(m),
+      );
   } catch {
     /* The original landing remains available without commerce configuration. */
   }

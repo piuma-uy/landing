@@ -25,7 +25,8 @@ checkout aprobado/pendiente/rechazado, teléfono y desktop) se prueban con los e
 Por defecto el comercio está apagado (`{"commerceEnabled":false,"apiBaseUrl":""}`). Con `commerceEnabled: true`,
 `auth` elige cómo se inicia sesión:
 
-- `"cookie"` (o ausente): API local de Docker, formulario propio y cookie de sesión (`openapi.local.yaml`).
+- `"cookie"` (o ausente): API local de Docker (`http://localhost` o `127.0.0.1`), formulario propio y cookie de
+  sesión (`openapi.local.yaml`).
 - `"cognito"`: API en AWS. Login en la UI alojada de Cognito con code + PKCE S256; el access token queda sólo en
   memoria y viaja como `Authorization: Bearer`. Al recargar la página hay que volver a ingresar (Cognito recuerda
   la sesión, así que no pide la contraseña de nuevo).
@@ -40,6 +41,7 @@ Por defecto el comercio está apagado (`{"commerceEnabled":false,"apiBaseUrl":""
     "clientId": "<client_id>",
     "redirectUri": "https://<origen>/",
     "logoutUri": "https://<origen>/",
+    "issuer": "<cognito_issuer>",
     "google": false
   }
 }
@@ -47,6 +49,13 @@ Por defecto el comercio está apagado (`{"commerceEnabled":false,"apiBaseUrl":""
 
 Todos son valores públicos (outputs de Terraform); nunca va un secreto. `redirectUri`/`logoutUri` son opcionales
 (por defecto, el origen con `/`) y deben estar registrados en `callback_urls`/`logout_urls` del cliente Cognito.
+Con `issuer` (`https://cognito-idp.<región>.amazonaws.com/<pool>`) el `iss` del `id_token` tiene que coincidir;
+además se exige `aud` (string o lista con el `clientId`) y `exp` vigente, con 5 min de tolerancia de reloj.
+
+El archivo se valida al arrancar (`commerce/runtime-config.ts`): `commerceEnabled` tiene que ser `true` (no basta
+un valor "verdadero"), `auth: "cookie"` sólo con un API local, y con `cognito` el API, `loginUrl`, `issuer` y las
+URIs tienen que ser https (o locales). Si algo no cierra, el comercio queda apagado y la consola dice por qué.
+`testMode: true` muestra el rótulo "Tienda de prueba · Sin cobros"; no va en una tienda que cobra de verdad.
 
 ### Seguridad del panel (T27/T28)
 
@@ -116,8 +125,9 @@ Apagado por defecto. Con la clave `analytics` en `runtime-config.json` se mandan
 ```
 
 Envía páginas vistas (inicio y cada URL del catálogo) y los eventos `whatsapp`, `categoria`,
-`producto`, `carrito` y `checkout`, sin query ni hash en la URL. Respeta Do Not Track. Al activarlo,
-sumar el origen de `hostUrl` a `connect-src` de la CSP.
+`producto`, `carrito` y `checkout`, sin query ni hash en la URL; del referrer manda sólo el origen (vacío si es la propia tienda). Respeta Do Not
+Track y Global Privacy Control. Al activarlo, sumar el origen de `hostUrl` a `frontend_connect_src` de
+`piuma-backend/infra` (CSP `connect-src`).
 
 ## Estructura
 

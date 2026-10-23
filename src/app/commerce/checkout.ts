@@ -47,6 +47,35 @@ export function checkoutAttempt(
 export const ATTEMPT_SLOT = "piuma-checkout";
 
 /**
+ * Hex SHA-256 of the fingerprint (user, cart, address, phone): equality is all the attempt
+ * needs, so the personal data never reaches sessionStorage in clear (FE-06).
+ */
+export async function fingerprintHash(fingerprint: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(fingerprint),
+  );
+  return Array.from(new Uint8Array(digest), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+/** Prefix of every sessionStorage slot the shop writes; logout() drops them all. */
+export const SESSION_PREFIX = "piuma-";
+
+/** Removes the shop's sessionStorage slots (checkout attempt, switch keys, payment return…). */
+export function clearSession(
+  storage: Pick<Storage, "key" | "length" | "removeItem">,
+) {
+  const keys: string[] = [];
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (key?.startsWith(SESSION_PREFIX)) keys.push(key);
+  }
+  for (const key of keys) storage.removeItem(key);
+}
+
+/**
  * One Idempotency-Key per checkout attempt: kept while the result is unknown (timeout, network,
  * 5xx, reload) and dropped once the API created the order, the cart changed or the buyer left.
  * The API keeps every order under its key, so a stale key would replay the previous order.
@@ -61,11 +90,14 @@ export class CheckoutAttempts {
     this.storage = storage;
     this.newKey = newKey;
   }
-  /** The key to send for this order (user + payload); persisted before the request leaves. */
-  key(fingerprint: string) {
+  /**
+   * The key to send for this order (user + payload); persisted before the request leaves.
+   * Only the fingerprint's hash is stored.
+   */
+  async key(fingerprint: string) {
     const attempt = checkoutAttempt(
       this.storage.getItem(ATTEMPT_SLOT),
-      fingerprint,
+      await fingerprintHash(fingerprint),
       this.newKey,
     );
     this.storage.setItem(ATTEMPT_SLOT, JSON.stringify(attempt));

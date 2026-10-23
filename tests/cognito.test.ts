@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { webcrypto } from "node:crypto";
 import {
+  CLOCK_TOLERANCE_MS,
   CognitoAuth,
   base64Url,
   challengeFor,
@@ -11,6 +12,7 @@ import {
 const LOGIN = "https://piuma-dev.auth.us-east-1.amazoncognito.com";
 const CLIENT = "client123";
 const ORIGIN = "https://piuma-landing.vercel.app";
+const ISSUER = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_abc";
 
 function jwt(claims: Record<string, unknown>) {
   const enc = (o: unknown) =>
@@ -61,6 +63,10 @@ function tokens(nonce: string, extra: Record<string, unknown> = {}) {
     id_token: jwt({
       sub: "u-1",
       aud: CLIENT,
+      iss: ISSUER,
+      // setup() starts its clock at 1 000 000 ms: issued then, valid for an hour.
+      iat: 1000,
+      exp: 1000 + 3600,
       nonce,
       email: "ana@example.com",
       name: "Ana",
@@ -167,6 +173,32 @@ test("nonce and audience of the id_token are checked", async () => {
   await assert.rejects(login(s, { nonce: "other" }));
   await assert.rejects(login(s, { aud: "other-client" }));
   assert.equal(s.auth.user, null);
+});
+
+test("issuer, expiry and audience list of the id_token are checked (FE-05)", async () => {
+  const issuer = { issuer: ISSUER };
+  // aud may be a list that includes the client.
+  assert.equal(
+    (await login(setup(issuer), { aud: ["other", CLIENT] })).user.email,
+    "ana@example.com",
+  );
+  await assert.rejects(login(setup(issuer), { aud: ["other"] }));
+  await assert.rejects(
+    login(setup(issuer), {
+      iss: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_other",
+    }),
+  );
+  await assert.rejects(login(setup(issuer), { iss: undefined }));
+  // Without a configured issuer only aud/exp/nonce apply.
+  assert.ok(await login(setup(), { iss: "https://elsewhere.example" }));
+  await assert.rejects(login(setup(), { exp: undefined }));
+  await assert.rejects(login(setup(), { exp: "9999999999" }));
+  // Expired beyond the tolerance, or issued in the future beyond it.
+  const tolerance = CLOCK_TOLERANCE_MS / 1000;
+  await assert.rejects(login(setup(), { exp: 1000 - tolerance - 1 }));
+  assert.ok(await login(setup(), { exp: 1000 - tolerance + 1 }));
+  await assert.rejects(login(setup(), { iat: 1000 + tolerance + 1 }));
+  assert.ok(await login(setup(), { iat: 1000 + tolerance - 1 }));
 });
 
 test("admins group from the id_token shows the admin menu", async () => {

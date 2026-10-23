@@ -40,7 +40,12 @@ import {
   setQuantity,
   unitCount,
 } from "./cart";
-import { CheckoutAttempts, defaultPayWith, paymentMethodFor } from "./checkout";
+import {
+  CheckoutAttempts,
+  clearSession,
+  defaultPayWith,
+  paymentMethodFor,
+} from "./checkout";
 import {
   EnrollmentError,
   MFA_CHECK_UNAVAILABLE,
@@ -422,7 +427,10 @@ export class CommerceService {
   }
   /** Leaves for Mercado Pago's hosted checkout of this order (same preference every time). */
   private async goToCheckout(order: Order) {
-    const url = checkoutUrl(await this.cards.checkout(order.id));
+    const url = checkoutUrl(
+      await this.cards.checkout(order.id),
+      this.config.apiBaseUrl,
+    );
     if (!url) throw new Error("No pudimos abrir el pago. Probá de nuevo.");
     this.analytics.event("pago_tarjeta", {});
     location.assign(url);
@@ -526,7 +534,8 @@ export class CommerceService {
   }
   async logout() {
     await this.run(async () => {
-      this.attempts.end();
+      // Checkout attempt, switch keys, payment return and OAuth attempt (FE-06).
+      clearSession(sessionStorage);
       if (this.cognito) {
         location.assign(await this.cognito.logout());
       } else await this.request("/auth/logout", "POST", {});
@@ -640,7 +649,9 @@ export class CommerceService {
         ...orderFulfillment(shipTo, address),
         contact: { name: this.user()!.name, email: this.user()!.email, phone },
       };
-      const key = this.attempts.key(JSON.stringify([this.user()!.id, payload]));
+      const key = await this.attempts.key(
+        JSON.stringify([this.user()!.id, payload]),
+      );
       let order: Order;
       try {
         order = await this.request<Order>("/orders", "POST", payload, {
@@ -686,7 +697,11 @@ export class CommerceService {
   async payment(order: Order) {
     if (order.paymentMethod === "card") return this.payWithCard(order);
     await this.run(async () => {
-      await this.request("/orders/" + order.id + "/payment", "POST", {});
+      await this.request(
+        "/orders/" + encodeURIComponent(order.id) + "/payment",
+        "POST",
+        {},
+      );
     });
   }
   /** Loads the panel; without a second factor it only leaves the enrollment on screen. */
@@ -813,9 +828,11 @@ export class CommerceService {
   }
   async cancel(order: Order, reason: string) {
     await this.run(async () => {
-      await this.request("/admin/orders/" + order.id + "/cancel", "POST", {
-        reason,
-      });
+      await this.request(
+        "/admin/orders/" + encodeURIComponent(order.id) + "/cancel",
+        "POST",
+        { reason },
+      );
       await this.loadAdmin();
       await this.reloadProducts();
       this.notice.set("Pedido cancelado y stock restituido");

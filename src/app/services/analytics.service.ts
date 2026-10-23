@@ -1,5 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { RUNTIME_CONFIG } from "../commerce/config";
+import { optedOut, referrerOrigin } from "./analytics-privacy";
 
 /**
  * Analytics sin cookies, detrás de `analytics` en runtime-config.json (apagado si falta).
@@ -7,7 +8,7 @@ import { RUNTIME_CONFIG } from "../commerce/config";
  * Proveedor: Umami (open source, sin cookies ni identificadores persistentes, self-hosted o
  * Umami Cloud). No se carga su script: se manda cada evento con fetch a `<hostUrl>/api/send`, así
  * la CSP sólo necesita sumar ese origen a connect-src (script-src queda en 'self').
- * Se respeta Do Not Track.
+ * Se respetan Do Not Track y Global Privacy Control, y del referrer sólo viaja el origen (FE-08).
  */
 @Injectable({ providedIn: "root" })
 export class AnalyticsService {
@@ -16,7 +17,7 @@ export class AnalyticsService {
     this.config?.provider === "umami" &&
     /^https:\/\/[^/]+/.test(this.config.hostUrl) &&
     this.config.websiteId &&
-    navigator.doNotTrack !== "1"
+    !optedOut(navigator)
       ? this.config.hostUrl.replace(/\/+$/, "") + "/api/send"
       : null;
 
@@ -52,7 +53,7 @@ export class AnalyticsService {
       website: this.config!.websiteId,
       hostname: location.hostname,
       language: navigator.language,
-      referrer: document.referrer,
+      referrer: referrerOrigin(document.referrer, location.origin),
       screen: `${screen.width}x${screen.height}`,
       title: document.title,
       // Sin query ni hash: el callback de Cognito trae code/state en la URL.

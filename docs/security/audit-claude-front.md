@@ -91,6 +91,9 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
 - **Recomendación:** si la tienda sólo se publica en AWS, dejarlo explícito y nunca encender comercio en
   Vercel/Netlify. Si no, replicar en `vercel.json` `headers` la misma política de `frontend.tf`.
   **Verificar tras T41** que CloudFront devuelva las cabeceras en `/`, `/pago` y `/catalogo/*`.
+- **Estado: aceptado (T55b).** `main` (Vercel) no se toca y publica el comercio apagado: sin sesión, tokens ni
+  checkout no hay superficie que proteger con CSP o `frame-ancestors`. El comercio sólo se enciende en CloudFront
+  (`infra/frontend.tf`). Reabrir si se enciende fuera de CloudFront.
 
 ### FE-04 · Baja · `checkoutUrl` acepta cualquier origen https (y `http://localhost` en producción)
 
@@ -100,6 +103,8 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
   origen que pide el brief no existe: sólo se valida el esquema.
 - **Recomendación:** lista blanca de hosts (`www.mercadopago.com.uy`, `sandbox.mercadopago.com.uy` y los que use la
   cuenta) y permitir `http://localhost|127.0.0.1` sólo cuando `apiBaseUrl` también es local.
+- **Estado: corregido en T55b** ([landing#14](https://github.com/piuma-uy/landing/pull/14)). `checkoutUrl` sólo sigue `https://{www.,sandbox.,}mercadopago.com.uy`; el
+  simulador `http://localhost` sólo cuando `apiBaseUrl` también es local.
 
 ### FE-05 · Baja · El id_token no se valida en `iss` ni `exp`; `aud` sólo como string
 
@@ -111,6 +116,8 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
   biblioteca OIDC mantenida; la implementación propia es correcta pero debe sostenerse con tests.
 - **Recomendación:** validar `iss` (sumar `issuer` a `runtime-config`), `exp`/`iat` con tolerancia, y aceptar `aud`
   string o array que contenga el `clientId`.
+- **Estado: corregido en T55b** ([landing#14](https://github.com/piuma-uy/landing/pull/14), issuer en el deploy en [piuma-backend#54](https://github.com/piuma-uy/piuma-backend/pull/54)). `idTokenProblem` exige `aud` string o lista con el
+  `clientId`, `exp` vigente, `iat` no futuro (5 min de tolerancia) e `iss` igual a `cognito.issuer`.
 
 ### FE-06 · Baja · Datos personales en claro en `sessionStorage` y sin limpieza al cerrar sesión
 
@@ -121,6 +128,8 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
   cerrarla; cualquier XSS futuro los lee. No hay tokens en storage (correcto).
 - **Recomendación:** guardar sólo un hash SHA-256 del fingerprint; en `logout()` borrar todas las claves `piuma-*`
   de `sessionStorage`; borrar `piuma-switch-<id>` al recibir la respuesta.
+- **Estado: corregido en T55b** ([landing#14](https://github.com/piuma-uy/landing/pull/14)). `piuma-checkout` guarda el SHA-256 del fingerprint, `piuma-switch-<id>` se borra
+  al recibir respuesta y `logout()` borra todas las claves `piuma-*`.
 
 ### FE-07 · Baja · CSP de `frontend.tf` incompatible con analytics y con un dominio propio del API
 
@@ -139,6 +148,8 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
 - **Recomendación:** documentar en `frontend.tf`/README que activar analytics o un dominio del API exige sumar el
   origen a `connect-src`; recalcular el hash en cada subida de Angular. **Verificar tras T41** con la consola del
   navegador sin violaciones CSP en `/`, `/catalogo/…`, login y `/pago`.
+- **Estado: corregido en T55b** ([piuma-backend#54](https://github.com/piuma-uy/piuma-backend/pull/54)). `frontend_connect_src` (orígenes https validados) amplía `connect-src`;
+  documentado en `docs/deployment.md`. **T41:** consola sin violaciones de CSP.
 
 ### FE-08 · Baja · Analytics: `referrer` completo y sólo Do Not Track
 
@@ -149,6 +160,7 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
   parámetros), y la `Referrer-Policy` sólo recorta los cross-origin. No se respeta Global Privacy Control.
 - **Recomendación:** enviar sólo el origen del referrer (o vacío si es mismo origen) y desactivar también con
   `navigator.globalPrivacyControl === true`.
+- **Estado: corregido en T55b** ([landing#14](https://github.com/piuma-uy/landing/pull/14)). Sólo el origen del referrer (vacío si es la tienda) y Global Privacy Control.
 
 ### FE-09 · Baja · `runtime-config.json` sin validación: falla abierto ante tipos inesperados
 
@@ -161,11 +173,14 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
   (URL del API, `clientId`, `loginUrl`, `websiteId`); no hay secretos.
 - **Recomendación:** validar al arrancar: `commerceEnabled === true` estricto, `apiBaseUrl` URL https (o localhost en
   dev), `auth` obligatorio cuando hay `cognito`, `loginUrl` https; ante cualquier error, comercio apagado.
+- **Estado: corregido en T55b** ([landing#14](https://github.com/piuma-uy/landing/pull/14)). `parseRuntimeConfig` (`commerce/runtime-config.ts`) valida al arrancar y ante
+  un error deja el comercio apagado. **T41:** revisar el `runtime-config.json` publicado.
 
 ### FE-10 · Info · Rótulo fijo "Tienda de prueba · Sin cobros"
 
 - **Evidencia:** `src/app/commerce/commerce.component.html:2`. Se muestra siempre que el comercio está encendido,
   también con Mercado Pago real. Atarlo a una clave de `runtime-config` antes de cobrar de verdad.
+- **Estado: corregido en T55b** ([landing#14](https://github.com/piuma-uy/landing/pull/14)). El rótulo depende de `testMode: true` en `runtime-config.json`.
 
 ### FE-11 · Info · Total estimado en el navegador antes del presupuesto del API
 
@@ -190,6 +205,7 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
 
 - **Evidencia:** `commerce.service.ts:608` y `:665`. El id viene del API (64 hex) y `card.ts`/`transfer.ts` sí
   codifican; homogeneizar.
+- **Estado: corregido en T55b** ([landing#14](https://github.com/piuma-uy/landing/pull/14)).
 
 ### FE-15 · Info · Dependencias dev/build (46 de 51)
 
