@@ -2,6 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   CHOOSE_PAYMENT,
+  INVALID_ORDER_STATE,
+  PAYMENT_IN_PROGRESS,
+  buyerCancellable,
+  cancelErrorMessage,
   OPEN_ORDERS_LIMIT,
   ORDERS_LINK_CODES,
   TOO_MANY_OPEN_ORDERS,
@@ -60,7 +64,7 @@ test("paid, cancelled and pre-T52 orders show no reservation", () => {
 
 test("the open-orders limit tells the buyer how to continue", () => {
   assert.equal(TOO_MANY_OPEN_ORDERS, "TOO_MANY_OPEN_ORDERS");
-  assert.match(OPEN_ORDERS_LIMIT, /pagá uno de tus pedidos/);
+  assert.match(OPEN_ORDERS_LIMIT, /pagá o cancelá uno de tus pedidos/);
   assert.match(OPEN_ORDERS_LIMIT, /venza su reserva/);
 });
 
@@ -84,4 +88,22 @@ test("each reservation limit of POST /orders gets its own way out", () => {
     "TOO_MANY_OPEN_ORDERS",
     "RESERVATION_LIMIT",
   ]);
+});
+
+test("only unpaid orders offer the buyer's cancellation (R5)", () => {
+  assert.equal(buyerCancellable({ status: "pending_payment" }), true);
+  assert.equal(buyerCancellable({ status: "pending_transfer" }), true);
+  assert.equal(buyerCancellable({ status: "paid" }), false);
+  assert.equal(buyerCancellable({ status: "cancelled" }), false);
+});
+
+test("cancellation refusals explain what happened (R5)", () => {
+  assert.match(cancelErrorMessage(PAYMENT_IN_PROGRESS)!, /procesando un pago/);
+  assert.match(
+    cancelErrorMessage(INVALID_ORDER_STATE)!,
+    /ya no se puede cancelar/,
+  );
+  // Anything else keeps the API message (404, 502/503 of the provider…).
+  assert.equal(cancelErrorMessage("NOT_FOUND"), null);
+  assert.equal(cancelErrorMessage(undefined), null);
 });

@@ -16,7 +16,7 @@ export const RESERVATION_LIMIT = "RESERVATION_LIMIT";
 /** POST /orders: paymentMethod=pending while the shop offers transfer or card. */
 export const PAYMENT_METHOD_REQUIRED = "PAYMENT_METHOD_REQUIRED";
 export const OPEN_ORDERS_LIMIT =
-  "Ya tenés el máximo de pedidos sin pagar. Para crear otro, pagá uno de tus pedidos o esperá a que venza su reserva.";
+  "Ya tenés el máximo de pedidos sin pagar. Para crear otro, pagá o cancelá uno de tus pedidos, o esperá a que venza su reserva.";
 export const CHOOSE_PAYMENT =
   "Elegí transferencia o tarjeta para confirmar el pedido.";
 /** Limits on what the buyer already reserved: the way out goes through "Mis pedidos". */
@@ -77,4 +77,30 @@ export function reservedUntil(order: ReservedOrder) {
     order.pendingExpiresAt ??
     null
   );
+}
+
+/** POST /orders/{id}/cancel: Mercado Pago is processing a payment of the order; nothing changed. */
+export const PAYMENT_IN_PROGRESS = "PAYMENT_IN_PROGRESS";
+/** POST /orders/{id}/cancel: the order is no longer unpaid (paid meanwhile, or approved just now). */
+export const INVALID_ORDER_STATE = "INVALID_ORDER_STATE";
+export const ORDER_CANCELLED =
+  "Pedido cancelado. Liberamos los productos que tenía reservados.";
+
+/** Unpaid orders the buyer can cancel (POST /orders/{id}/cancel, T55a-R5). */
+export function buyerCancellable(order: Pick<ReservedOrder, "status">) {
+  return (
+    order.status === "pending_payment" || order.status === "pending_transfer"
+  );
+}
+
+/** What the buyer reads when the API refuses the cancellation, or null to keep its message. */
+export function cancelErrorMessage(code: string | undefined) {
+  switch (code) {
+    case PAYMENT_IN_PROGRESS:
+      return "Mercado Pago está procesando un pago de este pedido. Esperá unos minutos y revisá su estado antes de cancelarlo.";
+    case INVALID_ORDER_STATE:
+      return "Este pedido ya no se puede cancelar: cambió de estado mientras tanto. Te mostramos cómo quedó.";
+    default:
+      return null;
+  }
 }
