@@ -75,6 +75,10 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
 - **Recomendación:** planificar la subida a Angular 20/21 (tarea propia, no T52 si excede el alcance). Mientras
   tanto, regla de revisión: no introducir SSR/hydration, i18n, two-way bindings a propiedades sensibles, host
   bindings sobre `href`/`src`, ni formatos de fecha que vengan de datos.
+- **Estado: corregido en T53** ([landing#12](https://github.com/piuma-uy/landing/pull/12)): Angular 22.2 (soporte
+  activo), una major por commit, y builder `@angular/build`. `npm audit --omit=dev` pasa de 5 a 0. El cargador de CSS
+  crítico pasa a un `<script>` inline: la CSP de `infra/frontend.tf` usa su hash sin `'unsafe-hashes'` y `deploy.yml`
+  verifica los hashes antes de publicar ([piuma-backend#48](https://github.com/piuma-uy/piuma-backend/pull/48)).
 
 ### FE-03 · Media · Hosting Vercel/Netlify sin cabeceras de seguridad
 
@@ -190,6 +194,10 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
 ### FE-15 · Info · Dependencias dev/build (46 de 51)
 
 Ver la sección siguiente. No llegan al bundle; el riesgo es para la máquina de desarrollo/CI.
+
+**Estado (T53, landing#12):** mitigado. `npm audit` baja de 46 a 2: `vite` 8.3.0 (high, `launch-editor`, sólo
+`ng serve`) fijado exacto por `@angular/build` 22.2.4, y `@angular/build` (low) por arrastre. Se resuelve con
+Angular 22.3.
 
 ## Dependencias: `npm audit` (51 = 2 low, 14 moderate, 31 high, 4 critical; igual que T02)
 
