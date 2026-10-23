@@ -15,7 +15,7 @@ npm test         # typecheck de tests/ + unitarios (node --test, requiere Node.j
 
 Los unitarios (`tests/*.test.ts`) cubren la lógica sin Angular: catálogo (`core/catalog-adapter.ts`), carrito
 (`commerce/cart.ts`), login Cognito PKCE (`commerce/cognito.ts`), checkout e `Idempotency-Key`
-(`commerce/checkout.ts`), envíos, transferencia y tarjeta. Los componentes y el flujo completo en navegador (login,
+(`commerce/checkout.ts`), envíos, transferencia, tarjeta, segundo factor, QR e historial de ajustes. Los componentes y el flujo completo en navegador (login,
 checkout aprobado/pendiente/rechazado, teléfono y desktop) se prueban con los e2e de `../piuma-backend`.
 
 > Requiere Node.js 20 o superior.
@@ -47,6 +47,18 @@ Por defecto el comercio está apagado (`{"commerceEnabled":false,"apiBaseUrl":""
 
 Todos son valores públicos (outputs de Terraform); nunca va un secreto. `redirectUri`/`logoutUri` son opcionales
 (por defecto, el origen con `/`) y deben estar registrados en `callback_urls`/`logout_urls` del cliente Cognito.
+
+### Seguridad del panel (T27/T28)
+
+- **Segundo factor**: el API responde 403 `MFA_REQUIRED` en `/admin/*` a un administrador sin TOTP. El panel
+  entonces no muestra ninguna sección y guía el alta contra el API de Cognito con el access token (scope
+  `aws.cognito.signin.user.admin`, pedido en el login): QR (dibujado en `commerce/qr.ts`, sin librerías), botón
+  para abrir la app autenticadora en el mismo teléfono, clave en texto y el primer código de 6 dígitos
+  (`commerce/mfa.ts`). Desde el siguiente ingreso Cognito pide el código. En Docker el login local reemplaza al
+  segundo factor; `LOCAL_ADMIN_MFA=missing` en el API muestra la explicación en lugar del alta.
+- **Historial de cambios** en Configuración (`GET /admin/settings/history`): fecha, quién y antes/ahora; del número
+  de cuenta sólo los últimos 4 dígitos (`commerce/settings-history.ts`).
+- **Aviso** arriba del panel si los datos bancarios cambiaron en los últimos 7 días, con fecha y usuario.
 
 ## Arquitectura: una sola página con scroll
 
