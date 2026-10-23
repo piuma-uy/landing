@@ -1,0 +1,144 @@
+{
+  "audit": "T51b",
+  "scope": "landing@tienda-local 00676f3 + piuma-backend/infra/frontend.tf@main 89234f6",
+  "date": "2026-10-23",
+  "readOnly": true,
+  "summary": { "critica": 0, "alta": 0, "media": 3, "baja": 6, "info": 6 },
+  "findings": [
+    {
+      "id": "FE-01",
+      "severidad": "media",
+      "titulo": "La Idempotency-Key del checkout no se descarta tras crear el pedido",
+      "archivo": "src/app/commerce/commerce.service.ts",
+      "linea": 589,
+      "recomendacion": "Borrar sessionStorage 'piuma-checkout' al recibir 2xx de POST /orders (antes de ir a Mercado Pago) y en logout(); conservar la clave sólo mientras el resultado sea desconocido.",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-02",
+      "severidad": "media",
+      "titulo": "Runtime Angular 19.2.25 fuera de soporte con advisories sin parche en 19.x (no explotables con el código actual)",
+      "archivo": "package.json",
+      "linea": 12,
+      "recomendacion": "Planificar la subida a Angular 20/21; mientras tanto no introducir SSR/hydration, i18n, two-way bindings a propiedades sensibles, host bindings sobre href/src ni formatos de fecha desde datos.",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-03",
+      "severidad": "media",
+      "titulo": "Hosting Vercel/Netlify sin cabeceras de seguridad (CSP, frame-ancestors, HSTS, nosniff)",
+      "archivo": "vercel.json",
+      "linea": 1,
+      "recomendacion": "No encender comercio fuera de CloudFront o replicar en vercel.json/netlify.toml las cabeceras de piuma-backend/infra/frontend.tf; verificar las cabeceras de CloudFront tras T41.",
+      "verificarTrasT41": true
+    },
+    {
+      "id": "FE-04",
+      "severidad": "baja",
+      "titulo": "checkoutUrl acepta cualquier origen https y http://localhost en producción",
+      "archivo": "src/app/commerce/card.ts",
+      "linea": 56,
+      "recomendacion": "Lista blanca de hosts de Mercado Pago (www/sandbox.mercadopago.com.uy) y localhost sólo cuando apiBaseUrl es local.",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-05",
+      "severidad": "baja",
+      "titulo": "El id_token no se valida en iss ni exp; aud sólo como string",
+      "archivo": "src/app/commerce/cognito.ts",
+      "linea": 249,
+      "recomendacion": "Validar iss (issuer en runtime-config), exp/iat con tolerancia y aceptar aud string o array que contenga el clientId.",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-06",
+      "severidad": "baja",
+      "titulo": "Datos personales en claro en sessionStorage y sin limpieza al cerrar sesión",
+      "archivo": "src/app/commerce/commerce.service.ts",
+      "linea": 563,
+      "recomendacion": "Guardar sólo un hash SHA-256 del fingerprint; en logout() borrar todas las claves piuma-* de sessionStorage; borrar piuma-switch-<id> al recibir respuesta.",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-07",
+      "severidad": "baja",
+      "titulo": "CSP de frontend.tf sin el origen de analytics ni de un dominio propio del API en connect-src",
+      "archivo": "../piuma-backend/infra/frontend.tf",
+      "linea": 16,
+      "recomendacion": "Documentar que activar analytics o un dominio del API exige ampliar connect-src (var.frontend_content_security_policy); recalcular el hash del onload en cada subida de Angular; verificar la consola sin violaciones CSP tras T41.",
+      "verificarTrasT41": true
+    },
+    {
+      "id": "FE-08",
+      "severidad": "baja",
+      "titulo": "Analytics envía document.referrer completo y sólo respeta Do Not Track",
+      "archivo": "src/app/services/analytics.service.ts",
+      "linea": 55,
+      "recomendacion": "Enviar sólo el origen del referrer (vacío si es mismo origen) y desactivar también con navigator.globalPrivacyControl.",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-09",
+      "severidad": "baja",
+      "titulo": "runtime-config.json sin validación: commerceEnabled por veracidad, apiBaseUrl ausente rompe el arranque, auth cae a cookie",
+      "archivo": "src/main.ts",
+      "linea": 10,
+      "recomendacion": "Validar al arrancar (commerceEnabled === true, apiBaseUrl https, auth obligatorio con cognito, loginUrl https) y ante error dejar el comercio apagado.",
+      "verificarTrasT41": true
+    },
+    {
+      "id": "FE-10",
+      "severidad": "info",
+      "titulo": "Rótulo fijo 'Tienda de prueba · Sin cobros' también con cobros reales",
+      "archivo": "src/app/commerce/commerce.component.html",
+      "linea": 2,
+      "recomendacion": "Atar el rótulo a una clave de runtime-config antes del go-live con Mercado Pago real.",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-11",
+      "severidad": "info",
+      "titulo": "Total estimado en el navegador antes del presupuesto del API (sólo visual)",
+      "archivo": "src/app/commerce/commerce.component.html",
+      "linea": 361,
+      "recomendacion": "Rotularlo como estimado; el pedido ya no envía precios y exige el quote del API.",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-12",
+      "severidad": "info",
+      "titulo": "Precios estáticos de catalog.json en el prerender y JSON-LD pueden divergir del API",
+      "archivo": "scripts/seo.ts",
+      "linea": 147,
+      "recomendacion": "Omitir offers o generarlos desde el API al publicar cuando el comercio esté encendido.",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-13",
+      "severidad": "info",
+      "titulo": "Prerender interpola SITE_URL sin escapar ni validar en canonical/og:url",
+      "archivo": "scripts/seo.ts",
+      "linea": 255,
+      "recomendacion": "Validar SITE_URL con new URL() y exigir https en scripts/prerender.ts.",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-14",
+      "severidad": "info",
+      "titulo": "order.id sin encodeURIComponent en dos rutas del API",
+      "archivo": "src/app/commerce/commerce.service.ts",
+      "linea": 608,
+      "recomendacion": "Usar encodeURIComponent como en card.ts y transfer.ts (también en la línea 665).",
+      "verificarTrasT41": false
+    },
+    {
+      "id": "FE-15",
+      "severidad": "info",
+      "titulo": "46 de las 51 vulnerabilidades de npm audit son sólo dev/build (4 critical en toolchain)",
+      "archivo": "package-lock.json",
+      "linea": 1,
+      "recomendacion": "Resolver con la subida de Angular (FE-02); npm ci con lockfile en CI y ng serve sólo en localhost.",
+      "verificarTrasT41": false
+    }
+  ]
+}
