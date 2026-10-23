@@ -48,6 +48,12 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
 - **Recomendación:** `sessionStorage.removeItem("piuma-checkout")` en cuanto `POST /orders` responde 2xx (antes de
   ir a Mercado Pago) y también en `logout()`. Mantener la clave sólo mientras el resultado es desconocido (timeout,
   red, 5xx), como pide `frontend-integration.md` §5.
+- **Estado: corregido en T52** ([landing#10](https://github.com/piuma-uy/landing/pull/10), e2e en
+  [piuma-backend#32](https://github.com/piuma-uy/piuma-backend/pull/32)). `CheckoutAttempts` (`checkout.ts`) guarda
+  una clave por intento y `commerce.service.ts` la descarta (`end()`) al recibir el 2xx de `POST /orders`, al cambiar el
+  carrito y en `logout()`. Tras un error se conserva, porque el API sólo guarda pedidos creados. El API guarda cada
+  pedido bajo `hash(sub:key)` sin TTL (`piuma-backend/src/domain.ts`, `createOrder`), así que la ventana no vencía.
+  El e2e falla sin el fix: al reponer el carrito desde otra pestaña, la misma pestaña reenviaba la clave vieja.
 
 ### FE-02 · Media · Runtime Angular 19.2.25 fuera de soporte con advisories sin parche en 19.x
 
@@ -257,4 +263,4 @@ front usan un número fijo de `site-config.ts` y el texto con `encodeURIComponen
   listas del cliente Cognito, comercio apagado hasta el go-live.
 - Que Cognito tenga habilitada la revocación de tokens del cliente público (si no, `/oauth2/revoke` falla en
   silencio y el refresh token sigue vivo hasta vencer).
-- TTL de idempotencia de `POST /orders` en el API (dimensiona FE-01).
+- ~~TTL de idempotencia de `POST /orders` en el API (dimensiona FE-01).~~ Sin TTL; FE-01 corregido en T52.

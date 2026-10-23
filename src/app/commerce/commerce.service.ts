@@ -39,11 +39,7 @@ import {
   setQuantity,
   unitCount,
 } from "./cart";
-import {
-  CheckoutAttempts,
-  defaultPayWith,
-  paymentMethodFor,
-} from "./checkout";
+import { CheckoutAttempts, defaultPayWith, paymentMethodFor } from "./checkout";
 export interface User {
   id: string;
   email: string;
@@ -568,9 +564,7 @@ export class CommerceService {
         ...orderFulfillment(shipTo, address),
         contact: { name: this.user()!.name, email: this.user()!.email, phone },
       };
-      const key = this.attempts.key(
-        JSON.stringify([this.user()!.id, payload]),
-      );
+      const key = this.attempts.key(JSON.stringify([this.user()!.id, payload]));
       let order: Order;
       try {
         order = await this.request<Order>("/orders", "POST", payload, {
