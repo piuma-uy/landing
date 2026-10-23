@@ -39,6 +39,8 @@ const order = {
 };
 const settings: Settings = {
   transfer: { enabled: true, instructions, holdHours: 48 },
+  card: { holdHours: 24 },
+  orders: { maxOpenPerUser: 3, pendingHoldHours: 48 },
   contact: { whatsappNumber: "+59899000000" },
   notifications: { whatsappEnabled: true, shopEmail: "hola@piuma.uy" },
   shipping: {
@@ -92,6 +94,9 @@ test("status labels distinguish expired transfers from manual cancellations", ()
     statusLabel({ status: "cancelled", cancelledBy: EXPIRY_PRINCIPAL }),
     "Vencido",
   );
+  // The same hourly job also expires card orders and orders without payment method (T52-H1).
+  for (const cancelledBy of ["system:card-expiry", "system:pending-expiry"])
+    assert.equal(statusLabel({ status: "cancelled", cancelledBy }), "Vencido");
   assert.equal(
     statusLabel({ status: "cancelled", cancelledBy: "admin-sub" }),
     "Cancelado",
@@ -132,6 +137,8 @@ test("settings body is a versioned full replacement with blanks as null", () => 
       instructions: { ...instructions, bank: "Banco" },
       holdHours: 48,
     },
+    card: { holdHours: 24 },
+    orders: { maxOpenPerUser: 3, pendingHoldHours: 48 },
     contact: { whatsappNumber: null },
     notifications: { whatsappEnabled: false, shopEmail: null },
     shipping: settings.shipping,
@@ -235,4 +242,27 @@ test("payment methods come from the API", async () => {
   });
   await client.paymentMethods();
   assert.equal(calls[0]!.path, "/payment-methods");
+});
+
+test("unit limits go in the settings body only when the API sent them", () => {
+  const withUnits = settingsInput({
+    ...settings,
+    orders: {
+      maxOpenPerUser: 2,
+      maxUnitsPerUser: 12,
+      maxUnitsPerSku: 4,
+      pendingHoldHours: 24,
+    },
+  });
+  assert.deepEqual(withUnits.orders, {
+    maxOpenPerUser: 2,
+    maxUnitsPerUser: 12,
+    maxUnitsPerSku: 4,
+    pendingHoldHours: 24,
+  });
+  // An API without them (pre T52-R1) keeps the saved values.
+  assert.deepEqual(settingsInput(settings).orders, {
+    maxOpenPerUser: 3,
+    pendingHoldHours: 48,
+  });
 });

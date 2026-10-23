@@ -287,5 +287,9 @@ test("settings PUT body sends shipping with expectedVersion, and omits it when a
   const body = settingsInput({ ...base, shipping } as Settings);
   assert.deepEqual(body.shipping, shipping);
   assert.equal(body.expectedVersion, 4);
-  assert.equal("shipping" in settingsInput(base as unknown as Settings), false);
+  const legacy = settingsInput(base as unknown as Settings);
+  assert.equal("shipping" in legacy, false);
+  // Same for card and orders (T52-H1): the API keeps what it has saved.
+  assert.equal("card" in legacy, false);
+  assert.equal("orders" in legacy, false);
 });

@@ -36,10 +36,16 @@ import {
   estimateMinor,
   guestCart,
   mergeGuest,
+  orderLimitProblem,
   setQuantity,
   unitCount,
 } from "./cart";
 import { CheckoutAttempts, defaultPayWith, paymentMethodFor } from "./checkout";
+import {
+  ORDERS_LINK_CODES,
+  PAYMENT_METHOD_REQUIRED,
+  checkoutLimitMessage,
+} from "./orders";
 export interface User {
   id: string;
   email: string;
@@ -90,6 +96,10 @@ export interface Order {
   /** Card, unpaid only: last Mercado Pago state the webhook reported. */
   cardStatus?: "pending" | "failed";
   checkout?: Checkout;
+  /** Card orders: the reservation is released after this moment unless Mercado Pago paid. */
+  cardExpiresAt?: string;
+  /** Orders without payment method: the reservation is released after this moment. */
+  pendingExpiresAt?: string;
   paidAt?: string;
 }
 /** "pending" keeps the order reserved without a payment method (nothing to charge yet). */
@@ -168,6 +178,12 @@ export class CommerceService {
   readonly quote = signal<Quote | null>(null);
   readonly completed = signal<Order | null>(null);
   readonly error = signal("");
+  /** API code of the last error, for errors that offer a way out (TOO_MANY_OPEN_ORDERS). */
+  readonly errorCode = signal("");
+  /** The error is a reservation limit the buyer gets past from "Mis pedidos". */
+  readonly ordersLink = computed(
+    () => !!this.error() && ORDERS_LINK_CODES.includes(this.errorCode()),
+  );
   readonly notice = signal("");
   readonly busy = signal(false);
   readonly ready = signal(false);
@@ -259,11 +275,13 @@ export class CommerceService {
     if (this.busy()) return;
     this.busy.set(true);
     this.error.set("");
+    this.errorCode.set("");
     this.notice.set("");
     try {
       await fn();
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : "Ocurrió un error");
+      this.errorCode.set((e instanceof ApiError && e.code) || "");
     } finally {
       this.busy.set(false);
     }
@@ -490,6 +508,8 @@ export class CommerceService {
   }
   async review() {
     await this.run(async () => {
+      const problem = orderLimitProblem(this.cart());
+      if (problem) throw new Error(problem);
       await this.reloadProducts();
       const [options, methods] = await Promise.all([
         this.loadShippingOptions(),
@@ -571,17 +591,22 @@ export class CommerceService {
           "Idempotency-Key": key,
         });
       } catch (e) {
-        // Transfer or card switched off meanwhile: refresh the options so the buyer can choose again.
+        // Transfer or card switched off (or on) meanwhile: refresh the options so the buyer can choose again.
         if (
           e instanceof ApiError &&
           (e.code === "TRANSFER_UNAVAILABLE" ||
-            e.code === "CARD_PROVIDER_NOT_CONFIGURED")
+            e.code === "CARD_PROVIDER_NOT_CONFIGURED" ||
+            e.code === PAYMENT_METHOD_REQUIRED)
         ) {
           const methods = await this.transfers.paymentMethods();
           this.paymentMethods.set(methods);
           this.payWith.set(payWithDefault(methods));
         }
         await this.shippingChanged(e);
+        // Reservation limits reserve nothing: say how to continue (pay, wait or buy fewer).
+        const limit =
+          e instanceof ApiError && checkoutLimitMessage(e.code, e.message);
+        if (limit) throw new ApiError(limit, e.status, e.code);
         throw e;
       }
       // Created: a later purchase of the same cart is a new order, never a replay of this one.

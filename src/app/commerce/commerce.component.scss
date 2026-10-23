@@ -212,13 +212,25 @@ input:read-only {
   background: #fcf0ec;
   border-color: #d8b3a7;
 }
-.feedback button {
+.feedback__close {
   position: absolute;
   right: 0.6rem;
   top: 0.5rem;
   border: 0;
   background: none;
   font-size: 1.5rem;
+  cursor: pointer;
+}
+.feedback__action {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  text-decoration: underline;
   cursor: pointer;
 }
 .admin-tabs {

@@ -2,10 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   MAX_LINES,
+  MAX_UNITS,
   addUnit,
   estimateMinor,
   guestCart,
   mergeGuest,
+  orderLimitProblem,
   setQuantity,
   unitCount,
 } from "../src/app/commerce/cart.ts";
@@ -30,7 +32,12 @@ const product = (sku: string, patch: Partial<Product> = {}): Product => ({
 const lines = (n: number): Line[] =>
   Array.from({ length: n }, (_, i) => ({ sku: "sku-" + i, quantity: 1 }));
 
-test("guest cart keeps only well-formed lines within the limits", () => {
+test("the browser applies the order limits of POST /orders (10 × 10)", () => {
+  assert.equal(MAX_UNITS, 10);
+  assert.equal(MAX_LINES, 10);
+});
+
+test("guest cart keeps only well-formed lines, capped at the limits", () => {
   assert.deepEqual(guestCart(null), []);
   assert.deepEqual(guestCart("not json"), []);
   assert.deepEqual(guestCart('{"sku":"a","quantity":1}'), []);
@@ -39,16 +46,19 @@ test("guest cart keeps only well-formed lines within the limits", () => {
       JSON.stringify([
         { sku: "a", quantity: 2 },
         { sku: "b", quantity: 0 },
-        { sku: "c", quantity: 21 },
+        { sku: "c", quantity: 0 },
         { sku: "d", quantity: 1.5 },
         { sku: 5, quantity: 1 },
         null,
-        { sku: "e", quantity: 20 },
+        { sku: "e", quantity: 10 },
+        // Saved under the old 20-unit limit: kept, lowered to the current one.
+        { sku: "f", quantity: 15, extra: true },
       ]),
     ),
     [
       { sku: "a", quantity: 2 },
-      { sku: "e", quantity: 20 },
+      { sku: "e", quantity: 10 },
+      { sku: "f", quantity: 10 },
     ],
   );
   assert.equal(guestCart(JSON.stringify(lines(25))).length, MAX_LINES);
@@ -58,7 +68,7 @@ test("login merges the guest cart into the server one, capped per variant", () =
   assert.deepEqual(
     mergeGuest(
       [
-        { sku: "a", quantity: 18 },
+        { sku: "a", quantity: 8 },
         { sku: "b", quantity: 1 },
       ],
       [
@@ -67,7 +77,7 @@ test("login merges the guest cart into the server one, capped per variant", () =
       ],
     ),
     [
-      { sku: "a", quantity: 20 },
+      { sku: "a", quantity: 10 },
       { sku: "b", quantity: 1 },
       { sku: "c", quantity: 2 },
     ],
@@ -75,11 +85,11 @@ test("login merges the guest cart into the server one, capped per variant", () =
   assert.deepEqual(mergeGuest([], []), []);
 });
 
-test("a merge over 20 variants keeps the server cart untouched (null)", () => {
-  assert.equal(mergeGuest(lines(20), [{ sku: "new", quantity: 1 }]), null);
+test("a merge over 10 variants keeps the server cart untouched (null)", () => {
+  assert.equal(mergeGuest(lines(10), [{ sku: "new", quantity: 1 }]), null);
   assert.equal(
-    mergeGuest(lines(20), [{ sku: "sku-3", quantity: 1 }])?.length,
-    20,
+    mergeGuest(lines(10), [{ sku: "sku-3", quantity: 1 }])?.length,
+    10,
   );
 });
 
@@ -112,10 +122,10 @@ test("adding keeps the order of the lines and enforces the order limits", () => 
     ],
   );
   assert.throws(
-    () => addUnit([{ sku: "a", quantity: 20 }], products, "a"),
-    /Máximo 20 unidades/,
+    () => addUnit([{ sku: "a", quantity: 10 }], products, "a"),
+    /Máximo 10 unidades/,
   );
-  assert.throws(() => addUnit(lines(20), products, "z"), /20 variantes/);
+  assert.throws(() => addUnit(lines(10), products, "z"), /10 variantes/);
 });
 
 test("quantity 0 removes the line; invalid quantities are refused", () => {
@@ -128,7 +138,7 @@ test("quantity 0 removes the line; invalid quantities are refused", () => {
     { sku: "b", quantity: 2 },
   ]);
   assert.deepEqual(setQuantity(cart, "a", 0), [{ sku: "b", quantity: 4 }]);
-  for (const bad of [-1, 21, 1.5, Number.NaN])
+  for (const bad of [-1, 11, 1.5, Number.NaN])
     assert.throws(() => setQuantity(cart, "a", bad), /Cantidad válida/);
 });
 
@@ -141,4 +151,14 @@ test("count and estimate add up units; unknown SKUs price as 0", () => {
   assert.equal(unitCount([]), 0);
   assert.equal(estimateMinor(cart, [product("a")]), 500000);
   assert.equal(estimateMinor(cart, null), 0);
+});
+
+test("a saved cart over the order limits is adjusted before checkout", () => {
+  assert.equal(orderLimitProblem(lines(10)), null);
+  assert.equal(orderLimitProblem([{ sku: "a", quantity: 10 }]), null);
+  assert.match(
+    orderLimitProblem([{ sku: "a", quantity: 11 }]) ?? "",
+    /Máximo 10 unidades por variante y 10 variantes.*Ajustá el carrito/,
+  );
+  assert.match(orderLimitProblem(lines(11)) ?? "", /10 variantes/);
 });

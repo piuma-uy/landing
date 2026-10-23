@@ -35,6 +35,18 @@ export interface Settings {
     instructions: TransferInstructions;
     holdHours: number;
   };
+  /** Hours to pay a card order before its reservation is released. */
+  card: { holdHours: number };
+  /**
+   * Unpaid orders per buyer and hold of orders without payment method (T52-H1); units those
+   * orders may hold in total and per SKU (T52-R1, absent from an API without them).
+   */
+  orders: {
+    maxOpenPerUser: number;
+    maxUnitsPerUser?: number;
+    maxUnitsPerSku?: number;
+    pendingHoldHours: number;
+  };
   contact: { whatsappNumber: string | null };
   notifications: { whatsappEnabled: boolean; shopEmail: string | null };
   shipping: ShippingSettings;
@@ -69,6 +81,12 @@ export type Request = <T>(
 ) => Promise<T>;
 /** Who cancels orders whose transfer did not arrive in time (backend expiry job). */
 export const EXPIRY_PRINCIPAL = "system:transfer-expiry";
+/** The same hourly job for card orders and orders without payment method past their hold. */
+export const EXPIRY_PRINCIPALS = [
+  EXPIRY_PRINCIPAL,
+  "system:card-expiry",
+  "system:pending-expiry",
+];
 export const SETTINGS_CONFLICT =
   "Otro cambio de configuración se guardó antes. Cargamos la versión actual: revisala y volvé a guardar.";
 export function transferOffered(methods: PaymentMethods | null) {
@@ -77,7 +95,10 @@ export function transferOffered(methods: PaymentMethods | null) {
 export function statusLabel(
   order: Pick<TransferOrder, "status" | "cancelledBy">,
 ) {
-  if (order.status === "cancelled" && order.cancelledBy === EXPIRY_PRINCIPAL)
+  if (
+    order.status === "cancelled" &&
+    EXPIRY_PRINCIPALS.includes(order.cancelledBy ?? "")
+  )
     return "Vencido";
   return (
     (
@@ -106,7 +127,8 @@ export function whatsappLink(transfer: OrderTransfer | undefined) {
 }
 /**
  * PUT /admin/settings body: full replacement, blanks become null, versioned. shipping goes
- * as given (normalize it with shippingInput first); without it the API keeps the saved one.
+ * as given (normalize it with shippingInput first); without shipping, card or orders the API
+ * keeps the saved ones.
  */
 export function settingsInput(s: Settings) {
   const text = (v: string | null) => v?.trim() || null;
@@ -118,6 +140,22 @@ export function settingsInput(s: Settings) {
       ) as unknown as TransferInstructions,
       holdHours: s.transfer.holdHours,
     },
+    ...(s.card ? { card: { holdHours: s.card.holdHours } } : {}),
+    ...(s.orders
+      ? {
+          orders: {
+            maxOpenPerUser: s.orders.maxOpenPerUser,
+            // Omitted unit limits keep the saved ones.
+            ...(s.orders.maxUnitsPerUser !== undefined
+              ? { maxUnitsPerUser: s.orders.maxUnitsPerUser }
+              : {}),
+            ...(s.orders.maxUnitsPerSku !== undefined
+              ? { maxUnitsPerSku: s.orders.maxUnitsPerSku }
+              : {}),
+            pendingHoldHours: s.orders.pendingHoldHours,
+          },
+        }
+      : {}),
     contact: { whatsappNumber: text(s.contact.whatsappNumber) },
     notifications: {
       whatsappEnabled: s.notifications.whatsappEnabled,
