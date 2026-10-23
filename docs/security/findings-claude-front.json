@@ -36,7 +36,9 @@
       "archivo": "vercel.json",
       "linea": 1,
       "recomendacion": "No encender comercio fuera de CloudFront o replicar en vercel.json/netlify.toml las cabeceras de piuma-backend/infra/frontend.tf; verificar las cabeceras de CloudFront tras T41.",
-      "verificarTrasT41": true
+      "verificarTrasT41": true,
+      "status": "accepted",
+      "motivo": "La rama main de landing (Vercel) no se toca y publica el comercio apagado (runtime-config.json por defecto): sin sesión, tokens ni checkout no hay superficie para CSP/frame-ancestors. Encender el comercio sólo en CloudFront (infra/frontend.tf). Reabrir si se enciende fuera de CloudFront."
     },
     {
       "id": "FE-04",
@@ -45,7 +47,9 @@
       "archivo": "src/app/commerce/card.ts",
       "linea": 56,
       "recomendacion": "Lista blanca de hosts de Mercado Pago (www/sandbox.mercadopago.com.uy) y localhost sólo cuando apiBaseUrl es local.",
-      "verificarTrasT41": false
+      "verificarTrasT41": false,
+      "status": "fixed",
+      "pr": "https://github.com/piuma-uy/landing/pull/14"
     },
     {
       "id": "FE-05",
@@ -54,7 +58,10 @@
       "archivo": "src/app/commerce/cognito.ts",
       "linea": 249,
       "recomendacion": "Validar iss (issuer en runtime-config), exp/iat con tolerancia y aceptar aud string o array que contenga el clientId.",
-      "verificarTrasT41": false
+      "verificarTrasT41": false,
+      "status": "fixed",
+      "pr": "https://github.com/piuma-uy/landing/pull/14",
+      "prBackend": "https://github.com/piuma-uy/piuma-backend/pull/54"
     },
     {
       "id": "FE-06",
@@ -63,7 +70,9 @@
       "archivo": "src/app/commerce/commerce.service.ts",
       "linea": 563,
       "recomendacion": "Guardar sólo un hash SHA-256 del fingerprint; en logout() borrar todas las claves piuma-* de sessionStorage; borrar piuma-switch-<id> al recibir respuesta.",
-      "verificarTrasT41": false
+      "verificarTrasT41": false,
+      "status": "fixed",
+      "pr": "https://github.com/piuma-uy/landing/pull/14"
     },
     {
       "id": "FE-07",
@@ -72,7 +81,9 @@
       "archivo": "../piuma-backend/infra/frontend.tf",
       "linea": 16,
       "recomendacion": "Documentar que activar analytics o un dominio del API exige ampliar connect-src (var.frontend_content_security_policy); recalcular el hash del onload en cada subida de Angular; verificar la consola sin violaciones CSP tras T41.",
-      "verificarTrasT41": true
+      "verificarTrasT41": true,
+      "status": "fixed",
+      "pr": "https://github.com/piuma-uy/piuma-backend/pull/54"
     },
     {
       "id": "FE-08",
@@ -81,7 +92,9 @@
       "archivo": "src/app/services/analytics.service.ts",
       "linea": 55,
       "recomendacion": "Enviar sólo el origen del referrer (vacío si es mismo origen) y desactivar también con navigator.globalPrivacyControl.",
-      "verificarTrasT41": false
+      "verificarTrasT41": false,
+      "status": "fixed",
+      "pr": "https://github.com/piuma-uy/landing/pull/14"
     },
     {
       "id": "FE-09",
@@ -90,7 +103,10 @@
       "archivo": "src/main.ts",
       "linea": 10,
       "recomendacion": "Validar al arrancar (commerceEnabled === true, apiBaseUrl https, auth obligatorio con cognito, loginUrl https) y ante error dejar el comercio apagado.",
-      "verificarTrasT41": true
+      "verificarTrasT41": true,
+      "status": "fixed",
+      "pr": "https://github.com/piuma-uy/landing/pull/14",
+      "prBackend": "https://github.com/piuma-uy/piuma-backend/pull/54"
     },
     {
       "id": "FE-10",
@@ -99,7 +115,9 @@
       "archivo": "src/app/commerce/commerce.component.html",
       "linea": 2,
       "recomendacion": "Atar el rótulo a una clave de runtime-config antes del go-live con Mercado Pago real.",
-      "verificarTrasT41": false
+      "verificarTrasT41": false,
+      "status": "fixed",
+      "pr": "https://github.com/piuma-uy/landing/pull/14"
     },
     {
       "id": "FE-11",
@@ -135,7 +153,9 @@
       "archivo": "src/app/commerce/commerce.service.ts",
       "linea": 608,
       "recomendacion": "Usar encodeURIComponent como en card.ts y transfer.ts (también en la línea 665).",
-      "verificarTrasT41": false
+      "verificarTrasT41": false,
+      "status": "fixed",
+      "pr": "https://github.com/piuma-uy/landing/pull/14"
     },
     {
       "id": "FE-15",
