@@ -36,11 +36,16 @@ import {
   estimateMinor,
   guestCart,
   mergeGuest,
+  orderLimitProblem,
   setQuantity,
   unitCount,
 } from "./cart";
 import { CheckoutAttempts, defaultPayWith, paymentMethodFor } from "./checkout";
-import { OPEN_ORDERS_LIMIT, TOO_MANY_OPEN_ORDERS } from "./orders";
+import {
+  ORDERS_LINK_CODES,
+  PAYMENT_METHOD_REQUIRED,
+  checkoutLimitMessage,
+} from "./orders";
 export interface User {
   id: string;
   email: string;
@@ -175,6 +180,10 @@ export class CommerceService {
   readonly error = signal("");
   /** API code of the last error, for errors that offer a way out (TOO_MANY_OPEN_ORDERS). */
   readonly errorCode = signal("");
+  /** The error is a reservation limit the buyer gets past from "Mis pedidos". */
+  readonly ordersLink = computed(
+    () => !!this.error() && ORDERS_LINK_CODES.includes(this.errorCode()),
+  );
   readonly notice = signal("");
   readonly busy = signal(false);
   readonly ready = signal(false);
@@ -499,6 +508,8 @@ export class CommerceService {
   }
   async review() {
     await this.run(async () => {
+      const problem = orderLimitProblem(this.cart());
+      if (problem) throw new Error(problem);
       await this.reloadProducts();
       const [options, methods] = await Promise.all([
         this.loadShippingOptions(),
@@ -580,20 +591,22 @@ export class CommerceService {
           "Idempotency-Key": key,
         });
       } catch (e) {
-        // Transfer or card switched off meanwhile: refresh the options so the buyer can choose again.
+        // Transfer or card switched off (or on) meanwhile: refresh the options so the buyer can choose again.
         if (
           e instanceof ApiError &&
           (e.code === "TRANSFER_UNAVAILABLE" ||
-            e.code === "CARD_PROVIDER_NOT_CONFIGURED")
+            e.code === "CARD_PROVIDER_NOT_CONFIGURED" ||
+            e.code === PAYMENT_METHOD_REQUIRED)
         ) {
           const methods = await this.transfers.paymentMethods();
           this.paymentMethods.set(methods);
           this.payWith.set(payWithDefault(methods));
         }
         await this.shippingChanged(e);
-        // Nothing reserved: the buyer pays one of the open orders or waits for it to expire.
-        if (e instanceof ApiError && e.code === TOO_MANY_OPEN_ORDERS)
-          throw new ApiError(OPEN_ORDERS_LIMIT, e.status, e.code);
+        // Reservation limits reserve nothing: say how to continue (pay, wait or buy fewer).
+        const limit =
+          e instanceof ApiError && checkoutLimitMessage(e.code, e.message);
+        if (limit) throw new ApiError(limit, e.status, e.code);
         throw e;
       }
       // Created: a later purchase of the same cart is a new order, never a replay of this one.

@@ -37,8 +37,16 @@ export interface Settings {
   };
   /** Hours to pay a card order before its reservation is released. */
   card: { holdHours: number };
-  /** Unpaid orders per buyer and hold of orders without payment method (T52-H1). */
-  orders: { maxOpenPerUser: number; pendingHoldHours: number };
+  /**
+   * Unpaid orders per buyer and hold of orders without payment method (T52-H1); units those
+   * orders may hold in total and per SKU (T52-R1, absent from an API without them).
+   */
+  orders: {
+    maxOpenPerUser: number;
+    maxUnitsPerUser?: number;
+    maxUnitsPerSku?: number;
+    pendingHoldHours: number;
+  };
   contact: { whatsappNumber: string | null };
   notifications: { whatsappEnabled: boolean; shopEmail: string | null };
   shipping: ShippingSettings;
@@ -137,6 +145,13 @@ export function settingsInput(s: Settings) {
       ? {
           orders: {
             maxOpenPerUser: s.orders.maxOpenPerUser,
+            // Omitted unit limits keep the saved ones.
+            ...(s.orders.maxUnitsPerUser !== undefined
+              ? { maxUnitsPerUser: s.orders.maxUnitsPerUser }
+              : {}),
+            ...(s.orders.maxUnitsPerSku !== undefined
+              ? { maxUnitsPerSku: s.orders.maxUnitsPerSku }
+              : {}),
             pendingHoldHours: s.orders.pendingHoldHours,
           },
         }

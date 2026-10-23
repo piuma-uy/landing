@@ -2,11 +2,15 @@
 // Framework-free so it can be unit tested with `node --test` (see tests/cart.test.ts).
 import type { Line, Product } from "./commerce.service";
 
-/** Same limits as the API: units per variant and variants per order. */
-export const MAX_UNITS = 20;
-export const MAX_LINES = 20;
+/**
+ * Same limits as POST /orders: units per variant and variants per order (T52-R1). The API cart
+ * still takes 20 × 20 so old saved carts load; checkout asks to lower them first.
+ */
+export const MAX_UNITS = 10;
+export const MAX_LINES = 10;
+const LIMITS = `Máximo ${MAX_UNITS} unidades por variante y ${MAX_LINES} variantes por pedido`;
 
-/** Guest cart from localStorage; anything malformed or out of bounds is dropped. */
+/** Guest cart from localStorage; anything malformed is dropped, quantities capped at the limit. */
 export function guestCart(raw: string | null): Line[] {
   try {
     const x = JSON.parse(raw ?? "[]");
@@ -16,10 +20,13 @@ export function guestCart(raw: string | null): Line[] {
             (l: Line) =>
               typeof l?.sku === "string" &&
               Number.isInteger(l.quantity) &&
-              l.quantity > 0 &&
-              l.quantity <= MAX_UNITS,
+              l.quantity > 0,
           )
           .slice(0, MAX_LINES)
+          .map((l: Line) => ({
+            sku: l.sku,
+            quantity: Math.min(l.quantity, MAX_UNITS),
+          }))
       : [];
   } catch {
     return [];
@@ -50,9 +57,7 @@ export function addUnit(
   if (!product || product.stock < quantity)
     throw new Error("No hay más stock disponible de esta variante");
   if (quantity > MAX_UNITS || (!existing && cart.length >= MAX_LINES))
-    throw new Error(
-      "Máximo 20 unidades por variante y 20 variantes por pedido",
-    );
+    throw new Error(LIMITS);
   return existing
     ? cart.map((l) => (l.sku === sku ? { sku, quantity } : l))
     : [...cart, { sku, quantity }];
@@ -61,10 +66,17 @@ export function addUnit(
 /** Sets a line's quantity; 0 removes it. */
 export function setQuantity(cart: Line[], sku: string, value: number): Line[] {
   if (!Number.isInteger(value) || value < 0 || value > MAX_UNITS)
-    throw new Error("Cantidad válida: 0 a 20");
+    throw new Error(`Cantidad válida: 0 a ${MAX_UNITS}`);
   return value
     ? cart.map((l) => (l.sku === sku ? { sku, quantity: value } : l))
     : cart.filter((l) => l.sku !== sku);
+}
+
+/** A cart saved before the lower order limits: the buyer adjusts it before checkout. */
+export function orderLimitProblem(cart: Line[]) {
+  return cart.length > MAX_LINES || cart.some((l) => l.quantity > MAX_UNITS)
+    ? LIMITS + ". Ajustá el carrito para continuar."
+    : null;
 }
 
 export function unitCount(cart: Line[]): number {

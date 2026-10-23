@@ -1,8 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  CHOOSE_PAYMENT,
   OPEN_ORDERS_LIMIT,
+  ORDERS_LINK_CODES,
   TOO_MANY_OPEN_ORDERS,
+  checkoutLimitMessage,
   dateTime,
   reservedUntil,
 } from "../src/app/commerce/orders.ts";
@@ -59,4 +62,26 @@ test("the open-orders limit tells the buyer how to continue", () => {
   assert.equal(TOO_MANY_OPEN_ORDERS, "TOO_MANY_OPEN_ORDERS");
   assert.match(OPEN_ORDERS_LIMIT, /pagá uno de tus pedidos/);
   assert.match(OPEN_ORDERS_LIMIT, /venza su reserva/);
+});
+
+test("each reservation limit of POST /orders gets its own way out", () => {
+  assert.equal(
+    checkoutLimitMessage("TOO_MANY_OPEN_ORDERS", "api text"),
+    OPEN_ORDERS_LIMIT,
+  );
+  // RESERVATION_LIMIT keeps the API text: it carries the limits in force.
+  const api =
+    "Podés reservar hasta 10 unidades en total y 5 por producto entre tus pedidos sin pagar; pagá o cancelá uno, o comprá menos unidades";
+  assert.equal(checkoutLimitMessage("RESERVATION_LIMIT", api), api + ".");
+  assert.equal(checkoutLimitMessage("RESERVATION_LIMIT", "Listo."), "Listo.");
+  assert.equal(
+    checkoutLimitMessage("PAYMENT_METHOD_REQUIRED", "api text"),
+    CHOOSE_PAYMENT,
+  );
+  assert.equal(checkoutLimitMessage("OUT_OF_STOCK", "api text"), null);
+  assert.equal(checkoutLimitMessage(undefined, "api text"), null);
+  assert.deepEqual(ORDERS_LINK_CODES, [
+    "TOO_MANY_OPEN_ORDERS",
+    "RESERVATION_LIMIT",
+  ]);
 });

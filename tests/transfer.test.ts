@@ -243,3 +243,26 @@ test("payment methods come from the API", async () => {
   await client.paymentMethods();
   assert.equal(calls[0]!.path, "/payment-methods");
 });
+
+test("unit limits go in the settings body only when the API sent them", () => {
+  const withUnits = settingsInput({
+    ...settings,
+    orders: {
+      maxOpenPerUser: 2,
+      maxUnitsPerUser: 12,
+      maxUnitsPerSku: 4,
+      pendingHoldHours: 24,
+    },
+  });
+  assert.deepEqual(withUnits.orders, {
+    maxOpenPerUser: 2,
+    maxUnitsPerUser: 12,
+    maxUnitsPerSku: 4,
+    pendingHoldHours: 24,
+  });
+  // An API without them (pre T52-R1) keeps the saved values.
+  assert.deepEqual(settingsInput(settings).orders, {
+    maxOpenPerUser: 3,
+    pendingHoldHours: 48,
+  });
+});

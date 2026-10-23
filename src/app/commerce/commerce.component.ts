@@ -10,6 +10,7 @@ import { FormsModule } from "@angular/forms";
 import { CommerceService, Order, Product } from "./commerce.service";
 import { Settings, whatsappLink } from "./transfer";
 import { dateTime, reservedUntil } from "./orders";
+import { MAX_UNITS } from "./cart";
 import {
   DEPARTMENTS,
   PICKUP_FALLBACK,
@@ -48,6 +49,7 @@ export class CommerceComponent {
   readonly whatsappLink = whatsappLink;
   readonly dateTime = dateTime;
   readonly reservedUntil = reservedUntil;
+  readonly maxUnits = MAX_UNITS;
   readonly shippingSummary = shippingSummary;
   readonly shippingProblem = shippingProblem;
   readonly toMinor = toMinor;
