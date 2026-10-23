@@ -702,6 +702,7 @@ export class CommerceService {
         updated = await this.request<Order>(
           "/orders/" + encodeURIComponent(order.id) + "/cancel",
           "POST",
+          {},
         );
       } catch (e) {
         const message = e instanceof ApiError && cancelErrorMessage(e.code);
