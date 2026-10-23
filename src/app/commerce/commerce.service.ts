@@ -363,6 +363,14 @@ export class CommerceService {
       else this.cart.set(this.readGuest());
     });
     this.ready.set(true);
+    // "Administrar" clicked while the session was still loading: run() skipped that load.
+    if (
+      this.view() === "admin" &&
+      this.user()?.admin &&
+      !this.settings() &&
+      !this.mfaRequired()
+    )
+      void this.run(() => this.loadAdmin());
     this.resumeReturn();
   }
   /**
