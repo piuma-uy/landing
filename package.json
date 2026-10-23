@@ -11,21 +11,21 @@
     "test": "tsc -p tsconfig.spec.json && node --test tests/*.test.ts"
   },
   "dependencies": {
-    "@angular/common": "^19.0.0",
-    "@angular/compiler": "^19.0.0",
-    "@angular/core": "^19.0.0",
-    "@angular/forms": "^19.0.0",
-    "@angular/platform-browser": "^19.0.0",
+    "@angular/common": "^20.3.34",
+    "@angular/compiler": "^20.3.34",
+    "@angular/core": "^20.3.34",
+    "@angular/forms": "^20.3.34",
+    "@angular/platform-browser": "^20.3.34",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^19.0.0",
-    "@angular/cli": "^19.0.0",
-    "@angular/compiler-cli": "^19.0.0",
+    "@angular-devkit/build-angular": "^20.3.41",
+    "@angular/cli": "^20.3.41",
+    "@angular/compiler-cli": "^20.3.34",
     "@types/node": "^26.1.2",
-    "typescript": "~5.6.2"
+    "typescript": "~5.9.3"
   },
   "engines": {
     "node": ">=22.18"
