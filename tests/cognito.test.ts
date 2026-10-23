@@ -96,7 +96,10 @@ test("authorize URL carries code + PKCE S256 parameters", async () => {
   assert.equal(p.get("client_id"), CLIENT);
   assert.equal(p.get("response_type"), "code");
   assert.equal(p.get("redirect_uri"), ORIGIN + "/");
-  assert.equal(p.get("scope"), "openid email profile piuma/api");
+  assert.equal(
+    p.get("scope"),
+    "openid email profile piuma/api aws.cognito.signin.user.admin",
+  );
   assert.equal(p.get("code_challenge_method"), "S256");
   assert.ok(p.get("state")!.length >= 43);
   assert.ok(p.get("nonce")!.length >= 43);

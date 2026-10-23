@@ -7,10 +7,14 @@ import {
   signal,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { DomSanitizer } from "@angular/platform-browser";
 import { CommerceService, Order, Product } from "./commerce.service";
 import { Settings, whatsappLink } from "./transfer";
 import { dateTime, reservedUntil } from "./orders";
 import { MAX_UNITS } from "./cart";
+import { groupSecret } from "./mfa";
+import { qrPath } from "./qr";
+import { changeRows, changedBy } from "./settings-history";
 import {
   DEPARTMENTS,
   PICKUP_FALLBACK,
@@ -26,7 +30,7 @@ import {
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./commerce.component.html",
-  styleUrl: "./commerce.component.scss",
+  styleUrls: ["./commerce.component.scss", "./admin-security.component.scss"],
 })
 export class CommerceComponent {
   readonly shop = inject(CommerceService);
@@ -39,6 +43,29 @@ export class CommerceComponent {
     id: string;
     action: "confirm" | "cancel";
   } | null>(null);
+  private readonly sanitizer = inject(DomSanitizer);
+  /** TOTP enrollment: QR of the otpauth URL, drawn here (no image leaves the browser). */
+  readonly totpQr = computed(() => {
+    const t = this.shop.totp();
+    return t && qrPath(t.url);
+  });
+  // Angular drops non-http(s) links; this one is built by mfa.ts with a fixed otpauth: scheme,
+  // so the authenticator app opens on the same phone that shows the panel.
+  readonly totpLink = computed(() => {
+    const t = this.shop.totp();
+    return t && this.sanitizer.bypassSecurityTrustUrl(t.url);
+  });
+  readonly totpSecret = computed(() =>
+    groupSecret(this.shop.totp()?.secret ?? ""),
+  );
+  totpInput = "";
+  readonly historyRows = computed(() =>
+    this.shop.history().map((entry) => ({
+      entry,
+      by: changedBy(entry),
+      rows: changeRows(entry),
+    })),
+  );
   bankReference = "";
   cancelReason = "Transferencia no recibida";
   /** Editable copy of the stored settings; replaced whenever the server sends new ones. */
@@ -134,6 +161,18 @@ export class CommerceComponent {
   openTab(tab: "overview" | "products" | "transfers" | "settings") {
     this.adminTab.set(tab);
     this.reviewing.set(null);
+  }
+  async confirmTotp() {
+    await this.shop.confirmTotp(this.totpInput);
+    if (!this.shop.error()) this.totpInput = "";
+  }
+  showHistory() {
+    this.openTab("settings");
+    requestAnimationFrame(() =>
+      document
+        .getElementById("settings-history")
+        ?.scrollIntoView({ behavior: "smooth" }),
+    );
   }
   saveSettings() {
     // On success or 409 the service stores the server copy, which resets the draft.

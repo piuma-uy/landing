@@ -38,7 +38,9 @@ export interface CognitoDeps {
   now: () => number;
 }
 
-export const SCOPE = "openid email profile piuma/api";
+// aws.cognito.signin.user.admin lets an administrator enroll TOTP from the panel (T27/T28).
+export const SCOPE =
+  "openid email profile piuma/api aws.cognito.signin.user.admin";
 const ATTEMPT_KEY = "piuma-oauth";
 const ADMIN_GROUP = "admins";
 // Refresh a bit before expiry so a request never leaves with a stale token.

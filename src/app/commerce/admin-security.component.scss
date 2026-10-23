@@ -1,0 +1,73 @@
+// Second factor enrollment and settings history (T28); split from commerce.component.scss
+// so each stylesheet stays within the component style budget.
+.second-factor {
+  max-width: 700px;
+}
+.steps {
+  padding-left: 1.2rem;
+}
+.steps li + li {
+  margin-top: 1.5rem;
+}
+.qr {
+  display: block;
+  width: min(240px, 100%);
+  margin: 1rem 0;
+  border: 1px solid var(--color-border);
+}
+.secret {
+  display: inline-block;
+  word-break: break-all;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+.totp-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.8rem;
+  margin-top: 0.8rem;
+}
+.totp-form input {
+  width: 9rem;
+  font-size: 1.2rem;
+  letter-spacing: 0.15em;
+}
+.totp-form label {
+  margin: 0;
+}
+.history {
+  margin-top: 1.5rem;
+}
+.history-entry {
+  border-top: 1px solid var(--color-border);
+  padding: 0.9rem 0;
+}
+.history-entry header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+}
+.history-entry ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+}
+.history-entry li + li {
+  margin-top: 0.4rem;
+}
+.history-value {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.security-alert {
+  background: #fcf0ec;
+  border: 1px solid #d8b3a7;
+  border-left: 4px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.5rem;
+}
+.security-alert p {
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+}
