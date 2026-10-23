@@ -12,7 +12,10 @@
       "archivo": "src/app/commerce/commerce.service.ts",
       "linea": 589,
       "recomendacion": "Borrar sessionStorage 'piuma-checkout' al recibir 2xx de POST /orders (antes de ir a Mercado Pago) y en logout(); conservar la clave sólo mientras el resultado sea desconocido.",
-      "verificarTrasT41": false
+      "verificarTrasT41": false,
+      "status": "fixed",
+      "pr": "https://github.com/piuma-uy/landing/pull/10",
+      "e2e": "https://github.com/piuma-uy/piuma-backend/pull/32"
     },
     {
       "id": "FE-02",
