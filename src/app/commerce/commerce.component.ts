@@ -10,7 +10,7 @@ import { FormsModule } from "@angular/forms";
 import { DomSanitizer } from "@angular/platform-browser";
 import { CommerceService, Order, Product } from "./commerce.service";
 import { Settings, whatsappLink } from "./transfer";
-import { dateTime, reservedUntil } from "./orders";
+import { buyerCancellable, dateTime, reservedUntil } from "./orders";
 import { MAX_UNITS } from "./cart";
 import { groupSecret } from "./mfa";
 import { qrPath } from "./qr";
@@ -43,6 +43,8 @@ export class CommerceComponent {
     id: string;
     action: "confirm" | "cancel";
   } | null>(null);
+  /** Order of "Mis pedidos" whose cancellation is waiting for the buyer's confirmation. */
+  readonly cancelling = signal<string | null>(null);
   private readonly sanitizer = inject(DomSanitizer);
   /** TOTP enrollment: QR of the otpauth URL, drawn here (no image leaves the browser). */
   readonly totpQr = computed(() => {
@@ -76,6 +78,7 @@ export class CommerceComponent {
   readonly whatsappLink = whatsappLink;
   readonly dateTime = dateTime;
   readonly reservedUntil = reservedUntil;
+  readonly buyerCancellable = buyerCancellable;
   readonly maxUnits = MAX_UNITS;
   readonly shippingSummary = shippingSummary;
   readonly shippingProblem = shippingProblem;
@@ -207,6 +210,10 @@ export class CommerceComponent {
   async confirmTransfer(order: Order) {
     await this.shop.confirmTransfer(order, this.bankReference);
     if (!this.shop.error()) this.reviewing.set(null);
+  }
+  async cancelOwn(order: Order) {
+    await this.shop.cancelOwn(order);
+    this.cancelling.set(null);
   }
   async cancelTransfer(order: Order) {
     await this.shop.cancelTransfer(order, this.cancelReason);

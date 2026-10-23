@@ -477,6 +477,14 @@ details p {
   border-top: 1px solid var(--color-border);
   padding-top: 1rem;
 }
+// Secondary to paying: a text link, with a phone-sized touch target.
+.order-cancel {
+  min-height: 44px;
+  margin-top: 0.5rem;
+}
+.order .confirm-step {
+  margin-top: 1rem;
+}
 .settings-form h2 {
   margin-bottom: 1rem;
 }

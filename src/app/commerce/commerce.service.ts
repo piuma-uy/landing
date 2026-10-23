@@ -64,6 +64,8 @@ import {
 } from "./settings-history";
 import {
   ORDERS_LINK_CODES,
+  ORDER_CANCELLED,
+  cancelErrorMessage,
   PAYMENT_METHOD_REQUIRED,
   checkoutLimitMessage,
 } from "./orders";
@@ -702,6 +704,33 @@ export class CommerceService {
         "POST",
         {},
       );
+    });
+  }
+  /**
+   * The buyer cancels an own unpaid order: the API releases its stock and its place in the
+   * open-order limits. The list shows what the API answers; refusals reload it.
+   */
+  async cancelOwn(order: Order) {
+    await this.run(async () => {
+      let updated: Order;
+      try {
+        updated = await this.request<Order>(
+          "/orders/" + encodeURIComponent(order.id) + "/cancel",
+          "POST",
+          {},
+        );
+      } catch (e) {
+        const message = e instanceof ApiError && cancelErrorMessage(e.code);
+        if (!message) throw e;
+        // Paid or settled meanwhile: show the order as the API has it now.
+        this.orders.set(await this.pages<Order>("/orders"));
+        throw new ApiError(message, e.status, e.code);
+      }
+      this.orders.update((rows) =>
+        rows.map((o) => (o.id === updated.id ? updated : o)),
+      );
+      await this.reloadProducts();
+      this.notice.set(ORDER_CANCELLED);
     });
   }
   /** Loads the panel; without a second factor it only leaves the enrollment on screen. */

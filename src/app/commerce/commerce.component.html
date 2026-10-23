@@ -763,6 +763,47 @@
                     </p>
                   </div>
                 }
+                @if (buyerCancellable(order)) {
+                  @if (cancelling() === order.id) {
+                    <div
+                      class="confirm-step"
+                      role="group"
+                      [attr.aria-label]="
+                        'Cancelar pedido #' + order.id.slice(0, 8)
+                      "
+                    >
+                      <p>
+                        ¿Cancelás el pedido #{{ order.id.slice(0, 8) }}? Los
+                        productos se liberan y vas a tener que hacer un pedido
+                        nuevo si los querés.
+                      </p>
+                      <div class="actions">
+                        <button
+                          class="btn btn--primary"
+                          [disabled]="shop.busy()"
+                          (click)="cancelOwn(order)"
+                        >
+                          Sí, cancelar pedido</button
+                        ><button
+                          type="button"
+                          class="btn btn--outline"
+                          (click)="cancelling.set(null)"
+                        >
+                          Volver
+                        </button>
+                      </div>
+                    </div>
+                  } @else {
+                    <button
+                      type="button"
+                      class="text-button order-cancel"
+                      [disabled]="shop.busy()"
+                      (click)="cancelling.set(order.id)"
+                    >
+                      Cancelar pedido
+                    </button>
+                  }
+                }
                 @if (order.cancelReason) {
                   <p class="muted">
                     Motivo de cancelación: {{ order.cancelReason }}
