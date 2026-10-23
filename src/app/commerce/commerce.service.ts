@@ -39,7 +39,11 @@ import {
   setQuantity,
   unitCount,
 } from "./cart";
-import { checkoutAttempt, defaultPayWith, paymentMethodFor } from "./checkout";
+import {
+  CheckoutAttempts,
+  defaultPayWith,
+  paymentMethodFor,
+} from "./checkout";
 export interface User {
   id: string;
   email: string;
@@ -239,6 +243,9 @@ export class CommerceService {
     (path, method, body, headers) => this.request(path, method, body, headers),
     sessionStorage,
     () => crypto.randomUUID(),
+  );
+  private readonly attempts = new CheckoutAttempts(sessionStorage, () =>
+    crypto.randomUUID(),
   );
   private async pages<T>(path: string): Promise<T[]> {
     const rows: T[] = [];
@@ -446,6 +453,7 @@ export class CommerceService {
   }
   async logout() {
     await this.run(async () => {
+      this.attempts.end();
       if (this.cognito) {
         location.assign(await this.cognito.logout());
       } else await this.request("/auth/logout", "POST", {});
@@ -470,7 +478,7 @@ export class CommerceService {
     this.cart.set(items);
     this.quote.set(null);
     this.completed.set(null);
-    sessionStorage.removeItem("piuma-checkout");
+    this.attempts.end();
   }
   async add(sku: string) {
     await this.run(async () => {
@@ -560,17 +568,13 @@ export class CommerceService {
         ...orderFulfillment(shipTo, address),
         contact: { name: this.user()!.name, email: this.user()!.email, phone },
       };
-      const fingerprint = JSON.stringify([this.user()!.id, payload]);
-      const attempt = checkoutAttempt(
-        sessionStorage.getItem("piuma-checkout"),
-        fingerprint,
-        () => crypto.randomUUID(),
+      const key = this.attempts.key(
+        JSON.stringify([this.user()!.id, payload]),
       );
-      sessionStorage.setItem("piuma-checkout", JSON.stringify(attempt));
       let order: Order;
       try {
         order = await this.request<Order>("/orders", "POST", payload, {
-          "Idempotency-Key": attempt.key,
+          "Idempotency-Key": key,
         });
       } catch (e) {
         // Transfer or card switched off meanwhile: refresh the options so the buyer can choose again.
@@ -586,6 +590,8 @@ export class CommerceService {
         await this.shippingChanged(e);
         throw e;
       }
+      // Created: a later purchase of the same cart is a new order, never a replay of this one.
+      this.attempts.end();
       this.completed.set(order);
       this.quote.set(null);
       this.cart.set([]);

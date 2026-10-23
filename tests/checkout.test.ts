@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  ATTEMPT_SLOT,
+  CheckoutAttempts,
   checkoutAttempt,
   defaultPayWith,
   paymentMethodFor,
@@ -47,4 +49,53 @@ test("a different cart, address or method starts a new attempt", () => {
 test("corrupt or incomplete stored attempts are replaced", () => {
   for (const stored of ["{", "null", '"x"', '{"fingerprint":"fp-1"}'])
     assert.equal(checkoutAttempt(stored, "fp-1", () => "fresh").key, "fresh");
+});
+
+/** sessionStorage stand-in: a Map behind the three calls the attempts use. */
+function memoryStorage() {
+  const slots = new Map<string, string>();
+  return {
+    slots,
+    getItem: (k: string) => slots.get(k) ?? null,
+    setItem: (k: string, v: string) => void slots.set(k, v),
+    removeItem: (k: string) => void slots.delete(k),
+  };
+}
+
+function attempts() {
+  const storage = memoryStorage();
+  let n = 0;
+  return {
+    storage,
+    attempts: new CheckoutAttempts(storage, () => "key-" + ++n),
+  };
+}
+
+test("retries of one attempt keep its key until the result is known", () => {
+  const { storage, attempts: a } = attempts();
+  // Timeout, 5xx or lost response: the buyer confirms again with the same key.
+  assert.equal(a.key("fp-1"), "key-1");
+  assert.equal(a.key("fp-1"), "key-1");
+  // A reload builds a new service on the same sessionStorage.
+  const reloaded = new CheckoutAttempts(storage, () => "other");
+  assert.equal(reloaded.key("fp-1"), "key-1");
+});
+
+test("after the order is created the same purchase gets a new key (FE-01)", () => {
+  const { storage, attempts: a } = attempts();
+  assert.equal(a.key("fp-1"), "key-1");
+  a.end();
+  assert.equal(storage.slots.has(ATTEMPT_SLOT), false);
+  // Same user, cart, delivery and phone: a second order, never a replay of the first.
+  assert.equal(a.key("fp-1"), "key-2");
+});
+
+test("a changed cart or a logout starts a new attempt", () => {
+  const { attempts: a } = attempts();
+  assert.equal(a.key("fp-1"), "key-1");
+  // Different payload: new key even without end().
+  assert.equal(a.key("fp-2"), "key-2");
+  // Cart saved back to the first content, or logout: end() drops the attempt.
+  a.end();
+  assert.equal(a.key("fp-1"), "key-3");
 });
