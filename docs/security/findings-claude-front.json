@@ -24,7 +24,10 @@
       "archivo": "package.json",
       "linea": 12,
       "recomendacion": "Planificar la subida a Angular 20/21; mientras tanto no introducir SSR/hydration, i18n, two-way bindings a propiedades sensibles, host bindings sobre href/src ni formatos de fecha desde datos.",
-      "verificarTrasT41": false
+      "verificarTrasT41": false,
+      "status": "fixed",
+      "pr": "https://github.com/piuma-uy/landing/pull/12",
+      "csp": "https://github.com/piuma-uy/piuma-backend/pull/48"
     },
     {
       "id": "FE-03",
@@ -141,7 +144,10 @@
       "archivo": "package-lock.json",
       "linea": 1,
       "recomendacion": "Resolver con la subida de Angular (FE-02); npm ci con lockfile en CI y ng serve sólo en localhost.",
-      "verificarTrasT41": false
+      "verificarTrasT41": false,
+      "status": "mitigated",
+      "pr": "https://github.com/piuma-uy/landing/pull/12",
+      "remanente": "npm audit: 46 → 2 (vite 8.3.0 high por launch-editor y @angular/build low), sólo ng serve; fijado exacto por @angular/build 22.2.4, se resuelve con Angular 22.3."
     }
   ]
 }
