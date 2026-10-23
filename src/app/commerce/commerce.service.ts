@@ -325,24 +325,37 @@ export class CommerceService {
     } while (cursor);
     return rows;
   }
+  private running: Promise<void> = Promise.resolve();
+  /** One action at a time: a second click while one is in flight is ignored. */
   async run(fn: () => Promise<void>) {
     if (this.busy()) return;
     this.busy.set(true);
     this.error.set("");
     this.errorCode.set("");
     this.notice.set("");
-    try {
-      await fn();
-    } catch (e) {
-      this.error.set(e instanceof Error ? e.message : "Ocurrió un error");
-      this.errorCode.set(
-        (e instanceof ApiError && e.code) ||
-          (e instanceof EnrollmentError && e.type) ||
-          "",
-      );
-    } finally {
-      this.busy.set(false);
-    }
+    this.running = (async () => {
+      try {
+        await fn();
+      } catch (e) {
+        this.error.set(e instanceof Error ? e.message : "Ocurrió un error");
+        this.errorCode.set(
+          (e instanceof ApiError && e.code) ||
+            (e instanceof EnrollmentError && e.type) ||
+            "",
+        );
+      } finally {
+        this.busy.set(false);
+      }
+    })();
+    await this.running;
+  }
+  /**
+   * The data a view needs is never dropped like a repeated click: "Mis pedidos" or the panel
+   * opened while the session or a checkout is still loading waits for it, then loads (T54).
+   */
+  private async load(fn: () => Promise<void>) {
+    while (this.busy()) await this.running;
+    await this.run(fn);
   }
   async initialize() {
     if (!this.enabled) return;
@@ -370,14 +383,6 @@ export class CommerceService {
       else this.cart.set(this.readGuest());
     });
     this.ready.set(true);
-    // "Administrar" clicked while the session was still loading: run() skipped that load.
-    if (
-      this.view() === "admin" &&
-      this.user()?.admin &&
-      !this.settings() &&
-      !this.mfaRequired()
-    )
-      void this.run(() => this.loadAdmin());
     this.resumeReturn();
   }
   /**
@@ -497,11 +502,11 @@ export class CommerceService {
     this.notice.set("");
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (view === "orders" && this.user())
-      void this.run(async () =>
+      void this.load(async () =>
         this.orders.set(await this.pages<Order>("/orders")),
       );
     if (view === "admin" && this.user()?.admin)
-      void this.run(() => this.loadAdmin());
+      void this.load(() => this.loadAdmin());
   }
   async login(
     input: { email: string; password: string; name?: string },
