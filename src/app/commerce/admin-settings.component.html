@@ -1,0 +1,764 @@
+<p class="settings-intro muted">
+  Cada parte se guarda por separado. Lo que guardes se ve enseguida en la
+  tienda; los pedidos ya hechos no cambian.
+</p>
+
+@if (!shop.settings()) {
+  <p role="status">Cargando configuración…</p>
+}
+
+<!-- Cómo te pagan -->
+@if (pay.draft(); as f) {
+  <form
+    class="panel settings-section"
+    novalidate
+    aria-labelledby="pay-title"
+    (ngSubmit)="save('pay')"
+  >
+    <header class="section-head">
+      <h2 id="pay-title">Cómo te pagan</h2>
+      <p class="muted">
+        Los datos de tu cuenta que ve quien elige pagar por transferencia
+        bancaria.
+      </p>
+    </header>
+    <div class="field">
+      <label class="switch" [for]="fieldId('pay', 'enabled')">
+        <input
+          type="checkbox"
+          role="switch"
+          name="enabled"
+          [id]="fieldId('pay', 'enabled')"
+          [(ngModel)]="f.enabled"
+          [attr.aria-describedby]="describedBy('pay', 'enabled', true)"
+        />
+        Aceptar pagos por transferencia
+      </label>
+      <p class="hint" [id]="fieldId('pay', 'enabled') + '-help'">
+        Apagado, en la tienda no aparece la opción de pagar por transferencia.
+      </p>
+      @if (problem("pay", "enabled"); as m) {
+        <p class="field-error" [id]="fieldId('pay', 'enabled') + '-error'">
+          {{ m }}
+        </p>
+      }
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label [for]="fieldId('pay', 'bank')">Banco</label>
+        <input
+          name="bank"
+          list="settings-banks"
+          autocomplete="off"
+          maxlength="100"
+          placeholder="Por ejemplo BROU"
+          [id]="fieldId('pay', 'bank')"
+          [(ngModel)]="f.bank"
+          (blur)="touch('pay', 'bank', $any($event.target).value)"
+          [attr.aria-invalid]="!!problem('pay', 'bank')"
+          [attr.aria-describedby]="describedBy('pay', 'bank')"
+        />
+        <datalist id="settings-banks">
+          @for (b of banks; track b) {
+            <option [value]="b"></option>
+          }
+        </datalist>
+        @if (problem("pay", "bank"); as m) {
+          <p class="field-error" [id]="fieldId('pay', 'bank') + '-error'">
+            {{ m }}
+          </p>
+        }
+      </div>
+      <div class="field">
+        <label [for]="fieldId('pay', 'accountType')">Tipo de cuenta</label>
+        <select
+          name="accountType"
+          [id]="fieldId('pay', 'accountType')"
+          [(ngModel)]="f.accountType"
+          (blur)="touch('pay', 'accountType', $any($event.target).value)"
+          [attr.aria-invalid]="!!problem('pay', 'accountType')"
+          [attr.aria-describedby]="describedBy('pay', 'accountType')"
+        >
+          <option value="">Elegí una opción</option>
+          @for (t of accountTypes(f.accountType); track t) {
+            <option [value]="t">{{ t }}</option>
+          }
+        </select>
+        @if (problem("pay", "accountType"); as m) {
+          <p
+            class="field-error"
+            [id]="fieldId('pay', 'accountType') + '-error'"
+          >
+            {{ m }}
+          </p>
+        }
+      </div>
+      <div class="field">
+        <label [for]="fieldId('pay', 'accountNumber')">Número de cuenta</label>
+        <input
+          name="accountNumber"
+          autocomplete="off"
+          maxlength="60"
+          [id]="fieldId('pay', 'accountNumber')"
+          [(ngModel)]="f.accountNumber"
+          (blur)="touch('pay', 'accountNumber', $any($event.target).value)"
+          [attr.aria-invalid]="!!problem('pay', 'accountNumber')"
+          [attr.aria-describedby]="describedBy('pay', 'accountNumber')"
+        />
+        @if (problem("pay", "accountNumber"); as m) {
+          <p
+            class="field-error"
+            [id]="fieldId('pay', 'accountNumber') + '-error'"
+          >
+            {{ m }}
+          </p>
+        }
+      </div>
+      <div class="field">
+        <label [for]="fieldId('pay', 'holder')">Titular de la cuenta</label>
+        <input
+          name="holder"
+          autocomplete="off"
+          maxlength="120"
+          [id]="fieldId('pay', 'holder')"
+          [(ngModel)]="f.holder"
+          (blur)="touch('pay', 'holder', $any($event.target).value)"
+          [attr.aria-invalid]="!!problem('pay', 'holder')"
+          [attr.aria-describedby]="describedBy('pay', 'holder', true)"
+        />
+        <p class="hint" [id]="fieldId('pay', 'holder') + '-help'">
+          Tal como figura en el banco.
+        </p>
+        @if (problem("pay", "holder"); as m) {
+          <p class="field-error" [id]="fieldId('pay', 'holder') + '-error'">
+            {{ m }}
+          </p>
+        }
+      </div>
+      <div class="field">
+        <label [for]="fieldId('pay', 'currency')">Moneda de la cuenta</label>
+        <select
+          name="currency"
+          [id]="fieldId('pay', 'currency')"
+          [(ngModel)]="f.currency"
+          [attr.aria-invalid]="!!problem('pay', 'currency')"
+          [attr.aria-describedby]="describedBy('pay', 'currency')"
+        >
+          @for (c of currencies; track c.code) {
+            <option [value]="c.code">{{ c.label }}</option>
+          }
+        </select>
+        @if (problem("pay", "currency"); as m) {
+          <p class="field-error" [id]="fieldId('pay', 'currency') + '-error'">
+            {{ m }}
+          </p>
+        }
+      </div>
+    </div>
+    <div class="field">
+      <label [for]="fieldId('pay', 'note')"
+        >Mensaje para quien paga (opcional)</label
+      >
+      <textarea
+        name="note"
+        rows="2"
+        maxlength="500"
+        placeholder="Por ejemplo: en el concepto poné el número de pedido"
+        [id]="fieldId('pay', 'note')"
+        [(ngModel)]="f.note"
+      ></textarea>
+    </div>
+    <ng-container
+      *ngTemplateOutlet="
+        actions;
+        context: { id: 'pay', label: 'Guardar datos de pago' }
+      "
+    />
+  </form>
+}
+
+<!-- Tu WhatsApp y tu mail -->
+@if (contact.draft(); as f) {
+  <form
+    class="panel settings-section"
+    novalidate
+    aria-labelledby="contact-title"
+    (ngSubmit)="save('contact')"
+  >
+    <header class="section-head">
+      <h2 id="contact-title">Tu WhatsApp y tu mail</h2>
+      <p class="muted">
+        Por WhatsApp te escriben los clientes y te mandan los comprobantes; al
+        mail te llegan los avisos de cada venta.
+      </p>
+    </header>
+    <div class="form-grid">
+      <div class="field">
+        <label [for]="fieldId('contact', 'whatsapp')">Tu WhatsApp</label>
+        <div class="prefixed">
+          <span aria-hidden="true">+598</span>
+          <input
+            name="whatsapp"
+            type="tel"
+            inputmode="tel"
+            autocomplete="off"
+            placeholder="99 123 456"
+            [id]="fieldId('contact', 'whatsapp')"
+            [(ngModel)]="f.whatsapp"
+            (blur)="tidyWhatsapp(f)"
+            [attr.aria-invalid]="!!problem('contact', 'whatsapp')"
+            [attr.aria-describedby]="describedBy('contact', 'whatsapp', true)"
+          />
+        </div>
+        <p class="hint" [id]="fieldId('contact', 'whatsapp') + '-help'">
+          Celular de Uruguay, sin el 0: por ejemplo 99 123 456.
+        </p>
+        @if (problem("contact", "whatsapp"); as m) {
+          <p
+            class="field-error"
+            [id]="fieldId('contact', 'whatsapp') + '-error'"
+          >
+            {{ m }}
+          </p>
+        }
+      </div>
+      <div class="field">
+        <label [for]="fieldId('contact', 'shopEmail')">Tu mail</label>
+        <input
+          name="shopEmail"
+          type="email"
+          inputmode="email"
+          autocomplete="email"
+          maxlength="254"
+          placeholder="hola@piuma.com.uy"
+          [id]="fieldId('contact', 'shopEmail')"
+          [(ngModel)]="f.shopEmail"
+          (blur)="touch('contact', 'shopEmail', $any($event.target).value)"
+          [attr.aria-invalid]="!!problem('contact', 'shopEmail')"
+          [attr.aria-describedby]="describedBy('contact', 'shopEmail', true)"
+        />
+        <p class="hint" [id]="fieldId('contact', 'shopEmail') + '-help'">
+          También te avisamos ahí si alguien cambia tus datos bancarios.
+        </p>
+        @if (problem("contact", "shopEmail"); as m) {
+          <p
+            class="field-error"
+            [id]="fieldId('contact', 'shopEmail') + '-error'"
+          >
+            {{ m }}
+          </p>
+        }
+      </div>
+    </div>
+    <div class="field">
+      <label class="switch" [for]="fieldId('contact', 'whatsappAlerts')">
+        <input
+          type="checkbox"
+          role="switch"
+          name="whatsappAlerts"
+          [id]="fieldId('contact', 'whatsappAlerts')"
+          [(ngModel)]="f.whatsappAlerts"
+          [attr.aria-describedby]="
+            fieldId('contact', 'whatsappAlerts') + '-help'
+          "
+        />
+        Avisarme también por WhatsApp cuando hay una venta
+      </label>
+      <p class="hint" [id]="fieldId('contact', 'whatsappAlerts') + '-help'">
+        Si lo apagás, los avisos de venta llegan sólo por mail.
+      </p>
+    </div>
+    <ng-container
+      *ngTemplateOutlet="
+        actions;
+        context: { id: 'contact', label: 'Guardar WhatsApp y mail' }
+      "
+    />
+  </form>
+}
+
+<!-- Envíos y retiro -->
+@if (shipping.draft(); as f) {
+  <form
+    class="panel settings-section"
+    novalidate
+    aria-labelledby="shipping-title"
+    (ngSubmit)="save('shipping')"
+  >
+    <header class="section-head">
+      <h2 id="shipping-title">Envíos y retiro</h2>
+      <p class="muted">
+        Cómo recibe su compra quien te compra: retirándola o con envío a una de
+        tus zonas.
+      </p>
+    </header>
+    @if (problem("shipping", "methods"); as m) {
+      <p
+        class="field-error"
+        [id]="fieldId('shipping', 'methods')"
+        tabindex="-1"
+      >
+        {{ m }}
+      </p>
+    }
+    <div class="field">
+      <label class="switch" [for]="fieldId('shipping', 'pickupEnabled')">
+        <input
+          type="checkbox"
+          role="switch"
+          name="pickupEnabled"
+          [id]="fieldId('shipping', 'pickupEnabled')"
+          [(ngModel)]="f.pickupEnabled"
+        />
+        Se puede retirar el pedido
+      </label>
+    </div>
+    @if (f.pickupEnabled) {
+      <div class="field nested">
+        <label [for]="fieldId('shipping', 'pickupDetails')"
+          >Dónde y cómo se retira</label
+        >
+        <textarea
+          name="pickupDetails"
+          rows="2"
+          maxlength="300"
+          placeholder="Por ejemplo: en Carrasco, coordinando el horario por WhatsApp"
+          [id]="fieldId('shipping', 'pickupDetails')"
+          [(ngModel)]="f.pickupDetails"
+          [attr.aria-describedby]="
+            fieldId('shipping', 'pickupDetails') + '-help'
+          "
+        ></textarea>
+        <p class="hint" [id]="fieldId('shipping', 'pickupDetails') + '-help'">
+          Si lo dejás vacío, la tienda dice «Retiro a coordinar».
+        </p>
+      </div>
+    }
+    <div class="field">
+      <label class="switch" [for]="fieldId('shipping', 'deliveryEnabled')">
+        <input
+          type="checkbox"
+          role="switch"
+          name="deliveryEnabled"
+          [id]="fieldId('shipping', 'deliveryEnabled')"
+          [(ngModel)]="f.deliveryEnabled"
+        />
+        Hago envíos a domicilio
+      </label>
+    </div>
+    @if (f.deliveryEnabled || f.zones.length) {
+      <div class="nested">
+        @if (!f.deliveryEnabled) {
+          <p class="hint">
+            Los envíos están apagados: estas zonas no se ofrecen en la tienda.
+          </p>
+        }
+        <h3 class="zones-title">Zonas de envío</h3>
+        <ul class="zones">
+          @for (z of f.zones; track z; let i = $index) {
+            <li class="zone-card">
+              <div class="zone-row">
+                <div class="zone-text">
+                  <strong>{{ z.name.trim() || "Zona nueva" }}</strong>
+                  <span class="muted">{{ zoneSummary(z) }}</span>
+                </div>
+                <button
+                  type="button"
+                  class="text-button"
+                  [attr.aria-expanded]="openZones().has(z)"
+                  [attr.aria-controls]="'zone-edit-' + i"
+                  (click)="toggleZone(z)"
+                >
+                  {{ openZones().has(z) ? "Listo" : "Editar" }}
+                  <span class="sr-only">{{
+                    z.name.trim() || "zona " + (i + 1)
+                  }}</span>
+                </button>
+              </div>
+              @if (openZones().has(z)) {
+                <div class="zone-edit" [id]="'zone-edit-' + i">
+                  <div class="field">
+                    <label [for]="fieldId('shipping', 'zone' + i + '.name')"
+                      >Nombre de la zona</label
+                    >
+                    <input
+                      maxlength="100"
+                      placeholder="Barrio, ciudad o departamento"
+                      [name]="'zoneName' + i"
+                      [id]="fieldId('shipping', 'zone' + i + '.name')"
+                      [(ngModel)]="z.name"
+                      (blur)="
+                        touch(
+                          'shipping',
+                          'zone' + i + '.name',
+                          $any($event.target).value
+                        )
+                      "
+                      [attr.aria-invalid]="
+                        !!problem('shipping', 'zone' + i + '.name')
+                      "
+                      [attr.aria-describedby]="
+                        describedBy('shipping', 'zone' + i + '.name')
+                      "
+                    />
+                    @if (problem("shipping", "zone" + i + ".name"); as m) {
+                      <p
+                        class="field-error"
+                        [id]="
+                          fieldId('shipping', 'zone' + i + '.name') + '-error'
+                        "
+                      >
+                        {{ m }}
+                      </p>
+                    }
+                  </div>
+                  <fieldset class="choice">
+                    <legend>Costo del envío</legend>
+                    @for (c of costs; track c.value) {
+                      <label class="radio"
+                        ><input
+                          type="radio"
+                          [name]="'zoneCost' + i"
+                          [value]="c.value"
+                          [checked]="z.cost === c.value"
+                          (change)="setCost(z, c.value)"
+                        />
+                        {{ c.label }}</label
+                      >
+                    }
+                  </fieldset>
+                  @if (z.cost === "paid") {
+                    <div class="field">
+                      <label [for]="fieldId('shipping', 'zone' + i + '.price')"
+                        >Precio del envío</label
+                      >
+                      <div class="prefixed">
+                        <span aria-hidden="true">$</span>
+                        <input
+                          type="number"
+                          inputmode="decimal"
+                          min="0"
+                          step="1"
+                          [name]="'zonePrice' + i"
+                          [id]="fieldId('shipping', 'zone' + i + '.price')"
+                          [(ngModel)]="z.price"
+                          (blur)="
+                            touch(
+                              'shipping',
+                              'zone' + i + '.price',
+                              $any($event.target).value
+                            )
+                          "
+                          [attr.aria-invalid]="
+                            !!problem('shipping', 'zone' + i + '.price')
+                          "
+                          [attr.aria-describedby]="
+                            describedBy('shipping', 'zone' + i + '.price', true)
+                          "
+                        />
+                      </div>
+                      <p
+                        class="hint"
+                        [id]="
+                          fieldId('shipping', 'zone' + i + '.price') + '-help'
+                        "
+                      >
+                        En pesos uruguayos. Se suma al total de la compra.
+                      </p>
+                      @if (problem("shipping", "zone" + i + ".price"); as m) {
+                        <p
+                          class="field-error"
+                          [id]="
+                            fieldId('shipping', 'zone' + i + '.price') +
+                            '-error'
+                          "
+                        >
+                          {{ m }}
+                        </p>
+                      }
+                    </div>
+                  }
+                  @if (z.cost === "coordinate") {
+                    <p class="hint">
+                      En la compra no se cobra el envío: coordinás el costo y el
+                      horario por WhatsApp.
+                    </p>
+                  }
+                  <div class="field">
+                    <label [for]="fieldId('shipping', 'zone' + i + '.leadTime')"
+                      >Cuánto tarda en llegar (opcional)</label
+                    >
+                    <input
+                      maxlength="100"
+                      placeholder="Por ejemplo 24 a 72 h"
+                      [name]="'zoneLeadTime' + i"
+                      [id]="fieldId('shipping', 'zone' + i + '.leadTime')"
+                      [(ngModel)]="z.leadTime"
+                    />
+                  </div>
+                  <div class="field">
+                    <label [for]="fieldId('shipping', 'zone' + i + '.note')"
+                      >Mensaje para quien compra (opcional)</label
+                    >
+                    <textarea
+                      rows="2"
+                      maxlength="300"
+                      placeholder="Por ejemplo: te escribimos por WhatsApp para coordinar el horario"
+                      [name]="'zoneNote' + i"
+                      [id]="fieldId('shipping', 'zone' + i + '.note')"
+                      [(ngModel)]="z.note"
+                    ></textarea>
+                  </div>
+                  <button
+                    type="button"
+                    class="text-button remove-zone"
+                    (click)="removeZone(f, i)"
+                  >
+                    Quitar la zona {{ z.name.trim() || i + 1 }}
+                  </button>
+                </div>
+              } @else if (
+                problem("shipping", "zone" + i + ".name") ||
+                problem("shipping", "zone" + i + ".price")
+              ) {
+                <p class="field-error">Revisá esta zona.</p>
+              }
+            </li>
+          }
+        </ul>
+        @if (problem("shipping", "zones"); as m) {
+          <p
+            class="field-error"
+            [id]="fieldId('shipping', 'zones')"
+            tabindex="-1"
+          >
+            {{ m }}
+          </p>
+        }
+        <button
+          type="button"
+          class="btn btn--outline add-zone"
+          [disabled]="f.zones.length >= maxZones"
+          (click)="addZone(f)"
+        >
+          Agregar zona
+        </button>
+        <div class="field">
+          <label [for]="fieldId('shipping', 'freeFrom')"
+            >Envío gratis en compras desde (opcional)</label
+          >
+          <div class="prefixed">
+            <span aria-hidden="true">$</span>
+            <input
+              name="freeFrom"
+              type="number"
+              inputmode="decimal"
+              min="0"
+              step="1"
+              [id]="fieldId('shipping', 'freeFrom')"
+              [(ngModel)]="f.freeFrom"
+              (blur)="touch('shipping', 'freeFrom', $any($event.target).value)"
+              [attr.aria-invalid]="!!problem('shipping', 'freeFrom')"
+              [attr.aria-describedby]="
+                describedBy('shipping', 'freeFrom', true)
+              "
+            />
+          </div>
+          <p class="hint" [id]="fieldId('shipping', 'freeFrom') + '-help'">
+            En pesos. Desde ese monto, las zonas con precio fijo no cobran
+            envío. Dejalo vacío si no lo usás.
+          </p>
+          @if (problem("shipping", "freeFrom"); as m) {
+            <p
+              class="field-error"
+              [id]="fieldId('shipping', 'freeFrom') + '-error'"
+            >
+              {{ m }}
+            </p>
+          }
+        </div>
+      </div>
+    }
+    <ng-container
+      *ngTemplateOutlet="
+        actions;
+        context: { id: 'shipping', label: 'Guardar envíos y retiro' }
+      "
+    />
+  </form>
+}
+
+<!-- Reservas y límites: plegado, con los valores recomendados -->
+@if (limits.draft(); as f) {
+  <details
+    class="panel settings-section limits"
+    [open]="limitsOpen()"
+    (toggle)="onLimitsToggle($event)"
+  >
+    <summary>
+      <h2 id="limits-title">Reservas y límites</h2>
+      <span class="muted">
+        Cuánto tiempo guardamos un pedido sin pagar y cuánto puede reservar cada
+        cliente.
+        @if (isRecommended(f)) {
+          Usás los valores recomendados.
+        }
+      </span>
+    </summary>
+    <form novalidate aria-labelledby="limits-title" (ngSubmit)="save('limits')">
+      <p class="hint">
+        Mientras un pedido espera el pago, sus productos quedan apartados para
+        esa persona. Si no paga a tiempo, el pedido se cancela solo y los
+        productos vuelven a estar a la venta. Ante la duda, dejá los valores
+        recomendados.
+      </p>
+      <h3>Tiempo para pagar</h3>
+      <div class="form-grid">
+        @for (h of holdFields; track h.key) {
+          <div class="field">
+            <label [for]="fieldId('limits', h.key)">{{ h.label }}</label>
+            <div class="suffixed">
+              <input
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="720"
+                step="1"
+                [name]="h.key"
+                [id]="fieldId('limits', h.key)"
+                [(ngModel)]="f[h.key]"
+                (blur)="touch('limits', h.key, $any($event.target).value)"
+                [attr.aria-invalid]="!!problem('limits', h.key)"
+                [attr.aria-describedby]="describedBy('limits', h.key, true)"
+              />
+              <span aria-hidden="true">horas</span>
+            </div>
+            <p class="hint" [id]="fieldId('limits', h.key) + '-help'">
+              {{ holdHint(f[h.key], h.recommended, h.extra) }}
+            </p>
+            @if (problem("limits", h.key); as m) {
+              <p class="field-error" [id]="fieldId('limits', h.key) + '-error'">
+                {{ m }}
+              </p>
+            }
+          </div>
+        }
+      </div>
+      <h3>Cuánto puede reservar cada cliente</h3>
+      <div class="form-grid">
+        @for (n of countFields; track n.key) {
+          @if (f[n.key] !== undefined) {
+            <div class="field">
+              <label [for]="fieldId('limits', n.key)">{{ n.label }}</label>
+              <input
+                type="number"
+                inputmode="numeric"
+                min="1"
+                step="1"
+                [name]="n.key"
+                [id]="fieldId('limits', n.key)"
+                [(ngModel)]="f[n.key]"
+                (blur)="touch('limits', n.key, $any($event.target).value)"
+                [attr.aria-invalid]="!!problem('limits', n.key)"
+                [attr.aria-describedby]="describedBy('limits', n.key, true)"
+              />
+              <p class="hint" [id]="fieldId('limits', n.key) + '-help'">
+                Recomendado: {{ n.recommended }}.
+              </p>
+              @if (problem("limits", n.key); as m) {
+                <p
+                  class="field-error"
+                  [id]="fieldId('limits', n.key) + '-error'"
+                >
+                  {{ m }}
+                </p>
+              }
+            </div>
+          }
+        }
+      </div>
+      @if (!isRecommended(f)) {
+        <button
+          type="button"
+          class="btn btn--outline recommended"
+          (click)="useRecommended(f)"
+        >
+          Usar los valores recomendados
+        </button>
+      }
+      <ng-container
+        *ngTemplateOutlet="
+          actions;
+          context: { id: 'limits', label: 'Guardar reservas y límites' }
+        "
+      />
+    </form>
+  </details>
+}
+
+<ng-template #actions let-id="id" let-label="label">
+  <footer class="section-actions">
+    <button class="btn btn--primary" [disabled]="shop.busy() || !dirty(id)">
+      {{ label }}
+    </button>
+    @if (dirty(id)) {
+      <button type="button" class="text-button" (click)="discard(id)">
+        Descartar cambios
+      </button>
+    }
+    <p class="save-status" role="status">
+      @if (dirty(id)) {
+        Tenés cambios sin guardar.
+      } @else if (result(id)?.ok) {
+        <span class="saved">✓ {{ result(id)?.message }}</span>
+      }
+    </p>
+  </footer>
+  @if (result(id); as o) {
+    @if (!o.ok) {
+      <p class="section-alert" role="alert">{{ o.message }}</p>
+    }
+  }
+</ng-template>
+
+<!-- Historial de cambios -->
+<section
+  class="panel history"
+  id="settings-history"
+  aria-labelledby="settings-history-title"
+>
+  <h2 id="settings-history-title">Historial de cambios</h2>
+  <p class="muted">
+    Quién cambió qué y cuándo. Del número de cuenta mostramos sólo los últimos 4
+    números.
+  </p>
+  <ol class="history-list">
+    @for (item of visibleHistory(); track item.version) {
+      <li class="history-entry">
+        <p>
+          <strong>{{ item.who }}</strong> {{ item.what }}
+          <span class="muted">{{ item.when }}</span>
+        </p>
+        @for (d of item.details; track $index) {
+          <p class="history-detail">
+            <span class="muted">{{ d.label }}:</span> {{ d.before }}
+            <span aria-hidden="true">→</span
+            ><span class="sr-only">, ahora</span> {{ d.after }}
+          </p>
+        }
+      </li>
+    } @empty {
+      <li class="muted">Todavía no hay cambios.</li>
+    }
+  </ol>
+  @if (historyItems().length > historyShown() || shop.historyCursor()) {
+    <button
+      type="button"
+      class="btn btn--outline"
+      [disabled]="shop.busy()"
+      (click)="moreHistory()"
+    >
+      Ver más
+    </button>
+  }
+</section>

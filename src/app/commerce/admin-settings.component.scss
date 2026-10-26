@@ -1,0 +1,290 @@
+// Configuración del panel (T62): same tokens and form look as the rest of the panel
+// (commerce.component.scss), scoped to this component.
+:host {
+  display: block;
+}
+.muted {
+  color: var(--color-text-muted);
+}
+.settings-intro {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+}
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.6rem;
+  margin-bottom: 1rem;
+}
+.section-head {
+  display: grid;
+  gap: 0.3rem;
+  margin-bottom: 1.2rem;
+}
+.section-head h2,
+.limits summary h2 {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  line-height: 1.25;
+  margin: 0;
+  color: var(--color-text);
+}
+.section-head p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+h3 {
+  font-size: 1.1rem;
+  margin: 1.2rem 0 0.8rem;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1rem;
+}
+.field {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  align-content: start;
+}
+label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+textarea {
+  min-height: auto;
+}
+[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+.hint,
+.field-error,
+.save-status {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.hint {
+  color: var(--color-text-muted);
+}
+.field-error,
+.section-alert {
+  color: var(--color-error);
+  font-weight: 500;
+}
+.field-error::before,
+.section-alert::before {
+  content: "! ";
+  font-weight: 700;
+}
+.switch,
+.radio {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+.switch input,
+.radio input {
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  flex: none;
+  accent-color: var(--color-primary-dark);
+}
+.nested {
+  border-left: 2px solid var(--color-secondary);
+  padding-left: 1rem;
+  margin: 0 0 1rem 0.6rem;
+}
+// "+598" and "$" in front of the field, "horas" after it.
+.prefixed,
+.suffixed {
+  display: flex;
+  align-items: stretch;
+}
+.prefixed span,
+.suffixed span {
+  display: flex;
+  align-items: center;
+  padding: 0 0.8rem;
+  background: var(--color-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+.prefixed span {
+  border-right: 0;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+.suffixed span {
+  border-left: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.prefixed input {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.suffixed input {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+.zones-title {
+  margin-top: 0;
+}
+.zones {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.6rem;
+}
+.zone-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 1rem;
+}
+.zone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.zone-text {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.zone-text .muted {
+  font-size: 0.85rem;
+}
+.zone-edit {
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.8rem;
+  margin-top: 0.4rem;
+}
+.choice {
+  border: 0;
+  padding: 0;
+  margin: 0 0 0.8rem;
+}
+.choice legend {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.2rem;
+}
+.add-zone,
+.recommended {
+  margin-bottom: 1.2rem;
+}
+.section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+}
+.save-status:empty {
+  display: none;
+}
+.saved {
+  color: var(--color-success);
+  font-weight: 500;
+}
+.section-alert {
+  background: #fcf0ec;
+  border-left: 3px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem 1rem;
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+}
+// Folded by default: the summary reads like the other section titles, "Ver" on the right.
+.limits summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.3rem 1rem;
+}
+.limits summary::-webkit-details-marker {
+  display: none;
+}
+.limits summary .muted {
+  grid-column: 1;
+  font-size: 0.95rem;
+}
+.limits summary::after {
+  content: "Ver";
+  grid-column: 2;
+  grid-row: 1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.limits[open] summary::after {
+  content: "Ocultar";
+}
+.limits[open] summary {
+  margin-bottom: 1rem;
+}
+.history h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.3rem;
+}
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+.history-entry {
+  border-top: 1px solid var(--color-border);
+  padding: 0.7rem 0;
+}
+.history-entry p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.history-entry .muted {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.history-detail {
+  font-size: 0.85rem;
+  margin-top: 0.2rem !important;
+}
+.history-detail .muted {
+  white-space: normal;
+}
+@media (max-width: 480px) {
+  .panel {
+    padding: 1rem;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .section-actions .btn--primary {
+    flex: 1 1 100%;
+  }
+  .nested {
+    margin-left: 0.2rem;
+    padding-left: 0.8rem;
+  }
+}
