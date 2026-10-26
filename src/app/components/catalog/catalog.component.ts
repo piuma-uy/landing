@@ -1,4 +1,5 @@
 import {
+  ApplicationRef,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -41,6 +42,7 @@ export class CatalogComponent {
   private readonly analytics = inject(AnalyticsService);
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
+  private readonly appRef = inject(ApplicationRef);
 
   /** `undefined` mientras carga; `[]` si la carga falló. */
   readonly categories = toSignal(this.catalogService.getCategories());
@@ -50,6 +52,9 @@ export class CatalogComponent {
   private readonly initial = parseCatalogPath(location.pathname);
   readonly selectedCategoryId = signal<string | null>(this.initial?.categoryId ?? null);
   readonly selectedTypeId = signal<string | null>(this.initial?.typeId ?? null);
+
+  /** Tarjeta cuya foto viaja a la ficha al abrirla y vuelve a su lugar al cerrarla. */
+  readonly morphId = signal<string | null>(null);
 
   readonly activeCategory = computed<Category | null>(() => {
     const id = this.selectedCategoryId();
@@ -96,8 +101,11 @@ export class CatalogComponent {
   }
 
   openType(id: string): void {
-    this.selectedTypeId.set(id);
-    this.navigate();
+    this.morphId.set(id);
+    this.transition(() => {
+      this.selectedTypeId.set(id);
+      this.navigate();
+    });
     this.analytics.event('producto', { id });
   }
 
@@ -108,8 +116,31 @@ export class CatalogComponent {
   }
 
   backToTypes(): void {
-    this.selectedTypeId.set(null);
-    this.navigate();
+    this.morphId.set(this.selectedTypeId());
+    this.transition(() => {
+      this.selectedTypeId.set(null);
+      this.navigate();
+    });
+  }
+
+  /**
+   * Abrir y cerrar una ficha con View Transitions: fundido corto y la foto de la tarjeta que se
+   * agranda hasta la ficha (view-transition-name sólo en esa tarjeta y en la foto de la ficha).
+   * Sólo ahí, donde ayuda a seguir qué se abrió: las pestañas de categoría cambian al instante,
+   * porque durante la transición la página no recibe toques. Sin la API o con movimiento
+   * reducido, el cambio es directo, como siempre.
+   */
+  private transition(update: () => void): void {
+    if (
+      !('startViewTransition' in document) ||
+      matchMedia('(prefers-reduced-motion: reduce)').matches
+    )
+      return update();
+    // La captura de "antes" es en el próximo frame, después de que Angular pinte morphId.
+    document.startViewTransition(() => {
+      update();
+      this.appRef.tick();
+    });
   }
 
   private navigate(): void {

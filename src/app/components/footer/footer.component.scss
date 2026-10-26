@@ -81,17 +81,35 @@
 .footer__bottom {
   border-top: 1px solid rgba(239, 230, 218, 0.16);
 
-  p {
-    margin: 0;
+  .container {
     padding-block: var(--space-sm);
-    font-size: 0.82rem;
-    color: rgba(239, 230, 218, 0.6);
-    text-align: center;
     // Lugar para el acceso fijo a WhatsApp del teléfono, que si no tapa el texto.
     padding-bottom: calc(var(--space-sm) + 4rem);
 
     @include from(v.$bp-md) {
       padding-bottom: var(--space-sm);
+    }
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: rgba(239, 230, 218, 0.6);
+    text-align: center;
+  }
+
+  // Va último: al aparecer no corre nada de lo que ya estaba en pantalla (sin layout shift).
+  .footer__cost {
+    margin-top: 0.4rem;
+    font-size: 0.76rem;
+    font-variant-numeric: tabular-nums;
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition: opacity 0.6s ease;
+
+      @starting-style {
+        opacity: 0;
+      }
     }
   }
 }
