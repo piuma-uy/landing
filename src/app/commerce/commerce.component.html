@@ -1122,10 +1122,10 @@
               </p>
               @if (!shop.cognito) {
                 <p class="muted small">
-                  En el entorno local el ingreso local reemplaza al segundo
-                  factor. La API está simulando un administrador sin segundo
-                  factor (<code>LOCAL_ADMIN_MFA=missing</code>): levantala sin
-                  esa variable y reintentá.
+                  En el entorno local no hay segundo factor. La API está
+                  simulando un administrador sin él
+                  (<code>LOCAL_ADMIN_MFA=missing</code>): levantala sin esa
+                  variable y reintentá.
                 </p>
                 <div class="actions">
                   <button
