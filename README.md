@@ -31,8 +31,10 @@ Por defecto el comercio está apagado (`{"commerceEnabled":false,"apiBaseUrl":""
 - `"cognito"`: API en AWS. Ingreso, registro con código, contraseña olvidada y cambio de la contraseña temporal
   con los formularios de la tienda (`commerce/account/`, T61) contra la API del user pool: `USER_SRP_AUTH`
   (`commerce/srp.ts`, sin librerías; la contraseña no sale del navegador). Google, si está habilitado, sigue por la
-  UI alojada de Cognito con code + PKCE S256. El access token queda sólo en memoria y viaja como
-  `Authorization: Bearer`; al recargar la página hay que volver a ingresar. Sin `issuer` (nombra el user pool) el
+  UI alojada de Cognito con code + PKCE S256. Access e id token quedan sólo en memoria y el access viaja como
+  `Authorization: Bearer`. Sólo el refresh token se guarda en `sessionStorage` (esta pestaña; se borra al cerrarla o
+  al salir): al recargar o volver de Mercado Pago la sesión se renueva sin la contraseña (T61b). Si Cognito ya no la
+  renueva, se borra y la tienda pide ingresar de nuevo. Sin `issuer` (nombra el user pool) el
   botón "Ingresar" vuelve a la UI alojada.
 
 Los formularios son los mismos en Docker (`"cookie"`), con sólo ingreso y registro.

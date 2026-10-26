@@ -4,6 +4,7 @@ import { webcrypto } from "node:crypto";
 import {
   AuthError,
   CognitoAuth,
+  SESSION_KEY,
   authErrorMessage,
   userPoolOf,
 } from "../src/app/commerce/cognito.ts";
@@ -21,8 +22,12 @@ const ISSUER = "https://cognito-idp.us-east-2.amazonaws.com/us-east-2_AbC123";
 const ENDPOINT = "https://cognito-idp.us-east-2.amazonaws.com/";
 const PASSWORD = "Sábanas-de-lino-42";
 
-function setup(issuer: string | undefined = ISSUER) {
-  const pool = new FakeUserPool(ISSUER, CLIENT);
+function setup(
+  issuer: string | undefined = ISSUER,
+  pool = new FakeUserPool(ISSUER, CLIENT),
+  // sessionStorage of the tab: a second setup() with the same map is the page after a reload.
+  store = new Map<string, string>(),
+) {
   const bodies: string[] = [];
   const auth = new CognitoAuth(
     { loginUrl: LOGIN, clientId: CLIENT, issuer },
@@ -40,14 +45,18 @@ function setup(issuer: string | undefined = ISSUER) {
         );
         return new Response(JSON.stringify(body), { status });
       }) as typeof fetch,
-      storage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+      storage: {
+        getItem: (k) => store.get(k) ?? null,
+        setItem: (k, v) => void store.set(k, v),
+        removeItem: (k) => void store.delete(k),
+      },
       crypto: webcrypto as Crypto,
       now: Date.now,
       srp: () => import("../src/app/commerce/srp.ts"),
     },
     "https://piuma.uy",
   );
-  return { auth, pool, bodies };
+  return { auth, pool, bodies, store };
 }
 
 test("the user pool API comes from the issuer; without it, the hosted UI", () => {
@@ -61,7 +70,7 @@ test("the user pool API comes from the issuer; without it, the hosted UI", () =>
   assert.equal(setup("").auth.forms, false);
 });
 
-test("SRP sign-in: the password is never sent and the session stays in memory", async () => {
+test("SRP sign-in: the password is never sent and the access token stays in memory", async () => {
   const s = setup();
   s.pool.add("ana@example.com", { password: PASSWORD, name: "Ana" });
   const result = await s.auth.signIn("ana@example.com", PASSWORD);
@@ -169,6 +178,48 @@ test("refresh with REFRESH_TOKEN_AUTH and logout with RevokeToken, no redirect",
   assert.deepEqual(s.pool.revoked, [refresh.body.AuthParameters.REFRESH_TOKEN]);
   assert.equal(s.auth.user, null);
   assert.equal(await s.auth.getAccessToken(), "");
+});
+
+test("a reload renews the session with this tab's refresh token, never the password (T61b)", async () => {
+  const s = setup();
+  s.pool.add("ana@example.com", { password: PASSWORD, name: "Ana" });
+  await s.auth.signIn("ana@example.com", PASSWORD);
+  // Only the refresh token is kept: no access or id token (JWT), no password.
+  assert.deepEqual([...s.store.keys()], [SESSION_KEY]);
+  const saved = s.store.get(SESSION_KEY)!;
+  assert.deepEqual(Object.keys(JSON.parse(saved)), ["refreshToken", "source"]);
+  assert.match(JSON.parse(saved).refreshToken, /^refresh:ana@example.com:/);
+  assert.doesNotMatch(saved, /eyJ|lino/);
+
+  const reloaded = setup(ISSUER, s.pool, s.store);
+  assert.equal(await reloaded.auth.getAccessToken(), "", "nothing before restore");
+  const user = await reloaded.auth.restore();
+  assert.equal(user !== "expired" && user?.name, "Ana");
+  assert.equal(s.pool.calls.at(-1)!.body.AuthFlow, "REFRESH_TOKEN_AUTH");
+  assert.match(await reloaded.auth.getAccessToken(), /\.sig$/);
+  assert.equal(reloaded.store.get(SESSION_KEY), saved);
+
+  // Logout revokes it and forgets it; the next load has no session.
+  assert.equal(await reloaded.auth.logout(), null);
+  assert.equal(s.store.size, 0);
+  assert.equal(await setup(ISSUER, s.pool, s.store).auth.restore(), null);
+});
+
+test("a refresh token Cognito no longer renews is forgotten and asks to sign in (T61b)", async () => {
+  const s = setup();
+  s.pool.add("ana@example.com", { password: PASSWORD });
+  await s.auth.signIn("ana@example.com", PASSWORD);
+  s.pool.revoked.push(JSON.parse(s.store.get(SESSION_KEY)!).refreshToken);
+  const reloaded = setup(ISSUER, s.pool, s.store);
+  assert.equal(await reloaded.auth.restore(), "expired");
+  assert.equal(s.store.size, 0);
+  assert.equal(reloaded.auth.user, null);
+  // A damaged entry is dropped the same way.
+  s.store.set(SESSION_KEY, '{"source":"forms"}');
+  assert.equal(await setup(ISSUER, s.pool, s.store).auth.restore(), "expired");
+  assert.equal(s.store.size, 0);
+  s.store.set(SESSION_KEY, "{not json");
+  assert.equal(await setup(ISSUER, s.pool, s.store).auth.restore(), null);
 });
 
 test("no connection or no SRP chunk: a message about the connection", async () => {

@@ -92,6 +92,8 @@ import {
   retryable,
   shownMessage,
 } from "./errors";
+const SESSION_EXPIRED =
+  "Tu sesión terminó. Ingresá de nuevo para seguir con tu compra.";
 const apiError = (f: Failure) => new ApiError(f.message, f.status, f.code);
 /** The technical detail of a failure: only in the console of a development build. */
 function devLog(...detail: unknown[]) {
@@ -426,8 +428,18 @@ export class CommerceService {
           return;
         }
         this.noteReturn(url);
+        // The public catalog first, without a token: with the API down nothing below runs and
+        // "Reintentar" repeats it all, with this tab's session still kept.
         await this.reloadProducts();
-        this.cart.set(this.readGuest());
+        // A reload or the way back from Mercado Pago: this tab's refresh token renews the
+        // session without the password (T61b).
+        const restored = await this.cognito.restore();
+        if (restored === "expired") {
+          this.view.set("account");
+          this.notice.set(SESSION_EXPIRED);
+          this.cart.set(this.readGuest());
+        } else if (restored) await this.signedIn(restored, { restored: true });
+        else this.cart.set(this.readGuest());
         return;
       }
       this.noteReturn(new URL(location.href));
@@ -596,8 +608,9 @@ export class CommerceService {
   async enter(user: User) {
     await this.load(() => this.signedIn(user));
   }
-  // Shared by both modes: keeps the server cart and merges the guest one into it.
-  private async signedIn(user: User) {
+  // Shared by both modes: keeps the server cart and merges the guest one into it. A restored
+  // session (reload) stays on the page the buyer was looking at.
+  private async signedIn(user: User, options: { restored?: boolean } = {}) {
     this.user.set(user);
     const remote = (await this.request<{ items: Line[] }>("/cart")).items;
     const merged = mergeGuest(remote, this.readGuest());
@@ -610,6 +623,7 @@ export class CommerceService {
       await this.saveCart(merged);
       localStorage.removeItem("piuma-cart");
     }
+    if (options.restored) return;
     this.view.set(user.admin ? "admin" : "cart");
     if (user.admin) await this.loadAdmin();
     if (sessionStorage.getItem("piuma-payment-return")) this.resumeReturn();

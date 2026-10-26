@@ -1,10 +1,12 @@
-// Cognito for a public client (no secret), in two ways that share the session in memory:
+// Cognito for a public client (no secret), in two ways that share one session:
 // - the shop's own forms (T61) against the user pool API: USER_SRP_AUTH (srp.ts), sign-up with
 //   the emailed code, forgotten password and the NEW_PASSWORD_REQUIRED / SOFTWARE_TOKEN_MFA steps;
 // - the hosted UI with authorization code + PKCE S256, kept for Google and for configs without
 //   the issuer (it names the user pool). sessionStorage keeps the verifier/state/nonce of that
 //   attempt, because the browser leaves the page to log in.
-// Tokens live only in memory. Framework-free so it can be unit tested with `node --test`
+// Access and id tokens live only in memory. The refresh token alone is kept in sessionStorage
+// (this tab only, gone when it closes), so a reload or the way back from Mercado Pago renews the
+// session instead of asking for the password again (T61b). Framework-free so it can be unit tested with `node --test`
 // (see tests/cognito.test.ts).
 import type * as Srp from "./srp";
 
@@ -139,6 +141,9 @@ export interface CognitoDeps {
 export const SCOPE =
   "openid email profile piuma/api aws.cognito.signin.user.admin";
 const ATTEMPT_KEY = "piuma-oauth";
+// Refresh token and where it came from; never the access or id token. The "piuma-" prefix makes
+// clearSession (checkout.ts) drop it with the rest of the session on logout.
+export const SESSION_KEY = "piuma-session";
 const ADMIN_GROUP = "admins";
 // Refresh a bit before expiry so a request never leaves with a stale token.
 const SKEW_MS = 60_000;
@@ -424,6 +429,7 @@ export class CognitoAuth {
     });
     const user = this.accept(tokens, attempt.nonce);
     this.source = "hosted";
+    this.persist();
     return user;
   }
 
@@ -432,6 +438,25 @@ export class CognitoAuth {
     if (!this.accessToken) return "";
     if (this.deps.now() < this.expiresAt - SKEW_MS) return this.accessToken;
     return (await this.refresh()) ? this.accessToken : "";
+  }
+
+  /**
+   * On load: renews the session kept by this tab. "expired" when there was one and Cognito no
+   * longer renews it (revoked, past its validity): it is forgotten and the buyer signs in again.
+   */
+  async restore(): Promise<CognitoUser | "expired" | null> {
+    let saved: { refreshToken?: unknown; source?: unknown } | null = null;
+    try {
+      saved = JSON.parse(this.deps.storage.getItem(SESSION_KEY) ?? "null");
+    } catch {}
+    if (!saved) return null;
+    if (typeof saved.refreshToken !== "string" || !saved.refreshToken) {
+      this.clear();
+      return "expired";
+    }
+    this.refreshToken = saved.refreshToken;
+    this.source = saved.source === "forms" ? "forms" : "hosted";
+    return (await this.refresh()) && this.profile ? this.profile : "expired";
   }
 
   /** Renews the session once; concurrent callers share the same request. */
@@ -456,6 +481,7 @@ export class CognitoAuth {
     this.refreshing = renewed
       .then((tokens) => {
         this.accept(tokens);
+        this.persist();
         return true;
       })
       .catch(() => {
@@ -506,6 +532,16 @@ export class CognitoAuth {
     this.refreshToken = "";
     this.expiresAt = 0;
     this.profile = null;
+    this.deps.storage.removeItem(SESSION_KEY);
+  }
+
+  /** Keeps only the refresh token for this tab (see the top of the file). */
+  private persist() {
+    if (!this.refreshToken) return;
+    this.deps.storage.setItem(
+      SESSION_KEY,
+      JSON.stringify({ refreshToken: this.refreshToken, source: this.source }),
+    );
   }
 
   private continueChallenge(
@@ -537,6 +573,7 @@ export class CognitoAuth {
       const user = this.accept(tokensOf(r.AuthenticationResult));
       this.source = "forms";
       this.challenge = null;
+      this.persist();
       return { user };
     }
     const next: SignInStep | null =
