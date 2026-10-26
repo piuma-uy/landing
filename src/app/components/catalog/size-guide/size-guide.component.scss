@@ -42,7 +42,7 @@
   font-size: 0.72rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--color-primary);
+  color: var(--color-primary-dark);
 }
 
 .guide__title {
@@ -177,10 +177,7 @@
 }
 
 // Columna de la categoría abierta: si estás en Sábanas se resalta la de sábanas.
+// Sólo con el fondo: sobre el beige el terracota no llega a contraste AA.
 .guide__col--active {
   background-color: var(--color-secondary);
-
-  .guide__col-main {
-    color: var(--color-primary);
-  }
 }
