@@ -112,20 +112,6 @@ export function statusLabel(
   );
 }
 /**
- * The API builds the WhatsApp link (shop number and prefilled message); the browser only
- * opens it. Anything that is not a wa.me https URL is dropped instead of rendered.
- */
-export function whatsappLink(transfer: OrderTransfer | undefined) {
-  try {
-    const url = new URL(transfer?.whatsappUrl ?? "");
-    return url.protocol === "https:" && url.hostname === "wa.me"
-      ? url.href
-      : null;
-  } catch {
-    return null;
-  }
-}
-/**
  * PUT /admin/settings body: full replacement, blanks become null, versioned. shipping goes
  * as given (normalize it with shippingInput first); without shipping, card or orders the API
  * keeps the saved ones.

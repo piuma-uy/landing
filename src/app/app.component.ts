@@ -14,6 +14,7 @@ import { CatalogComponent } from "./components/catalog/catalog.component";
 import { AboutComponent } from "./components/about/about.component";
 import { ContactComponent } from "./components/contact/contact.component";
 import { FooterComponent } from "./components/footer/footer.component";
+import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.component";
 
 @Component({
   selector: "app-root",
@@ -26,6 +27,7 @@ import { FooterComponent } from "./components/footer/footer.component";
     AboutComponent,
     ContactComponent,
     FooterComponent,
+    WhatsappFabComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -40,6 +42,9 @@ import { FooterComponent } from "./components/footer/footer.component";
       }
     </main>
     <app-footer />
+    @if (shop.view() !== "admin") {
+      <app-whatsapp-fab />
+    }
   `,
 })
 export class AppComponent {

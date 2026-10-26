@@ -14,6 +14,7 @@
  */
 import type { Category, ProductType } from "../src/app/models/catalog.model.ts";
 import { catalogPath, pageMeta, type PageMeta } from "../src/app/core/catalog-seo.ts";
+import { generalMessage, normalizeWhatsapp, waLink } from "../src/app/core/whatsapp.ts";
 
 export interface Site {
   /** Origen público sin barra final, ej. https://piuma.uy */
@@ -53,9 +54,12 @@ const money = (value: number, currency: string) =>
 const unique = (values: string[]) => [...new Set(values)];
 
 const whatsappLink = (site: Site, about?: string) =>
-  `https://wa.me/${site.whatsappNumber}?text=${encodeURIComponent(
-    `¡Hola ${site.brandName}! Quiero consultar sobre ${about ?? "sus productos"}.`,
-  )}`;
+  waLink(
+    site.whatsappNumber,
+    about
+      ? `¡Hola ${site.brandName}! Quiero consultar sobre ${about}.`
+      : generalMessage(site.brandName),
+  );
 
 // ---------------------------------------------------------------- HTML de <app-root>
 
@@ -196,7 +200,7 @@ export function structuredData(
     url: `${site.url}/`,
     image: absolute(site, "assets/images/hero-piuma.webp"),
     logo: absolute(site, "assets/images/logo/logo-piuma-terracota.webp"),
-    telephone: `+${site.whatsappNumber}`,
+    telephone: normalizeWhatsapp(site.whatsappNumber),
     email: site.email,
     address: {
       "@type": "PostalAddress",

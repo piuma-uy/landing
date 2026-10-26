@@ -175,6 +175,18 @@
                 </p>
                 @if (shippingFollowUp(order); as followUp) {
                   <p class="small ship-follow-up">{{ followUp }}</p>
+                  @if (
+                    whatsapp.shippingLink(orderRef(order), order.shipping);
+                    as wa
+                  ) {
+                    <a
+                      class="btn btn--outline ship-whatsapp"
+                      [href]="wa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      ><app-whatsapp-icon />Coordinar envío por WhatsApp</a
+                    >
+                  }
                 }
                 <div class="transfer-amount">
                   <span class="muted small">Monto exacto</span>
@@ -212,13 +224,13 @@
                   transferencia y mandanos el comprobante.
                 </p>
                 <div class="actions">
-                  @if (whatsappLink(t); as wa) {
+                  @if (receiptLink(order); as wa) {
                     <a
                       class="btn btn--primary wide"
                       [href]="wa"
                       target="_blank"
                       rel="noopener noreferrer"
-                      >Enviar comprobante por WhatsApp</a
+                      ><app-whatsapp-icon />Enviar comprobante por WhatsApp</a
                     >
                   }
                   @if (!shop.user()?.admin) {
@@ -248,6 +260,18 @@
                 </p>
                 @if (shippingFollowUp(order); as followUp) {
                   <p class="small ship-follow-up">{{ followUp }}</p>
+                  @if (
+                    whatsapp.shippingLink(orderRef(order), order.shipping);
+                    as wa
+                  ) {
+                    <a
+                      class="btn btn--outline ship-whatsapp"
+                      [href]="wa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      ><app-whatsapp-icon />Coordinar envío por WhatsApp</a
+                    >
+                  }
                 }
                 <p class="payment-note" role="status">
                   @if (reservedUntil(order); as until) {
@@ -294,6 +318,18 @@
                 </p>
                 @if (shippingFollowUp(order); as followUp) {
                   <p class="small ship-follow-up">{{ followUp }}</p>
+                  @if (
+                    whatsapp.shippingLink(orderRef(order), order.shipping);
+                    as wa
+                  ) {
+                    <a
+                      class="btn btn--outline ship-whatsapp"
+                      [href]="wa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      ><app-whatsapp-icon />Coordinar envío por WhatsApp</a
+                    >
+                  }
                 }
                 <div class="payment-note" role="status">
                   <strong>El pago todavía no está disponible.</strong>
@@ -735,6 +771,18 @@
                 </p>
                 @if (shippingFollowUp(order); as followUp) {
                   <p class="small ship-follow-up">{{ followUp }}</p>
+                  @if (
+                    whatsapp.shippingLink(orderRef(order), order.shipping);
+                    as wa
+                  ) {
+                    <a
+                      class="btn btn--outline ship-whatsapp"
+                      [href]="wa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      ><app-whatsapp-icon />Coordinar envío por WhatsApp</a
+                    >
+                  }
                 }
                 <div class="order-bottom">
                   <strong
@@ -792,13 +840,13 @@
                       }}), con la referencia <strong>{{ t.reference }}</strong
                       >, antes del {{ dateTime(t.expiresAt, true) }}.
                     </p>
-                    @if (whatsappLink(t); as wa) {
+                    @if (receiptLink(order); as wa) {
                       <a
                         class="btn btn--outline"
                         [href]="wa"
                         target="_blank"
                         rel="noopener noreferrer"
-                        >Enviar comprobante por WhatsApp</a
+                        ><app-whatsapp-icon />Enviar comprobante por WhatsApp</a
                       >
                     }
                     <p class="small">
@@ -892,6 +940,18 @@
                     </p>
                     @if (shippingFollowUp(order); as followUp) {
                       <p class="small ship-follow-up">{{ followUp }}</p>
+                      @if (
+                        whatsapp.shippingLink(orderRef(order), order.shipping);
+                        as wa
+                      ) {
+                        <a
+                          class="btn btn--outline ship-whatsapp"
+                          [href]="wa"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          ><app-whatsapp-icon />Coordinar envío por WhatsApp</a
+                        >
+                      }
                     }
                     <p class="payment-note" role="status">
                       Mercado Pago confirmó el pago. Te mandamos el detalle por
@@ -1635,9 +1695,15 @@
                           >WhatsApp de Piuma<input
                             name="whatsappNumber"
                             type="tel"
+                            inputmode="tel"
+                            autocomplete="off"
                             [(ngModel)]="d.contact.whatsappNumber"
-                            pattern="\+[1-9][0-9]{7,14}"
-                            placeholder="+59899123456" /></label
+                            (blur)="normalizeWhatsapp(d)"
+                            [attr.aria-invalid]="
+                              !!whatsappProblem(d.contact.whatsappNumber)
+                            "
+                            aria-describedby="whatsapp-help"
+                            [placeholder]="whatsappPlaceholder" /></label
                         ><label
                           >Mail de Piuma<input
                             name="shopEmail"
@@ -1647,9 +1713,15 @@
                             maxlength="254"
                         /></label>
                       </div>
-                      <p class="muted small">
-                        El WhatsApp recibe los comprobantes: va con código de
-                        país, por ejemplo +59899123456.
+                      @if (
+                        whatsappProblem(d.contact.whatsappNumber);
+                        as problem
+                      ) {
+                        <p class="form-problem">{{ problem }}</p>
+                      }
+                      <p class="muted small" id="whatsapp-help">
+                        El WhatsApp recibe los comprobantes y las consultas: con
+                        código de país, por ejemplo {{ whatsappPlaceholder }}.
                       </p>
                       <label class="checkbox"
                         ><input
@@ -1670,7 +1742,8 @@
                         [disabled]="
                           shop.busy() ||
                           !settingsForm.valid ||
-                          !!shippingProblem(d.shipping)
+                          !!shippingProblem(d.shipping) ||
+                          !!whatsappProblem(d.contact.whatsappNumber)
                         "
                       >
                         Guardar configuración

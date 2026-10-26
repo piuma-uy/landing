@@ -7,12 +7,11 @@ export const SITE_CONFIG = {
   tagline: 'Ropa de cama pensada para el descanso',
 
   /**
-   * Número de WhatsApp en formato internacional, SOLO DÍGITOS (sin +, espacios ni guiones).
-   * El catálogo lista otros dos contactos: 092 090 406 y 099 619 407.
+   * WhatsApp de Piuma (+598 91 345 454) en formato internacional, SOLO DÍGITOS. Es el único
+   * lugar del front con el número: links y versión legible salen de core/whatsapp.ts, y el
+   * settings.contact.whatsappNumber del API lo reemplaza cuando existe.
    */
   whatsappNumber: '59891345454',
-  /** Versión legible del mismo número, para mostrar en pantalla. */
-  whatsappDisplay: '091 345 454',
 
   email: 'distrifotosrl@gmail.com',
   instagramUrl: 'https://instagram.com/piuma_uy',

@@ -32,7 +32,14 @@
     <div class="footer__contact">
       <h2 class="footer__heading">Contacto</h2>
       <ul>
-        <li>{{ config.whatsappDisplay }}</li>
+        <li>
+          <a
+            [href]="whatsapp.generalLink()"
+            target="_blank"
+            rel="noopener noreferrer"
+            >WhatsApp {{ whatsapp.display() }}</a
+          >
+        </li>
         <li>
           <a [href]="'mailto:' + config.email">{{ config.email }}</a>
         </li>

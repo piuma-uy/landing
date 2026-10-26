@@ -1,0 +1,18 @@
+@use "variables" as v;
+@use "mixins" as *;
+
+.whatsapp-fab {
+  position: fixed;
+  right: var(--space-sm);
+  bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  min-height: 48px;
+  padding: 0.6rem 1rem;
+  box-shadow: var(--shadow-md);
+  font-size: 0.9rem;
+
+  // En pantallas anchas el header ya muestra WhatsApp siempre.
+  @include from(v.$bp-md) {
+    display: none;
+  }
+}

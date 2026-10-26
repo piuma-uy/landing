@@ -9,7 +9,10 @@ import {
 import { FormsModule } from "@angular/forms";
 import { DomSanitizer } from "@angular/platform-browser";
 import { CommerceService, Order, Product } from "./commerce.service";
-import { Settings, whatsappLink } from "./transfer";
+import { Settings } from "./transfer";
+import { formatWhatsapp, normalizeWhatsapp } from "../core/whatsapp";
+import { WhatsappService } from "../services/whatsapp.service";
+import { WhatsappIconComponent } from "../shared/whatsapp-icon/whatsapp-icon.component";
 import { buyerCancellable, dateTime, reservedUntil } from "./orders";
 import { MAX_UNITS } from "./cart";
 import { groupSecret } from "./mfa";
@@ -32,7 +35,7 @@ import {
 @Component({
   selector: "app-commerce",
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, WhatsappIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./commerce.component.html",
   styleUrls: ["./commerce.component.scss", "./admin-security.component.scss"],
@@ -80,7 +83,8 @@ export class CommerceComponent {
     const s = this.shop.settings();
     return s && structuredClone(s);
   });
-  readonly whatsappLink = whatsappLink;
+  readonly whatsapp = inject(WhatsappService);
+  readonly whatsappPlaceholder = formatWhatsapp(this.whatsapp.number());
   readonly dateTime = dateTime;
   readonly reservedUntil = reservedUntil;
   readonly buyerCancellable = buyerCancellable;
@@ -189,12 +193,40 @@ export class CommerceComponent {
         ?.scrollIntoView({ behavior: "smooth" }),
     );
   }
+  /** Reference Piuma knows the order by: the transfer one, or the short id. */
+  orderRef(order: Order) {
+    return order.transfer?.reference ?? "#" + order.id.slice(0, 8);
+  }
+  receiptLink(order: Order) {
+    const t = order.transfer;
+    return (
+      t &&
+      this.whatsapp.receiptLink(t, this.shop.money(t.amountMinor, t.currency))
+    );
+  }
+  /** Why the typed WhatsApp number cannot be saved, if anything (it is stored in E.164). */
+  whatsappProblem(number: string | null) {
+    return number?.trim() && !normalizeWhatsapp(number)
+      ? "Revisá el número: con código de país, por ejemplo " +
+          this.whatsappPlaceholder +
+          "."
+      : "";
+  }
+  normalizeWhatsapp(d: Settings) {
+    d.contact.whatsappNumber =
+      normalizeWhatsapp(d.contact.whatsappNumber) ?? d.contact.whatsappNumber;
+  }
   saveSettings() {
     // On success or 409 the service stores the server copy, which resets the draft.
     const draft = this.draft();
     if (draft)
       void this.shop.saveSettings({
         ...draft,
+        contact: {
+          whatsappNumber:
+            normalizeWhatsapp(draft.contact.whatsappNumber) ??
+            draft.contact.whatsappNumber,
+        },
         shipping: shippingInput(draft.shipping),
       });
   }

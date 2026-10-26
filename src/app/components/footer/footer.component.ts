@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { CommerceService } from "../../commerce/commerce.service";
 import { SITE_CONFIG } from "../../core/site-config";
+import { WhatsappService } from "../../services/whatsapp.service";
 import { SocialLinksComponent } from "../../shared/social-links/social-links.component";
 
 @Component({
@@ -14,6 +15,7 @@ import { SocialLinksComponent } from "../../shared/social-links/social-links.com
 export class FooterComponent {
   readonly shop = inject(CommerceService);
   readonly config = SITE_CONFIG;
+  readonly whatsapp = inject(WhatsappService);
   readonly year = new Date().getFullYear();
 
   readonly links = [
