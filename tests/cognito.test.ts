@@ -278,6 +278,14 @@ test("hosted UI: the refresh token alone stays in the tab and renews after a rel
   assert.equal(late.store.has("piuma-session"), false);
 });
 
+test("logout returns to the bare origin, the sign-out URL the client registers (T61c)", async () => {
+  const s = setup();
+  await login(s);
+  s.responses.push({ ok: true });
+  const url = new URL((await s.auth.logout())!);
+  assert.equal(url.searchParams.get("logout_uri"), ORIGIN);
+});
+
 test("logout revokes the refresh token and builds the Cognito logout URL", async () => {
   const s = setup({ logoutUri: ORIGIN + "/adios" });
   await login(s);

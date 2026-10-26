@@ -249,7 +249,9 @@ export class CognitoAuth {
     this.base = config.loginUrl.replace(/\/$/, "");
     this.pool = userPoolOf(config.issuer);
     this.redirectUri = config.redirectUri || origin + "/";
-    this.logoutUri = config.logoutUri || this.redirectUri;
+    // Cognito compares logout_uri with the client's sign-out URLs character by character, and
+    // those are the bare origin (infra `logout_urls`): with "/" it shows its error page (T61c).
+    this.logoutUri = config.logoutUri || origin;
   }
 
   get user(): CognitoUser | null {
