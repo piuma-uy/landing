@@ -1,305 +1,130 @@
-# Piuma — Landing page
+# Piuma · tienda (frontend)
 
-Landing page estática para Piuma (ropa de cama). Angular 19 con componentes standalone, SCSS y
-cero dependencias fuera de Angular. Sin backend, sin carrito y sin pasarela de pago: las consultas
-se derivan a WhatsApp.
+Piuma es una tienda online de ropa de cama de Uruguay (sábanas, acolchados, fundas, cubrecamas) que vende en pesos
+uruguayos. La mayoría de los compradores llega desde Instagram y compra desde el teléfono. Este repositorio tiene la
+interfaz: una aplicación Angular estática que en AWS se sirve desde **S3 privado + CloudFront** y habla con la API
+serverless de [`piuma-uy/piuma-backend`](https://github.com/piuma-uy/piuma-backend). Ese repositorio tiene también la
+infraestructura (Terraform) y el pipeline que publica esta tienda.
 
-## Cómo correrlo
+- **Rama `tienda-local`** (esta): la tienda con cuenta, carrito, checkout y panel de administración. Es la que se despliega
+  en AWS. dev: <https://d1tm58a521hftd.cloudfront.net> (tienda de prueba, no cobra).
+- **Rama `main`**: la landing pública original, en Vercel, sin comercio. No se toca desde este trabajo.
+
+> **Informe del proyecto** (diagrama interactivo, decisiones y defensa):
+> [`piuma-backend/docs/informe/README.md`](https://github.com/piuma-uy/piuma-backend/blob/main/docs/informe/README.md).
+
+## Índice
+
+- [Qué hace](#qué-hace)
+- [Cómo encaja en AWS](#cómo-encaja-en-aws)
+- [Despliegue](#despliegue)
+- [Pruebas](#pruebas)
+- [Seguridad](#seguridad)
+- [Costos](#costos)
+- [Correrlo local](#correrlo-local)
+- [Documentación](#documentación)
+
+## Qué hace
+
+- Página única con scroll (inicio, catálogo, sobre nosotros, contacto) y fichas de producto con URL propia,
+  prerenderizadas para SEO.
+- Catálogo por categoría → producto → medida y color, con precio y stock del API.
+- Cuenta (ingreso, registro, recuperación de contraseña), carrito, checkout con envío o retiro, y pago por transferencia o
+  con tarjeta (Mercado Pago).
+- "Mis pedidos" para el comprador; panel de administración con stock, métricas y ajustes de la tienda.
+- WhatsApp como canal principal de contacto.
+
+El front sólo muestra: precio, stock, roles y estado del pago los decide el backend.
+
+## Cómo encaja en AWS
+
+```
+navegador ──HTTPS──▶ CloudFront ──OAC──▶ S3 privado (este build)
+    │                   └─ CloudFront Function: rutas de la SPA y /catalogo/…/index.html
+    ├──USER_SRP_AUTH / PKCE──▶ Cognito (user pool)
+    └──Bearer access token───▶ API Gateway HTTP ──▶ Lambda ──▶ DynamoDB
+```
+
+| Pieza                         | Qué hace con el front                                                                                                                                                                                                                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **S3 + CloudFront (OAC)**     | Sirven `dist/piuma-landing/browser`. El bucket es privado y sólo CloudFront lo lee. HTML y `runtime-config.json` van con `no-cache`; los bundles con hash, cacheados un año. CloudFront agrega HSTS y una CSP estricta (`script-src 'self'` más el hash del único script inline que genera Angular). |
+| **Cognito**                   | Ingreso y registro con formularios propios: `USER_SRP_AUTH` implementado sin librerías (`src/app/commerce/srp.ts`), así la contraseña no sale del navegador. Google, si se habilita, por hosted UI con code + PKCE S256. Los tokens quedan en memoria.                                               |
+| **API Gateway HTTP + Lambda** | Toda la lógica de la tienda. El front manda el access token como `Authorization: Bearer` y una `Idempotency-Key` por intento de compra.                                                                                                                                                              |
+| **`runtime-config.json`**     | Configuración pública que se lee al arrancar: URL del API, user pool, cliente, `issuer`. En AWS la escribe el deploy con los outputs de Terraform; el archivo del repo deja el comercio apagado.                                                                                                     |
+
+Arquitectura completa (DynamoDB, SQS, SES, EventBridge, SSM, CloudWatch, IAM, OIDC, Organizations):
+[README de piuma-backend](https://github.com/piuma-uy/piuma-backend#arquitectura-en-aws).
+
+## Despliegue
+
+Este repo no tiene credenciales de AWS ni pipeline de deploy propio. Lo publica el workflow **`Deploy dev`** de
+`piuma-backend`, que se lanza a mano desde `main` con el SHA completo de un commit de `tienda-local`:
+
+1. El job `build-frontend` hace checkout de ese SHA y corre `npm ci --ignore-scripts` y `npm run build`. Corre **sin
+   credenciales AWS** ni secretos.
+2. `check-frontend-csp` verifica que cada `<script>` inline del build esté permitido por la CSP de CloudFront.
+3. `apply` asume por OIDC el rol de deploy y aplica Terraform. Después sube los assets (inmutables) y el HTML a S3, escribe
+   `runtime-config.json` e invalida CloudFront.
+
+Detalle: [`piuma-backend/docs/deployment.md`](https://github.com/piuma-uy/piuma-backend/blob/main/docs/deployment.md#6-cicd-con-github-actions-oidc).
+La landing de `main` sigue en Vercel (`vercel.json`).
+
+## Pruebas
+
+| Suite     | Comando                               | Qué cubre                                                                                                                                                            |
+| --------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unitarias | `npm test`                            | Lógica sin Angular con `node --test`: catálogo, carrito, checkout e `Idempotency-Key`, SRP y PKCE contra vectores de AWS y un user pool simulado, envíos, pagos, SEO |
+| Build     | `npm run build`                       | Compilación Angular y prerender del catálogo; lo corre CI (`Validate frontend`) en cada push                                                                         |
+| E2E       | `npm run test:e2e` en `piuma-backend` | Playwright contra el stack Docker, en teléfono y desktop: login, checkout, transferencia, tarjeta, envíos, panel                                                     |
+
+Resultados: [informe de tests](https://github.com/piuma-uy/piuma-backend/blob/main/docs/harness/test-report.md).
+
+## Seguridad
+
+- Sin secretos en el front: `runtime-config.json` sólo lleva valores públicos y se valida al arrancar. Si es incoherente,
+  el comercio queda apagado.
+- Tokens en memoria. Sólo el refresh token va a `sessionStorage` (se borra al cerrar la pestaña). El `id_token` se valida
+  (`iss`, `aud`, `exp`).
+- CSP sin `unsafe-inline` en scripts: cada script inline del build tiene que estar en la CSP por hash, y el pipeline lo
+  verifica antes de publicar.
+- El build de producción corre aislado de las credenciales AWS.
+
+Auditoría del front: [`docs/security/audit-claude-front.md`](docs/security/audit-claude-front.md). Lista única de hallazgos
+abiertos de ambos repos:
+[`piuma-backend/docs/security/open-findings.md`](https://github.com/piuma-uy/piuma-backend/blob/main/docs/security/open-findings.md).
+
+## Costos
+
+El hosting del front (CloudFront + S3) cuesta alrededor de **USD 1 al mes** en el escenario de poco tráfico. Toda la tienda
+en AWS ronda **USD 3,38 al mes** calculado, con un presupuesto de USD 4–6:
+[`piuma-backend/docs/costs.md`](https://github.com/piuma-uy/piuma-backend/blob/main/docs/costs.md).
+
+## Correrlo local
+
+Sólo la interfaz, con el comercio apagado:
 
 ```bash
-npm install
+npm ci
 npm start        # http://localhost:4200
-npm run build    # genera dist/piuma-landing/browser
-npm test         # typecheck de tests/ + unitarios (node --test, requiere Node.js 22.18+ o 24)
+npm run build    # dist/piuma-landing/browser
+npm test
 ```
 
-Los unitarios (`tests/*.test.ts`) cubren la lógica sin Angular: catálogo (`core/catalog-adapter.ts`), carrito
-(`commerce/cart.ts`), login Cognito con SRP y PKCE (`commerce/cognito.ts`, `commerce/srp.ts`, contra vectores de
-`AuthenticationHelper` de AWS y un user pool simulado en `tests/fake-user-pool.ts`), checkout e `Idempotency-Key`
-(`commerce/checkout.ts`), envíos, transferencia, tarjeta, segundo factor, QR e historial de ajustes. Los componentes y el flujo completo en navegador (login,
-checkout aprobado/pendiente/rechazado, teléfono y desktop) se prueban con los e2e de `../piuma-backend`.
+Tienda completa con API y base de datos (Docker), con `piuma-backend` clonado como carpeta hermana:
 
-> Requiere Node.js 20 o superior.
-
-### Tienda y autenticación (`public/runtime-config.json`)
-
-Por defecto el comercio está apagado (`{"commerceEnabled":false,"apiBaseUrl":""}`). Con `commerceEnabled: true`,
-`auth` elige cómo se inicia sesión:
-
-- `"cookie"` (o ausente): API local de Docker (`http://localhost` o `127.0.0.1`), formulario propio y cookie de
-  sesión (`openapi.local.yaml`).
-- `"cognito"`: API en AWS. Ingreso, registro con código, contraseña olvidada y cambio de la contraseña temporal
-  con los formularios de la tienda (`commerce/account/`, T61) contra la API del user pool: `USER_SRP_AUTH`
-  (`commerce/srp.ts`, sin librerías; la contraseña no sale del navegador). Google, si está habilitado, sigue por la
-  UI alojada de Cognito con code + PKCE S256. Access e id token quedan sólo en memoria y el access viaja como
-  `Authorization: Bearer`. Sólo el refresh token se guarda en `sessionStorage` (esta pestaña; se borra al cerrarla o
-  al salir): al recargar o volver de Mercado Pago la sesión se renueva sin la contraseña (T61b). Si Cognito ya no la
-  renueva, se borra y la tienda pide ingresar de nuevo. Sin `issuer` (nombra el user pool) el
-  botón "Ingresar" vuelve a la UI alojada.
-
-Los formularios son los mismos en Docker (`"cookie"`), con sólo ingreso y registro.
-
-```json
-{
-  "commerceEnabled": true,
-  "apiBaseUrl": "<api_url>",
-  "auth": "cognito",
-  "cognito": {
-    "loginUrl": "<login_url>",
-    "clientId": "<client_id>",
-    "redirectUri": "https://<origen>/",
-    "logoutUri": "https://<origen>",
-    "issuer": "<cognito_issuer>",
-    "google": false
-  }
-}
+```bash
+cd ../piuma-backend
+docker compose -f compose.dev.yaml up -d --build   # http://localhost:4200
 ```
 
-Todos son valores públicos (outputs de Terraform); nunca va un secreto. `redirectUri`/`logoutUri` son opcionales
-(por defecto, el origen con `/` y el origen sin `/`) y deben estar registrados **tal cual** en `callback_urls`/`logout_urls`
-del cliente Cognito: con otro carácter, la salida de la hosted UI termina en su página de error (T61c).
-Con `issuer` (`https://cognito-idp.<región>.amazonaws.com/<pool>`) el `iss` del `id_token` tiene que coincidir;
-además se exige `aud` (string o lista con el `clientId`) y `exp` vigente, con 5 min de tolerancia de reloj.
+Más detalle en
+[`piuma-backend/docs/desarrollo-local.md`](https://github.com/piuma-uy/piuma-backend/blob/main/docs/desarrollo-local.md).
 
-El archivo se valida al arrancar (`commerce/runtime-config.ts`): `commerceEnabled` tiene que ser `true` (no basta
-un valor "verdadero"), `auth: "cookie"` sólo con un API local, y con `cognito` el API, `loginUrl`, `issuer` y las
-URIs tienen que ser https (o locales). Si algo no cierra, el comercio queda apagado y la consola dice por qué.
-`testMode: true` muestra el rótulo "Tienda de prueba · Sin cobros"; no va en una tienda que cobra de verdad.
+## Documentación
 
-### Seguridad del panel (T27/T28)
-
-- **Segundo factor**: la tienda no tiene (decisión del dueño, 2026-10-26, T59): por defecto el API no lo exige y
-  el panel muestra todo directo. Sólo si el backend se despliega con `admin_mfa_required = true`, el API responde
-  403 `MFA_REQUIRED` en `/admin/*` a un administrador sin TOTP; ante esa respuesta (y sólo entonces) el panel no
-  muestra ninguna sección y guía el alta contra el API de Cognito con el access token (scope
-  `aws.cognito.signin.user.admin`, pedido siempre en el login para que el flag se pueda prender sin otro deploy del
-  front): QR (dibujado en `commerce/qr.ts`, sin librerías), botón para abrir la app autenticadora en el mismo
-  teléfono, clave en texto y el primer código de 6 dígitos (`commerce/mfa.ts`). Desde el siguiente ingreso Cognito
-  pide el código. En Docker no hay segundo factor salvo que el API corra con `LOCAL_ADMIN_MFA=enrolled` (el login
-  local lo reemplaza) o `LOCAL_ADMIN_MFA=missing` (muestra la explicación en lugar del alta).
-- **Historial de cambios** en Configuración (`GET /admin/settings/history`): fecha, quién y antes/ahora; del número
-  de cuenta sólo los últimos 4 dígitos (`commerce/settings-history.ts`).
-- **Aviso** arriba del panel si los datos bancarios cambiaron en los últimos 7 días, con fecha y usuario.
-
-## Arquitectura: una sola página con scroll
-
-Es **single page con anclas** (`#inicio`, `#catalogo`, `#sobre-nosotros`, `#contacto`), no rutas.
-El motivo: el tráfico va a llegar mayormente desde el link de Instagram, y en ese contexto el
-recorrido natural es un scroll continuo hasta el CTA de WhatsApp. Además evita cargar el Router y
-elimina el riesgo de 404 en el hosting estático. Las fichas del catálogo sí tienen URL propia e
-indexable (ver abajo), sin Router.
-
-### El catálogo tampoco usa el Router
-
-Los 3 niveles (categorías → tipos → detalle) se manejan con **signals dentro de
-`CatalogComponent`**, no con el Router de Angular. Razones:
-
-- El catálogo es **una sección** de una página de scroll único. Rutas de Angular obligarían a
-  partir la landing en páginas separadas (perdiendo el recorrido continuo hasta el CTA de WhatsApp)
-  o a montar el Router sólo para recordar qué tarjeta está abierta.
-- Menos bundle y ningún riesgo de 404 en hosting estático.
-
-Lo que sí hay son **URLs propias por categoría y producto**, reflejadas con la History API:
-`/catalogo/<categoría>/` y `/catalogo/<categoría>/<producto>/` (ver
-[`catalog-seo.ts`](src/app/core/catalog-seo.ts)). Entrar directo a una abre esa categoría o ficha, y
-el botón atrás del navegador vuelve al nivel anterior. Son las páginas que se prerenderizan (abajo).
-
-## SEO y prerender
-
-No hay SSR: el hosting es estático (S3 + CloudFront, hoy Vercel). `npm run build` corre `ng build`
-y después [`scripts/prerender.ts`](scripts/prerender.ts), que a partir de `catalog.json` escribe en
-`dist/piuma-landing/browser/`:
-
-- `index.html` y `catalogo/<categoría>/[<producto>/]index.html`: el mismo index del build con
-  title, description, canonical y Open Graph de cada página, datos estructurados JSON-LD (`Store`,
-  `Product` con `AggregateOffer`, `ItemList`, `BreadcrumbList`) y el contenido como HTML semántico
-  dentro de `<app-root>` para crawlers sin JavaScript. Ese HTML se oculta con CSS (sólo se ve en
-  `<noscript>`) y Angular lo reemplaza al arrancar; no se agregan scripts inline (CSP `script-src 'self'`).
-- `robots.txt` y `sitemap.xml` (con imágenes).
-
-El dominio sale de `SITE_URL` al compilar (por defecto `https://piuma.uy`):
-`SITE_URL=https://piuma-landing.vercel.app npm run build`. `<base href="/">` en `index.html` es
-necesario para que los assets relativos funcionen en las subrutas. Cuenta, carrito, pedidos y admin
-son vistas en la misma URL y llevan `<meta name="robots" content="noindex">` mientras están abiertas.
-
-El hosting tiene que servir `catalogo/.../index.html` en esas rutas (Vercel lo hace solo; la
-CloudFront Function de `piuma-backend/infra/frontend.tf` necesita reescribirlas a su `index.html`).
-Un producto que existe sólo en el API (no en `catalog.json`) no tiene página: se abre en la landing
-sin cambiar la URL.
-
-## Analytics
-
-Apagado por defecto. Con la clave `analytics` en `runtime-config.json` se mandan eventos a
-[Umami](https://umami.is) (open source, sin cookies, self-hosted o Umami Cloud), sin cargar su script:
-
-```json
-"analytics": { "provider": "umami", "hostUrl": "https://<umami>", "websiteId": "<uuid>" }
-```
-
-Envía páginas vistas (inicio y cada URL del catálogo) y los eventos `whatsapp`, `categoria`,
-`producto`, `carrito` y `checkout`, sin query ni hash en la URL; del referrer manda sólo el origen (vacío si es la propia tienda). Respeta Do Not
-Track y Global Privacy Control. Al activarlo, sumar el origen de `hostUrl` a `frontend_connect_src` de
-`piuma-backend/infra` (CSP `connect-src`).
-
-## Estructura
-
-```
-src/
-├─ index.html                      meta tags SEO + Open Graph + Google Fonts
-├─ main.ts                         bootstrap de la app y HttpClient
-├─ styles.scss                     reset, tipografía base y utilidades (.btn, .container)
-├─ styles/
-│  ├─ _tokens.scss                 COLORES, tipografías y espaciados (custom properties)
-│  ├─ _variables.scss              breakpoints SCSS
-│  └─ _mixins.scss                 from(), container, section
-├─ assets/data/catalog.json        CATÁLOGO jerárquico (5 categorías, 13 tipos, 51 variantes)
-├─ assets/images/                  fotos optimizadas en .webp (~712 KB en total)
-│  ├─ productos/                   1 foto por producto
-│  ├─ logo/                        logo terracota (header) y blanco (footer)
-│  ├─ hero-piuma.webp
-│  └─ sobre-nosotros-piuma.webp
-└─ app/
-   ├─ app.component.ts             arma la página completa
-   ├─ core/
-   │  ├─ site-config.ts            WHATSAPP, email y redes sociales
-   │  ├─ catalog-seo.ts            URLs y title/description de las páginas del catálogo
-   │  └─ color-swatches.ts         hex aproximados de los colores (ver TODO adentro)
-   ├─ models/catalog.model.ts      Category → ProductType → Variant
-   ├─ services/
-   │  ├─ catalog.service.ts        lee catalog.json
-   │  ├─ analytics.service.ts      eventos sin cookies (Umami), apagado por defecto
-   │  └─ whatsapp.service.ts       arma los links wa.me (genérico y por variante)
-   ├─ shared/social-links/         íconos SVG de Instagram / WhatsApp / Facebook
-   └─ components/
-      ├─ header/                   nav fija con menú hamburguesa en mobile
-      ├─ hero/
-      ├─ catalog/                  niveles 1 y 2 + estado de navegación
-      │  └─ product-detail/        nivel 3: selectores de medida y color
-      ├─ about/
-      ├─ contact/                  formulario reactivo + CTA de WhatsApp
-      └─ footer/
-```
-
-## Material de marca
-
-`brand-assets/` guarda el material original bajado de Drive, ordenado y **fuera de git**
-(pesa ~2 GB, casi todo video). La copia maestra sigue siendo Drive.
-
-```
-brand-assets/
-├─ images/   ambiente-camas (37) · sabanas (24) · logos (9) · feed-instagram (7) · estudio (3)
-├─ video/    18 archivos, 1.78 GB
-└─ info/     lista-precios-2026.pdf · catalogo-2026-marzo.pdf   <- fuente de los datos
-```
-
-Las fotos que usa el sitio salen del **catálogo PDF** (cada producto tiene su foto en su propia
-página), convertidas a `.webp` en `src/assets/images/`.
-
-## Qué reemplazar / dónde tocar
-
-### 1. Número de WhatsApp
-
-Un solo lugar: [`src/app/core/site-config.ts`](src/app/core/site-config.ts). Hoy está el
-**091 345 454**; el catálogo lista además 092 090 406 y 099 619 407.
-
-```ts
-whatsappNumber: '59891345454',  // sólo dígitos, sin + ni espacios
-whatsappDisplay: '091 345 454', // lo que se ve en pantalla
-```
-
-Los mensajes predefinidos ("¡Hola Piuma! Quiero consultar sobre…") están en
-[`whatsapp.service.ts`](src/app/services/whatsapp.service.ts).
-
-### 2. Imágenes
-
-| Imagen | Dónde se define |
-| --- | --- |
-| Hero | `heroImage` en [`hero.component.ts`](src/app/components/hero/hero.component.ts) |
-| Sobre nosotros | `image` en [`about.component.ts`](src/app/components/about/about.component.ts) |
-| Productos | campo `image` de cada objeto en `products.json` |
-| Logo header / footer | `header.component.html` y `footer.component.html` |
-| Open Graph (link preview) | `og:image` en [`index.html`](src/index.html) |
-
-Las rutas van sin barra inicial (`assets/images/...`). Si reemplazás una foto, actualizá también su
-texto `alt`: es lo que leen Google y los lectores de pantalla.
-
-### 3. Colores y tipografías
-
-Todo en el `:root` de [`src/styles/_tokens.scss`](src/styles/_tokens.scss). Cambiando
-`--color-primary`, `--color-secondary`, `--color-accent` y `--color-text` cambia el sitio entero,
-sin tocar ningún componente. Para las fuentes, cambiá `--font-heading` / `--font-body` y el `<link>`
-de Google Fonts en `index.html`.
-
-### 4. Catálogo
-
-[`src/assets/data/catalog.json`](src/assets/data/catalog.json) — 5 categorías, 13 tipos,
-51 variantes. La forma está tipada en [`catalog.model.ts`](src/app/models/catalog.model.ts).
-
-**Jerarquía: Categoría → Tipo → Variantes.** "Tipo" y "producto" son la misma entidad porque en
-Piuma cada tipo ("Satén") es exactamente un producto ("Sábanas 300 hilos satén"). Si algún tipo
-llega a tener dos productos, hay que insertar un nivel `products[]` entre `ProductType` y `Variant`.
-
-**El precio vive en la variante y depende sólo de la medida.** Las sábanas satén Queen cuestan lo
-mismo en beige, gris o azul. Lo que sí cambia por medida es **qué colores existen**: King y Super
-King no vienen en azul. Por eso `colors` va dentro de cada variante y no a nivel producto.
-
-```json
-{
-  "id": "sabanas",
-  "name": "Sábanas",
-  "image": "assets/images/productos/producto-sabanas-percal.webp",
-  "alt": "…",
-  "types": [
-    {
-      "id": "sabanas-saten",
-      "name": "Satén",
-      "fullName": "Sábanas 300 hilos satén",
-      "material": "100% algodón, 300 hilos satén",
-      "description": "Suave y brillante.",
-      "includes": "Incluye 1 o 2 fundas de almohada según medida",
-      "currency": "UYU",
-      "image": "assets/images/productos/producto-sabanas-saten.webp",
-      "alt": "…",
-      "variants": [
-        { "size": "Twin", "bedSize": "90x190 cm", "productSize": "160x240 cm",
-          "colors": ["Beige", "Gris", "Azul"], "price": 3000 }
-      ]
-    }
-  ]
-}
-```
-
-- `name` es el nombre corto que se ve en el nivel 2; `fullName` es el que va al mensaje de WhatsApp.
-- `bedSize` es opcional — la lista de precios sólo lo especifica en algunos productos.
-- `material: null` significa que el dato falta; la UI oculta esa línea.
-- `_todo` marca datos incompletos o contradicciones entre el catálogo y la lista de precios.
-- El **"Desde $X"** de las tarjetas es el mínimo de `variants[].price`, calculado en
-  [`catalog.component.ts`](src/app/components/catalog/catalog.component.ts). No hay ningún precio
-  duplicado en el JSON.
-- Los **colores de los swatches** NO están en el JSON: viven en
-  [`color-swatches.ts`](src/app/core/color-swatches.ts) porque son aproximaciones visuales, no datos
-  de los PDFs. El JSON sólo contiene lo verificable contra el catálogo y la lista de precios.
-
-Los precios son números sin formato (`3000`); el símbolo y los separadores los aplica
-`Intl.NumberFormat` según `currency`.
-
-Cuando tengas un backend o un CMS, cambiá `PRODUCTS_URL` en
-[`product.service.ts`](src/app/services/product.service.ts) por el endpoint real. Si la respuesta
-mantiene la misma forma, no hay que tocar nada más.
-
-### 5. Formulario de contacto
-
-Hoy valida los campos y muestra un mensaje de confirmación, pero **no envía nada**. El punto exacto
-donde conectar el servicio real está marcado con un bloque de comentarios en `onSubmit()` de
-[`contact.component.ts`](src/app/components/contact/contact.component.ts), con el ejemplo de
-código para Web3Forms y Formspree. Ambos son un `POST` con el body del formulario; el `HttpClient`
-ya está provisto en `main.ts`, sólo hay que inyectarlo.
-
-## Deploy
-
-Listo para hosting estático, con la config ya incluida:
-
-- **Vercel**: `vercel.json` (build `npm run build`, output `dist/piuma-landing/browser`)
-- **Netlify**: `netlify.toml`
-
-En ambos casos alcanza con conectar el repositorio; no hace falta configurar nada a mano.
+- [`docs/frontend.md`](docs/frontend.md): referencia técnica del front (configuración en runtime, Cognito, panel,
+  navegación, SEO, analytics, estructura, cómo editar marca y catálogo).
+- [`docs/security/audit-claude-front.md`](docs/security/audit-claude-front.md): auditoría de seguridad del front.
+- [`piuma-backend`](https://github.com/piuma-uy/piuma-backend): API, infraestructura AWS, despliegue y
+  [contrato OpenAPI](https://github.com/piuma-uy/piuma-backend/blob/main/openapi.yaml).
+- [Conexión del front con AWS](https://github.com/piuma-uy/piuma-backend/blob/main/docs/frontend-integration.md).
