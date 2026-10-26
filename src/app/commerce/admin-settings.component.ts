@@ -16,12 +16,16 @@ import {
   BANKS,
   CURRENCIES,
   RECOMMENDED,
+  SECTIONS,
   emptyZone,
+  firstIncomplete,
   hoursLabel,
+  isRecommended,
   localWhatsapp,
   sameForm,
   sectionForm,
   sectionProblems,
+  sectionStatus,
   whatsappNumber,
   zoneSummary,
   type Forms,
@@ -32,16 +36,15 @@ import {
   type ZoneForm,
 } from "./settings-form";
 import { historyItem } from "./settings-history";
+import type { Settings } from "./transfer";
 
 /** Zones a store keeps; the API accepts up to 30. */
 const MAX_ZONES = 30;
 /** History items on screen at first, and how many more each "Ver más" shows. */
 const HISTORY_FIRST = 5;
 const HISTORY_MORE = 10;
-/** Sections that fold, and the sessionStorage slot that remembers them in this tab. */
-type FoldId = Extract<SectionId, "pay" | "limits">;
+/** Every section folds (T66); this sessionStorage slot remembers them in this tab. */
 const FOLDS_SLOT = "piuma-settings-folds";
-const FOLDS_DEFAULT: Record<FoldId, boolean> = { pay: true, limits: false };
 
 /**
  * Configuración del panel (T62): four sections in plain words, each saved on its own, and the
@@ -125,8 +128,34 @@ export class AdminSettingsComponent {
   private readonly submitted = signal<ReadonlySet<SectionId>>(new Set());
   /** "section.field" left at least once: its problem shows from then on. */
   private readonly touched = signal<ReadonlySet<string>>(new Set());
-  /** Open state of each folding section: "Cómo te pagan" open, "Reservas y límites" folded. */
-  readonly folds = signal(readFolds());
+  /** Offered only once the API sends WhatsApp messages (runtime-config whatsappAlerts). */
+  readonly whatsappAlerts = this.shop.config.whatsappAlerts === true;
+  /** Folds the admin opened or closed in this tab. */
+  private readonly chosenFolds = signal(readFolds());
+  /**
+   * The section that opens on its own: the first with incomplete data, decided once when the
+   * settings arrive, so saving it does not fold it under the finger. Undefined until then.
+   */
+  private readonly opensAlone = linkedSignal<
+    Settings | null,
+    SectionId | null | undefined
+  >({
+    source: () => this.shop.settings(),
+    computation: (s, previous) =>
+      previous?.value !== undefined
+        ? previous.value
+        : s
+          ? firstIncomplete(s)
+          : undefined,
+  });
+  /** Open state of each section: as left in this tab, else folded but the one that opens alone. */
+  readonly folds = computed(() => {
+    const chosen = this.chosenFolds();
+    const alone = this.opensAlone();
+    return Object.fromEntries(
+      SECTIONS.map((id) => [id, chosen[id] ?? id === alone]),
+    ) as Record<SectionId, boolean>;
+  });
   /** Zone cards unfolded for editing; new zones open unfolded. */
   readonly openZones = signal<ReadonlySet<ZoneForm>>(new Set());
   readonly historyShown = signal(HISTORY_FIRST);
@@ -221,7 +250,7 @@ export class AdminSettingsComponent {
     const fields = Object.keys(this.problems(id));
     if (fields.length) {
       this.submitted.update((s) => new Set(s).add(id));
-      if (id === "pay" || id === "limits") this.setFold(id, true);
+      this.setFold(id, true);
       if (id === "shipping")
         this.openProblemZones(draft as ShippingForm, fields);
       this.outcome.update((o) => ({ ...o, [id]: undefined }));
@@ -322,24 +351,28 @@ export class AdminSettingsComponent {
     if (f.maxUnitsSku !== undefined) f.maxUnitsSku = RECOMMENDED.maxUnitsSku;
   }
   isRecommended(f: LimitsForm) {
-    return (
-      f.transferHold === RECOMMENDED.transferHold &&
-      f.cardHold === RECOMMENDED.cardHold &&
-      f.pendingHold === RECOMMENDED.pendingHold &&
-      f.maxOpen === RECOMMENDED.maxOpen &&
-      (f.maxUnitsUser === undefined ||
-        f.maxUnitsUser === RECOMMENDED.maxUnitsUser) &&
-      (f.maxUnitsSku === undefined || f.maxUnitsSku === RECOMMENDED.maxUnitsSku)
-    );
+    return isRecommended(f);
   }
-  onFoldToggle(id: FoldId, event: Event) {
+  /** Template outlets pass the section as a plain string. */
+  folded(id: string) {
+    return !this.folds()[id as SectionId];
+  }
+  /** What a folded section has stored, in one line. */
+  status(id: string) {
+    const form = this.forms()[id as SectionId].saved();
+    return form
+      ? sectionStatus(id as SectionId, form, (minor) => this.shop.money(minor))
+      : "";
+  }
+  onFoldToggle(id: SectionId, event: Event) {
     this.setFold(id, (event.target as HTMLDetailsElement).open);
   }
-  private setFold(id: FoldId, open: boolean) {
+  private setFold(id: SectionId, open: boolean) {
     if (this.folds()[id] === open) return;
-    this.folds.update((f) => ({ ...f, [id]: open }));
+    // The whole state is kept: the section that opened alone stays as the admin sees it.
+    this.chosenFolds.set({ ...this.folds(), [id]: open });
     try {
-      sessionStorage.setItem(FOLDS_SLOT, JSON.stringify(this.folds()));
+      sessionStorage.setItem(FOLDS_SLOT, JSON.stringify(this.chosenFolds()));
     } catch {}
   }
 
@@ -353,12 +386,12 @@ export class AdminSettingsComponent {
   }
 }
 
-/** Folds as the admin left them in this tab; the defaults on a new tab or bad data. */
-function readFolds(): Record<FoldId, boolean> {
-  const folds = { ...FOLDS_DEFAULT };
+/** Folds as the admin left them in this tab; none on a new tab or bad data. */
+function readFolds(): Partial<Record<SectionId, boolean>> {
+  const folds: Partial<Record<SectionId, boolean>> = {};
   try {
     const saved = JSON.parse(sessionStorage.getItem(FOLDS_SLOT) ?? "{}");
-    for (const id of Object.keys(folds) as FoldId[])
+    for (const id of SECTIONS)
       if (typeof saved?.[id] === "boolean") folds[id] = saved[id];
   } catch {}
   return folds;

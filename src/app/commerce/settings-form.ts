@@ -364,3 +364,129 @@ export const SECTION_SAVED: Record<SectionId, string> = {
 /** Someone saved this same section while Piuma was editing it: the form shows what is stored. */
 export const SECTION_CONFLICT =
   "Mientras editabas, otra persona guardó cambios en esta sección. Te mostramos cómo quedó: revisalo y, si hace falta, volvé a hacer tu cambio.";
+
+/** True when the limits are the API defaults (units only when the API has them). */
+export function isRecommended(f: LimitsForm) {
+  return (
+    f.transferHold === RECOMMENDED.transferHold &&
+    f.cardHold === RECOMMENDED.cardHold &&
+    f.pendingHold === RECOMMENDED.pendingHold &&
+    f.maxOpen === RECOMMENDED.maxOpen &&
+    (f.maxUnitsUser === undefined ||
+      f.maxUnitsUser === RECOMMENDED.maxUnitsUser) &&
+    (f.maxUnitsSku === undefined || f.maxUnitsSku === RECOMMENDED.maxUnitsSku)
+  );
+}
+
+export const SECTIONS: readonly SectionId[] = [
+  "pay",
+  "contact",
+  "shipping",
+  "limits",
+];
+
+/**
+ * Stored data that still needs Piuma (T66): the bank details transfer would need, a WhatsApp
+ * and a mail, or anything the section could not be saved with as it is.
+ */
+export function sectionIncomplete(id: SectionId, s: Settings) {
+  if (id === "pay") {
+    // Off is a choice; missing bank details are not. The WhatsApp is said in its own section.
+    const f = { ...sectionForm("pay", s), enabled: true };
+    return Object.keys(sectionProblems("pay", f, s)).some(
+      (k) => k !== "enabled",
+    );
+  }
+  if (id === "contact") {
+    const f = sectionForm("contact", s);
+    if (blank(f.whatsapp) || blank(f.shopEmail)) return true;
+  }
+  return Object.keys(sectionProblems(id, sectionForm(id, s), s)).length > 0;
+}
+
+/** The section that opens on its own: the first one with something missing, or none. */
+export function firstIncomplete(s: Settings): SectionId | null {
+  return SECTIONS.find((id) => sectionIncomplete(id, s)) ?? null;
+}
+
+const plural = (n: number, one: string, many: string) =>
+  `${n} ${n === 1 ? one : many}`;
+
+/** "+598 99 123 456" for a number from Uruguay, E.164 for the rest. */
+function whatsappLabel(typed: string) {
+  const e164 = whatsappNumber(typed);
+  if (!e164) return "";
+  return e164.startsWith("+598") ? "+598 " + localWhatsapp(e164) : e164;
+}
+
+/**
+ * One line with what a folded section has stored (T66), e.g.
+ * "WhatsApp +598 99 123 456 · mail ventas@piuma.uy" or "Envío gratis en 5 zonas · 24 a 72 h".
+ */
+export function sectionStatus<K extends SectionId>(
+  id: K,
+  form: Forms[K],
+  money: (minor: number) => string,
+): string;
+export function sectionStatus(
+  id: SectionId,
+  form: Forms[SectionId],
+  money: (minor: number) => string,
+) {
+  const parts: string[] = [];
+  if (id === "pay") {
+    const f = form as PayForm;
+    const missing = [f.bank, f.accountType, f.accountNumber, f.holder].some(
+      blank,
+    );
+    const last4 = f.accountNumber.replace(/[^0-9A-Za-z]/g, "").slice(-4);
+    if (f.enabled)
+      parts.push(
+        "Transferencia activa",
+        f.bank.trim(),
+        `cuenta terminada en ${last4}`,
+      );
+    else
+      parts.push(
+        "Transferencia apagada",
+        missing ? "faltan datos de la cuenta" : "",
+      );
+  } else if (id === "contact") {
+    const f = form as ContactForm;
+    const whatsapp = whatsappLabel(f.whatsapp);
+    parts.push(
+      whatsapp ? `WhatsApp ${whatsapp}` : "Sin WhatsApp",
+      blank(f.shopEmail) ? "sin mail" : `mail ${f.shopEmail.trim()}`,
+    );
+  } else if (id === "shipping") {
+    const f = form as ShippingForm;
+    if (f.pickupEnabled) parts.push("Retiro");
+    if (f.deliveryEnabled && !f.zones.length) parts.push("Envíos sin zonas");
+    else if (f.deliveryEnabled) {
+      const zones = plural(f.zones.length, "zona", "zonas");
+      const costs = new Set(f.zones.map((z) => z.cost));
+      const only = costs.size === 1 ? [...costs][0] : null;
+      parts.push(
+        only === "free"
+          ? `Envío gratis en ${zones}`
+          : only === "coordinate"
+            ? `Envío a coordinar en ${zones}`
+            : `Envío a ${zones}`,
+      );
+      const leads = new Set(f.zones.map((z) => z.leadTime.trim()));
+      if (leads.size === 1) parts.push([...leads][0]!);
+      const free = toMinor(f.freeFrom);
+      if (free) parts.push(`gratis desde ${money(free)}`);
+    }
+    if (!parts.length) parts.push("Sin retiro ni envíos");
+  } else {
+    const f = form as LimitsForm;
+    parts.push(
+      isRecommended(f) ? "Valores recomendados" : "",
+      `${f.transferHold} h por transferencia`,
+      `${f.cardHold} h con tarjeta`,
+      `hasta ${plural(Number(f.maxOpen), "pedido", "pedidos")} sin pagar`,
+    );
+  }
+  return parts.filter(Boolean).join(" · ");
+}

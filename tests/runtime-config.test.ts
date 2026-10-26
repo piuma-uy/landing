@@ -128,3 +128,22 @@ test("local URLs are only this machine over http(s)", () => {
   assert.equal(isLocalUrl("file://localhost/etc/passwd"), false);
   assert.equal(isLocalUrl(3000), false);
 });
+
+test("WhatsApp sale alerts are offered only with whatsappAlerts: true (T66)", () => {
+  assert.equal(parse(docker).config.whatsappAlerts, undefined);
+  for (const whatsappAlerts of ["true", 1, false, null])
+    assert.equal(
+      parse({ ...docker, whatsappAlerts }).config.whatsappAlerts,
+      undefined,
+    );
+  assert.equal(
+    parse({ ...docker, whatsappAlerts: true }).config.whatsappAlerts,
+    true,
+  );
+  // With commerce off there is no panel to offer it in.
+  assert.equal(
+    parse({ ...docker, commerceEnabled: false, whatsappAlerts: true }).config
+      .whatsappAlerts,
+    undefined,
+  );
+});

@@ -3,11 +3,15 @@ import assert from "node:assert/strict";
 import {
   RECOMMENDED,
   applySection,
+  firstIncomplete,
   hoursLabel,
+  isRecommended,
   localWhatsapp,
   sameForm,
   sectionForm,
+  sectionIncomplete,
   sectionProblems,
+  sectionStatus,
   whatsappNumber,
   zoneSummary,
 } from "../src/app/commerce/settings-form.ts";
@@ -256,4 +260,97 @@ test("dirty check, hours and zone lines", () => {
   assert.equal(zoneSummary(free!, money), "Gratis · 24 a 72 h");
   assert.equal(zoneSummary(paid!, money), "$ 250");
   assert.equal(zoneSummary(coordinate!, money), "A coordinar por WhatsApp");
+});
+
+test("folded sections say what they have stored, in one line (T66)", () => {
+  const s = stored();
+  const money = (minor: number) => `$ ${minor / 100}`;
+  const line = (id: Parameters<typeof sectionForm>[0], st = s) =>
+    sectionStatus(id, sectionForm(id, st), money);
+  assert.equal(
+    line("pay"),
+    "Transferencia activa · BROU · cuenta terminada en 4567",
+  );
+  assert.equal(
+    line("contact"),
+    "WhatsApp +598 91 345 454 · mail ventas@piuma.uy",
+  );
+  assert.equal(line("shipping"), "Envío a 3 zonas · gratis desde $ 3000");
+  assert.equal(
+    line("limits"),
+    "Valores recomendados · 48 h por transferencia · 24 h con tarjeta · hasta 3 pedidos sin pagar",
+  );
+
+  const other = stored();
+  other.transfer.enabled = false;
+  other.transfer.instructions.bank = "";
+  other.contact.whatsappNumber = null;
+  other.notifications.shopEmail = null;
+  other.shipping.pickup.enabled = true;
+  other.shipping.delivery.freeFromMinor = null;
+  other.shipping.delivery.zones = Array.from({ length: 5 }, (_, i) => ({
+    id: `z${i}`,
+    name: `Zona ${i}`,
+    priceMinor: 0,
+    leadTime: "24-72 h",
+    pricing: "fixed" as const,
+  }));
+  other.orders.maxOpenPerUser = 1;
+  assert.equal(
+    line("pay", other),
+    "Transferencia apagada · faltan datos de la cuenta",
+  );
+  assert.equal(line("contact", other), "Sin WhatsApp · sin mail");
+  assert.equal(
+    line("shipping", other),
+    "Retiro · Envío gratis en 5 zonas · 24-72 h",
+  );
+  assert.equal(
+    line("limits", other),
+    "48 h por transferencia · 24 h con tarjeta · hasta 1 pedido sin pagar",
+  );
+  other.shipping.pickup.enabled = false;
+  other.shipping.delivery.enabled = false;
+  assert.equal(line("shipping", other), "Sin retiro ni envíos");
+  other.shipping.delivery.enabled = true;
+  other.shipping.delivery.zones = [];
+  assert.equal(line("shipping", other), "Envíos sin zonas");
+  const abroad = stored();
+  abroad.contact.whatsappNumber = "+5491123456789";
+  assert.match(line("contact", abroad), /^WhatsApp \+5491123456789 · /);
+});
+
+test("only the first section with incomplete data opens alone (T66)", () => {
+  const s = stored();
+  assert.equal(firstIncomplete(s), null);
+  for (const id of ["pay", "contact", "shipping", "limits"] as const)
+    assert.equal(sectionIncomplete(id, s), false);
+  assert.ok(isRecommended(sectionForm("limits", s)));
+
+  // Transfer off is a choice, missing bank details are not.
+  const off = stored();
+  off.transfer.enabled = false;
+  assert.equal(firstIncomplete(off), null);
+  off.transfer.instructions.holder = "";
+  assert.equal(firstIncomplete(off), "pay");
+
+  // Without a mail the contact section opens, not the pay one that also needs the WhatsApp.
+  const noMail = stored();
+  noMail.notifications.shopEmail = null;
+  assert.equal(firstIncomplete(noMail), "contact");
+  const noWhatsapp = stored();
+  noWhatsapp.transfer.enabled = false;
+  noWhatsapp.contact.whatsappNumber = null;
+  assert.equal(firstIncomplete(noWhatsapp), "contact");
+
+  const noZones = stored();
+  noZones.shipping.delivery.zones = [];
+  assert.equal(firstIncomplete(noZones), "shipping");
+  noZones.notifications.shopEmail = null;
+  assert.equal(firstIncomplete(noZones), "contact");
+
+  const limits = stored();
+  limits.orders.maxOpenPerUser = 50;
+  assert.equal(firstIncomplete(limits), "limits");
+  assert.ok(!isRecommended(sectionForm("limits", limits)));
 });

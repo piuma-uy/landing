@@ -45,7 +45,10 @@ cliente Cognito: con otro carácter, la salida de la hosted UI termina en su pá
 El archivo se valida al arrancar (`commerce/runtime-config.ts`): `commerceEnabled` tiene que ser `true` (no basta un valor
 "verdadero"), `auth: "cookie"` sólo con un API local, y con `cognito` el API, `loginUrl`, `issuer` y las URIs tienen que
 ser https (o locales). Si algo no cierra, el comercio queda apagado y la consola dice por qué. `testMode: true` muestra el
-rótulo "Tienda de prueba · Sin cobros"; no va en una tienda que cobra de verdad.
+rótulo "Tienda de prueba · Sin cobros"; no va en una tienda que cobra de verdad. `whatsappAlerts: true` ofrece en
+Configuración "Avisarme también por WhatsApp cuando hay una venta": apagado por defecto mientras el API no mande WhatsApp
+(el API no expone si lo hace); sin él el panel dice "Los avisos de venta llegan por mail" y conserva el valor guardado
+(T66).
 
 ## Seguridad del panel (T27/T28)
 
@@ -58,6 +61,10 @@ rótulo "Tienda de prueba · Sin cobros"; no va en una tienda que cobra de verda
   código de 6 dígitos (`commerce/mfa.ts`). Desde el siguiente ingreso Cognito pide el código. En Docker no hay segundo
   factor salvo que el API corra con `LOCAL_ADMIN_MFA=enrolled` (el login local lo reemplaza) o `LOCAL_ADMIN_MFA=missing`
   (muestra la explicación en lugar del alta).
+- **Secciones plegables** en Configuración (T66): las cuatro se pliegan con "Ver"/"Ocultar"; se abre sola sólo la primera
+  con datos incompletos (sin datos bancarios, sin WhatsApp o mail, sin forma de recibir la compra) y cada una plegada
+  muestra en una línea lo que tiene guardado (`sectionStatus` en `commerce/settings-form.ts`). Lo que el admin abre o
+  cierra se recuerda en la pestaña (sessionStorage).
 - **Historial de cambios** en Configuración (`GET /admin/settings/history`): fecha, quién y antes/ahora; del número de
   cuenta sólo los últimos 4 dígitos (`commerce/settings-history.ts`).
 - **Aviso** arriba del panel si los datos bancarios cambiaron en los últimos 7 días, con fecha y usuario.
