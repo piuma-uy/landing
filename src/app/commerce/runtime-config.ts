@@ -19,6 +19,11 @@ export interface RuntimeConfig {
   analytics?: AnalyticsConfig;
   /** Shows "Tienda de prueba · Sin cobros"; only for stores that never charge (FE-10). */
   testMode?: boolean;
+  /**
+   * Offers "Avisarme también por WhatsApp cuando hay una venta" in Configuración (T66). Off until
+   * the API sends WhatsApp messages; the API does not say whether it does.
+   */
+  whatsappAlerts?: boolean;
 }
 
 export const COMMERCE_OFF: RuntimeConfig = {
@@ -124,6 +129,7 @@ export function parseRuntimeConfig(
     apiBaseUrl: c["apiBaseUrl"] as string,
     auth: c["auth"] === "cognito" ? "cognito" : "cookie",
     testMode: c["testMode"] === true,
+    ...(c["whatsappAlerts"] === true && { whatsappAlerts: true }),
     ...(analytics && { analytics }),
   };
   if (config.auth === "cognito") {

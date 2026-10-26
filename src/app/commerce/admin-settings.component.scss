@@ -17,22 +17,12 @@
   padding: 1.6rem;
   margin-bottom: 1rem;
 }
-.section-head {
-  display: grid;
-  gap: 0.3rem;
-  margin-bottom: 1.2rem;
-}
-.section-head h2,
 .fold summary h2 {
   font-family: var(--font-heading);
   font-size: 1.4rem;
   line-height: 1.25;
   margin: 0;
   color: var(--color-text);
-}
-.section-head p {
-  margin: 0;
-  font-size: 0.95rem;
 }
 h3 {
   font-size: 1.1rem;
@@ -186,7 +176,8 @@ textarea {
   margin-bottom: 0.2rem;
 }
 .add-zone,
-.recommended {
+.recommended,
+.sale-alerts {
   margin-bottom: 1.2rem;
 }
 .section-actions {
@@ -213,8 +204,8 @@ textarea {
   margin: 1rem 0 0;
   font-size: 0.9rem;
 }
-// Folding sections ("Cómo te pagan" open, "Reservas y límites" folded): the summary reads like
-// the other section titles, "Ver" / "Ocultar" on the right.
+// Every section folds (T66), all folded but the first with incomplete data: the title with what
+// the section is (open) or what it has stored (folded), "Ver" / "Ocultar" on the right.
 .fold summary {
   list-style: none;
   cursor: pointer;
