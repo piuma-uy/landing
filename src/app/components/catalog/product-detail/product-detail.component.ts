@@ -10,13 +10,14 @@ import {
 import { LowerCasePipe } from "@angular/common";
 import { Photo, ProductType, Variant } from "../../../models/catalog.model";
 import { WhatsappService } from "../../../services/whatsapp.service";
+import { WhatsappIconComponent } from "../../../shared/whatsapp-icon/whatsapp-icon.component";
 import { CommerceService } from "../../../commerce/commerce.service";
 import { swatchFor } from "../../../core/color-swatches";
 
 @Component({
   selector: "app-product-detail",
   standalone: true,
-  imports: [LowerCasePipe],
+  imports: [LowerCasePipe, WhatsappIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./product-detail.component.html",
   styleUrl: "./product-detail.component.scss",

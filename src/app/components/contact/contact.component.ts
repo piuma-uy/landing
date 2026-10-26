@@ -6,23 +6,24 @@ import {
 } from "@angular/core";
 import { FormBuilder, ReactiveFormsModule, Validators } from "@angular/forms";
 import { SITE_CONFIG } from "../../core/site-config";
+import { contactMessage } from "../../core/whatsapp";
 import { WhatsappService } from "../../services/whatsapp.service";
+import { WhatsappIconComponent } from "../../shared/whatsapp-icon/whatsapp-icon.component";
 import { SocialLinksComponent } from "../../shared/social-links/social-links.component";
 
 @Component({
   selector: "app-contact",
   standalone: true,
-  imports: [ReactiveFormsModule, SocialLinksComponent],
+  imports: [ReactiveFormsModule, SocialLinksComponent, WhatsappIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./contact.component.html",
   styleUrl: "./contact.component.scss",
 })
 export class ContactComponent {
   private readonly fb = inject(FormBuilder);
-  private readonly whatsapp = inject(WhatsappService);
+  readonly whatsapp = inject(WhatsappService);
 
   readonly config = SITE_CONFIG;
-  readonly whatsappLink = this.whatsapp.generalLink();
   readonly submitted = signal(false);
   readonly preparedLink = signal("");
 
@@ -58,7 +59,7 @@ export class ContactComponent {
 
     const { name, email, message } = this.form.getRawValue();
     this.preparedLink.set(
-      `https://wa.me/${this.config.whatsappNumber}?text=${encodeURIComponent(`Hola, soy ${name}. Mi correo es ${email}.\n\n${message}`)}`,
+      this.whatsapp.link(contactMessage(name, email, message)),
     );
     this.submitted.set(true);
     this.form.reset();

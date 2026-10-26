@@ -87,5 +87,11 @@
     font-size: 0.82rem;
     color: rgba(239, 230, 218, 0.6);
     text-align: center;
+    // Lugar para el acceso fijo a WhatsApp del teléfono, que si no tapa el texto.
+    padding-bottom: calc(var(--space-sm) + 4rem);
+
+    @include from(v.$bp-md) {
+      padding-bottom: var(--space-sm);
+    }
   }
 }

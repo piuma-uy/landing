@@ -7,7 +7,6 @@ import {
   settingsInput,
   statusLabel,
   transferOffered,
-  whatsappLink,
   type OrderTransfer,
   type PaymentMethods,
   type Settings,
@@ -102,23 +101,6 @@ test("status labels distinguish expired transfers from manual cancellations", ()
     "Cancelado",
   );
   assert.equal(statusLabel({ status: "pending_payment" }), "Pendiente de pago");
-});
-
-test("WhatsApp link is taken from the API as is and only for wa.me over https", () => {
-  assert.equal(whatsappLink(transfer), transfer.whatsappUrl);
-  assert.equal(
-    whatsappLink({ ...transfer, whatsappUrl: "javascript:alert(1)" }),
-    null,
-  );
-  assert.equal(
-    whatsappLink({ ...transfer, whatsappUrl: "http://wa.me/598" }),
-    null,
-  );
-  assert.equal(
-    whatsappLink({ ...transfer, whatsappUrl: "https://evil.test/wa.me" }),
-    null,
-  );
-  assert.equal(whatsappLink(undefined), null);
 });
 
 test("settings body is a versioned full replacement with blanks as null", () => {

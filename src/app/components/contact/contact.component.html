@@ -9,18 +9,19 @@
       </p>
 
       <a
-        [href]="whatsappLink"
+        [href]="whatsapp.generalLink()"
         class="btn btn--whatsapp contact__whatsapp"
         target="_blank"
         rel="noopener noreferrer"
       >
+        <app-whatsapp-icon />
         Escribinos por WhatsApp
       </a>
 
       <dl class="contact__details">
         <div>
           <dt>WhatsApp</dt>
-          <dd>{{ config.whatsappDisplay }}</dd>
+          <dd>{{ whatsapp.display() }}</dd>
         </div>
         <div>
           <dt>Email</dt>
@@ -49,7 +50,7 @@
             [href]="preparedLink()"
             target="_blank"
             rel="noopener noreferrer"
-            >Abrir WhatsApp</a
+            ><app-whatsapp-icon />Enviar consulta por WhatsApp</a
           >
           <button type="button" class="btn btn--outline" (click)="resetForm()">
             Preparar otra consulta
