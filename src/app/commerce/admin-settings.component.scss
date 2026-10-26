@@ -23,7 +23,7 @@
   margin-bottom: 1.2rem;
 }
 .section-head h2,
-.limits summary h2 {
+.fold summary h2 {
   font-family: var(--font-heading);
   font-size: 1.4rem;
   line-height: 1.25;
@@ -213,22 +213,23 @@ textarea {
   margin: 1rem 0 0;
   font-size: 0.9rem;
 }
-// Folded by default: the summary reads like the other section titles, "Ver" on the right.
-.limits summary {
+// Folding sections ("Cómo te pagan" open, "Reservas y límites" folded): the summary reads like
+// the other section titles, "Ver" / "Ocultar" on the right.
+.fold summary {
   list-style: none;
   cursor: pointer;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.3rem 1rem;
 }
-.limits summary::-webkit-details-marker {
+.fold summary::-webkit-details-marker {
   display: none;
 }
-.limits summary .muted {
+.fold summary .muted {
   grid-column: 1;
   font-size: 0.95rem;
 }
-.limits summary::after {
+.fold summary::after {
   content: "Ver";
   grid-column: 2;
   grid-row: 1;
@@ -239,11 +240,18 @@ textarea {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-.limits[open] summary::after {
+.fold[open] summary::after {
   content: "Ocultar";
 }
-.limits[open] summary {
+.fold[open] summary {
   margin-bottom: 1rem;
+}
+// Folded with edits in it: said on the title, where the "Tenés cambios sin guardar" can't be seen.
+.fold-unsaved {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--color-text);
+  font-weight: 500;
 }
 .history h2 {
   font-size: 1.4rem;

@@ -7,174 +7,178 @@
   <p role="status">Cargando configuración…</p>
 }
 
-<!-- Cómo te pagan -->
+<!-- Cómo te pagan: abierta, se puede plegar como Reservas y límites -->
 @if (pay.draft(); as f) {
-  <form
-    class="panel settings-section"
-    novalidate
-    aria-labelledby="pay-title"
-    (ngSubmit)="save('pay')"
+  <details
+    class="panel settings-section fold"
+    [open]="folds().pay"
+    (toggle)="onFoldToggle('pay', $event)"
   >
-    <header class="section-head">
+    <summary>
       <h2 id="pay-title">Cómo te pagan</h2>
-      <p class="muted">
+      <span class="muted">
         Los datos de tu cuenta que ve quien elige pagar por transferencia
         bancaria.
-      </p>
-    </header>
-    <div class="field">
-      <label class="switch" [for]="fieldId('pay', 'enabled')">
-        <input
-          type="checkbox"
-          role="switch"
-          name="enabled"
-          [id]="fieldId('pay', 'enabled')"
-          [(ngModel)]="f.enabled"
-          [attr.aria-describedby]="describedBy('pay', 'enabled', true)"
-        />
-        Aceptar pagos por transferencia
-      </label>
-      <p class="hint" [id]="fieldId('pay', 'enabled') + '-help'">
-        Apagado, en la tienda no aparece la opción de pagar por transferencia.
-      </p>
-      @if (problem("pay", "enabled"); as m) {
-        <p class="field-error" [id]="fieldId('pay', 'enabled') + '-error'">
-          {{ m }}
+        @if (!folds().pay && dirty("pay")) {
+          <strong class="fold-unsaved">Tenés cambios sin guardar.</strong>
+        }
+      </span>
+    </summary>
+    <form novalidate aria-labelledby="pay-title" (ngSubmit)="save('pay')">
+      <div class="field">
+        <label class="switch" [for]="fieldId('pay', 'enabled')">
+          <input
+            type="checkbox"
+            role="switch"
+            name="enabled"
+            [id]="fieldId('pay', 'enabled')"
+            [(ngModel)]="f.enabled"
+            [attr.aria-describedby]="describedBy('pay', 'enabled', true)"
+          />
+          Aceptar pagos por transferencia
+        </label>
+        <p class="hint" [id]="fieldId('pay', 'enabled') + '-help'">
+          Apagado, en la tienda no aparece la opción de pagar por transferencia.
         </p>
-      }
-    </div>
-    <div class="form-grid">
-      <div class="field">
-        <label [for]="fieldId('pay', 'bank')">Banco</label>
-        <input
-          name="bank"
-          list="settings-banks"
-          autocomplete="off"
-          maxlength="100"
-          placeholder="Por ejemplo BROU"
-          [id]="fieldId('pay', 'bank')"
-          [(ngModel)]="f.bank"
-          (blur)="touch('pay', 'bank', $any($event.target).value)"
-          [attr.aria-invalid]="!!problem('pay', 'bank')"
-          [attr.aria-describedby]="describedBy('pay', 'bank')"
-        />
-        <datalist id="settings-banks">
-          @for (b of banks; track b) {
-            <option [value]="b"></option>
-          }
-        </datalist>
-        @if (problem("pay", "bank"); as m) {
-          <p class="field-error" [id]="fieldId('pay', 'bank') + '-error'">
+        @if (problem("pay", "enabled"); as m) {
+          <p class="field-error" [id]="fieldId('pay', 'enabled') + '-error'">
             {{ m }}
           </p>
         }
       </div>
-      <div class="field">
-        <label [for]="fieldId('pay', 'accountType')">Tipo de cuenta</label>
-        <select
-          name="accountType"
-          [id]="fieldId('pay', 'accountType')"
-          [(ngModel)]="f.accountType"
-          (blur)="touch('pay', 'accountType', $any($event.target).value)"
-          [attr.aria-invalid]="!!problem('pay', 'accountType')"
-          [attr.aria-describedby]="describedBy('pay', 'accountType')"
-        >
-          <option value="">Elegí una opción</option>
-          @for (t of accountTypes(f.accountType); track t) {
-            <option [value]="t">{{ t }}</option>
+      <div class="form-grid">
+        <div class="field">
+          <label [for]="fieldId('pay', 'bank')">Banco</label>
+          <input
+            name="bank"
+            list="settings-banks"
+            autocomplete="off"
+            maxlength="100"
+            placeholder="Por ejemplo BROU"
+            [id]="fieldId('pay', 'bank')"
+            [(ngModel)]="f.bank"
+            (blur)="touch('pay', 'bank', $any($event.target).value)"
+            [attr.aria-invalid]="!!problem('pay', 'bank')"
+            [attr.aria-describedby]="describedBy('pay', 'bank')"
+          />
+          <datalist id="settings-banks">
+            @for (b of banks; track b) {
+              <option [value]="b"></option>
+            }
+          </datalist>
+          @if (problem("pay", "bank"); as m) {
+            <p class="field-error" [id]="fieldId('pay', 'bank') + '-error'">
+              {{ m }}
+            </p>
           }
-        </select>
-        @if (problem("pay", "accountType"); as m) {
-          <p
-            class="field-error"
-            [id]="fieldId('pay', 'accountType') + '-error'"
+        </div>
+        <div class="field">
+          <label [for]="fieldId('pay', 'accountType')">Tipo de cuenta</label>
+          <select
+            name="accountType"
+            [id]="fieldId('pay', 'accountType')"
+            [(ngModel)]="f.accountType"
+            (blur)="touch('pay', 'accountType', $any($event.target).value)"
+            [attr.aria-invalid]="!!problem('pay', 'accountType')"
+            [attr.aria-describedby]="describedBy('pay', 'accountType')"
           >
-            {{ m }}
-          </p>
-        }
-      </div>
-      <div class="field">
-        <label [for]="fieldId('pay', 'accountNumber')">Número de cuenta</label>
-        <input
-          name="accountNumber"
-          autocomplete="off"
-          maxlength="60"
-          [id]="fieldId('pay', 'accountNumber')"
-          [(ngModel)]="f.accountNumber"
-          (blur)="touch('pay', 'accountNumber', $any($event.target).value)"
-          [attr.aria-invalid]="!!problem('pay', 'accountNumber')"
-          [attr.aria-describedby]="describedBy('pay', 'accountNumber')"
-        />
-        @if (problem("pay", "accountNumber"); as m) {
-          <p
-            class="field-error"
-            [id]="fieldId('pay', 'accountNumber') + '-error'"
-          >
-            {{ m }}
-          </p>
-        }
-      </div>
-      <div class="field">
-        <label [for]="fieldId('pay', 'holder')">Titular de la cuenta</label>
-        <input
-          name="holder"
-          autocomplete="off"
-          maxlength="120"
-          [id]="fieldId('pay', 'holder')"
-          [(ngModel)]="f.holder"
-          (blur)="touch('pay', 'holder', $any($event.target).value)"
-          [attr.aria-invalid]="!!problem('pay', 'holder')"
-          [attr.aria-describedby]="describedBy('pay', 'holder', true)"
-        />
-        <p class="hint" [id]="fieldId('pay', 'holder') + '-help'">
-          Tal como figura en el banco.
-        </p>
-        @if (problem("pay", "holder"); as m) {
-          <p class="field-error" [id]="fieldId('pay', 'holder') + '-error'">
-            {{ m }}
-          </p>
-        }
-      </div>
-      <div class="field">
-        <label [for]="fieldId('pay', 'currency')">Moneda de la cuenta</label>
-        <select
-          name="currency"
-          [id]="fieldId('pay', 'currency')"
-          [(ngModel)]="f.currency"
-          [attr.aria-invalid]="!!problem('pay', 'currency')"
-          [attr.aria-describedby]="describedBy('pay', 'currency')"
-        >
-          @for (c of currencies; track c.code) {
-            <option [value]="c.code">{{ c.label }}</option>
+            <option value="">Elegí una opción</option>
+            @for (t of accountTypes(f.accountType); track t) {
+              <option [value]="t">{{ t }}</option>
+            }
+          </select>
+          @if (problem("pay", "accountType"); as m) {
+            <p
+              class="field-error"
+              [id]="fieldId('pay', 'accountType') + '-error'"
+            >
+              {{ m }}
+            </p>
           }
-        </select>
-        @if (problem("pay", "currency"); as m) {
-          <p class="field-error" [id]="fieldId('pay', 'currency') + '-error'">
-            {{ m }}
+        </div>
+        <div class="field">
+          <label [for]="fieldId('pay', 'accountNumber')">Número de cuenta</label>
+          <input
+            name="accountNumber"
+            autocomplete="off"
+            maxlength="60"
+            [id]="fieldId('pay', 'accountNumber')"
+            [(ngModel)]="f.accountNumber"
+            (blur)="touch('pay', 'accountNumber', $any($event.target).value)"
+            [attr.aria-invalid]="!!problem('pay', 'accountNumber')"
+            [attr.aria-describedby]="describedBy('pay', 'accountNumber')"
+          />
+          @if (problem("pay", "accountNumber"); as m) {
+            <p
+              class="field-error"
+              [id]="fieldId('pay', 'accountNumber') + '-error'"
+            >
+              {{ m }}
+            </p>
+          }
+        </div>
+        <div class="field">
+          <label [for]="fieldId('pay', 'holder')">Titular de la cuenta</label>
+          <input
+            name="holder"
+            autocomplete="off"
+            maxlength="120"
+            [id]="fieldId('pay', 'holder')"
+            [(ngModel)]="f.holder"
+            (blur)="touch('pay', 'holder', $any($event.target).value)"
+            [attr.aria-invalid]="!!problem('pay', 'holder')"
+            [attr.aria-describedby]="describedBy('pay', 'holder', true)"
+          />
+          <p class="hint" [id]="fieldId('pay', 'holder') + '-help'">
+            Tal como figura en el banco.
           </p>
-        }
+          @if (problem("pay", "holder"); as m) {
+            <p class="field-error" [id]="fieldId('pay', 'holder') + '-error'">
+              {{ m }}
+            </p>
+          }
+        </div>
+        <div class="field">
+          <label [for]="fieldId('pay', 'currency')">Moneda de la cuenta</label>
+          <select
+            name="currency"
+            [id]="fieldId('pay', 'currency')"
+            [(ngModel)]="f.currency"
+            [attr.aria-invalid]="!!problem('pay', 'currency')"
+            [attr.aria-describedby]="describedBy('pay', 'currency')"
+          >
+            @for (c of currencies; track c.code) {
+              <option [value]="c.code">{{ c.label }}</option>
+            }
+          </select>
+          @if (problem("pay", "currency"); as m) {
+            <p class="field-error" [id]="fieldId('pay', 'currency') + '-error'">
+              {{ m }}
+            </p>
+          }
+        </div>
       </div>
-    </div>
-    <div class="field">
-      <label [for]="fieldId('pay', 'note')"
-        >Mensaje para quien paga (opcional)</label
-      >
-      <textarea
-        name="note"
-        rows="2"
-        maxlength="500"
-        placeholder="Por ejemplo: en el concepto poné el número de pedido"
-        [id]="fieldId('pay', 'note')"
-        [(ngModel)]="f.note"
-      ></textarea>
-    </div>
-    <ng-container
-      *ngTemplateOutlet="
-        actions;
-        context: { id: 'pay', label: 'Guardar datos de pago' }
-      "
-    />
-  </form>
+      <div class="field">
+        <label [for]="fieldId('pay', 'note')"
+          >Mensaje para quien paga (opcional)</label
+        >
+        <textarea
+          name="note"
+          rows="2"
+          maxlength="500"
+          placeholder="Por ejemplo: en el concepto poné el número de pedido"
+          [id]="fieldId('pay', 'note')"
+          [(ngModel)]="f.note"
+        ></textarea>
+      </div>
+      <ng-container
+        *ngTemplateOutlet="
+          actions;
+          context: { id: 'pay', label: 'Guardar datos de pago' }
+        "
+      />
+    </form>
+  </details>
 }
 
 <!-- Tu WhatsApp y tu mail -->
@@ -591,9 +595,9 @@
 <!-- Reservas y límites: plegado, con los valores recomendados -->
 @if (limits.draft(); as f) {
   <details
-    class="panel settings-section limits"
-    [open]="limitsOpen()"
-    (toggle)="onLimitsToggle($event)"
+    class="panel settings-section fold"
+    [open]="folds().limits"
+    (toggle)="onFoldToggle('limits', $event)"
   >
     <summary>
       <h2 id="limits-title">Reservas y límites</h2>
@@ -602,6 +606,9 @@
         cliente.
         @if (isRecommended(f)) {
           Usás los valores recomendados.
+        }
+        @if (!folds().limits && dirty("limits")) {
+          <strong class="fold-unsaved">Tenés cambios sin guardar.</strong>
         }
       </span>
     </summary>

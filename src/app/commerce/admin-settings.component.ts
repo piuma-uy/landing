@@ -38,6 +38,10 @@ const MAX_ZONES = 30;
 /** History items on screen at first, and how many more each "Ver más" shows. */
 const HISTORY_FIRST = 5;
 const HISTORY_MORE = 10;
+/** Sections that fold, and the sessionStorage slot that remembers them in this tab. */
+type FoldId = Extract<SectionId, "pay" | "limits">;
+const FOLDS_SLOT = "piuma-settings-folds";
+const FOLDS_DEFAULT: Record<FoldId, boolean> = { pay: true, limits: false };
 
 /**
  * Configuración del panel (T62): four sections in plain words, each saved on its own, and the
@@ -121,7 +125,8 @@ export class AdminSettingsComponent {
   private readonly submitted = signal<ReadonlySet<SectionId>>(new Set());
   /** "section.field" left at least once: its problem shows from then on. */
   private readonly touched = signal<ReadonlySet<string>>(new Set());
-  readonly limitsOpen = signal(false);
+  /** Open state of each folding section: "Cómo te pagan" open, "Reservas y límites" folded. */
+  readonly folds = signal(readFolds());
   /** Zone cards unfolded for editing; new zones open unfolded. */
   readonly openZones = signal<ReadonlySet<ZoneForm>>(new Set());
   readonly historyShown = signal(HISTORY_FIRST);
@@ -216,7 +221,7 @@ export class AdminSettingsComponent {
     const fields = Object.keys(this.problems(id));
     if (fields.length) {
       this.submitted.update((s) => new Set(s).add(id));
-      if (id === "limits") this.limitsOpen.set(true);
+      if (id === "pay" || id === "limits") this.setFold(id, true);
       if (id === "shipping")
         this.openProblemZones(draft as ShippingForm, fields);
       this.outcome.update((o) => ({ ...o, [id]: undefined }));
@@ -327,8 +332,15 @@ export class AdminSettingsComponent {
       (f.maxUnitsSku === undefined || f.maxUnitsSku === RECOMMENDED.maxUnitsSku)
     );
   }
-  onLimitsToggle(event: Event) {
-    this.limitsOpen.set((event.target as HTMLDetailsElement).open);
+  onFoldToggle(id: FoldId, event: Event) {
+    this.setFold(id, (event.target as HTMLDetailsElement).open);
+  }
+  private setFold(id: FoldId, open: boolean) {
+    if (this.folds()[id] === open) return;
+    this.folds.update((f) => ({ ...f, [id]: open }));
+    try {
+      sessionStorage.setItem(FOLDS_SLOT, JSON.stringify(this.folds()));
+    } catch {}
   }
 
   async moreHistory() {
@@ -339,4 +351,15 @@ export class AdminSettingsComponent {
     )
       await this.shop.moreHistory();
   }
+}
+
+/** Folds as the admin left them in this tab; the defaults on a new tab or bad data. */
+function readFolds(): Record<FoldId, boolean> {
+  const folds = { ...FOLDS_DEFAULT };
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(FOLDS_SLOT) ?? "{}");
+    for (const id of Object.keys(folds) as FoldId[])
+      if (typeof saved?.[id] === "boolean") folds[id] = saved[id];
+  } catch {}
+  return folds;
 }

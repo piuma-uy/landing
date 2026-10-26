@@ -50,6 +50,9 @@
   <div class="footer__bottom">
     <div class="container">
       <p>© {{ year }} {{ config.brandName }}. Todos los derechos reservados.</p>
+      @if (cost(); as c) {
+        <p class="footer__cost">{{ c }}</p>
+      }
     </div>
   </div>
 </footer>
