@@ -40,7 +40,9 @@ export interface CognitoDeps {
   now: () => number;
 }
 
-// aws.cognito.signin.user.admin lets an administrator enroll TOTP from the panel (T27/T28).
+// aws.cognito.signin.user.admin lets an administrator enroll TOTP from the panel (T27/T28) when
+// the API requires it (admin_mfa_required, off by default since T59). Requested always, so the
+// backend flag can flip without a new frontend.
 export const SCOPE =
   "openid email profile piuma/api aws.cognito.signin.user.admin";
 const ATTEMPT_KEY = "piuma-oauth";

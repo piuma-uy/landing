@@ -59,12 +59,15 @@ URIs tienen que ser https (o locales). Si algo no cierra, el comercio queda apag
 
 ### Seguridad del panel (T27/T28)
 
-- **Segundo factor**: el API responde 403 `MFA_REQUIRED` en `/admin/*` a un administrador sin TOTP. El panel
-  entonces no muestra ninguna sección y guía el alta contra el API de Cognito con el access token (scope
-  `aws.cognito.signin.user.admin`, pedido en el login): QR (dibujado en `commerce/qr.ts`, sin librerías), botón
-  para abrir la app autenticadora en el mismo teléfono, clave en texto y el primer código de 6 dígitos
-  (`commerce/mfa.ts`). Desde el siguiente ingreso Cognito pide el código. En Docker el login local reemplaza al
-  segundo factor; `LOCAL_ADMIN_MFA=missing` en el API muestra la explicación en lugar del alta.
+- **Segundo factor**: la tienda no tiene (decisión del dueño, 2026-10-26, T59): por defecto el API no lo exige y
+  el panel muestra todo directo. Sólo si el backend se despliega con `admin_mfa_required = true`, el API responde
+  403 `MFA_REQUIRED` en `/admin/*` a un administrador sin TOTP; ante esa respuesta (y sólo entonces) el panel no
+  muestra ninguna sección y guía el alta contra el API de Cognito con el access token (scope
+  `aws.cognito.signin.user.admin`, pedido siempre en el login para que el flag se pueda prender sin otro deploy del
+  front): QR (dibujado en `commerce/qr.ts`, sin librerías), botón para abrir la app autenticadora en el mismo
+  teléfono, clave en texto y el primer código de 6 dígitos (`commerce/mfa.ts`). Desde el siguiente ingreso Cognito
+  pide el código. En Docker no hay segundo factor salvo que el API corra con `LOCAL_ADMIN_MFA=enrolled` (el login
+  local lo reemplaza) o `LOCAL_ADMIN_MFA=missing` (muestra la explicación en lugar del alta).
 - **Historial de cambios** en Configuración (`GET /admin/settings/history`): fecha, quién y antes/ahora; del número
   de cuenta sólo los últimos 4 dígitos (`commerce/settings-history.ts`).
 - **Aviso** arriba del panel si los datos bancarios cambiaron en los últimos 7 días, con fecha y usuario.
