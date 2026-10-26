@@ -409,7 +409,8 @@ details p {
   padding-top: 0.5rem;
   margin-top: 0.5rem;
 }
-.shipping-line {
+.shipping-line,
+.pay-option small {
   overflow-wrap: anywhere;
 }
 .zone {

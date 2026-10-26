@@ -19,10 +19,15 @@ import {
   DEPARTMENTS,
   PICKUP_FALLBACK,
   emptyAddress,
+  isCoordinate,
+  shippingFollowUp,
   shippingInput,
   shippingProblem,
   shippingSummary,
   toMinor,
+  zoneDetail,
+  type ShippingZone,
+  type ZonePricing,
 } from "./shipping";
 @Component({
   selector: "app-commerce",
@@ -81,6 +86,9 @@ export class CommerceComponent {
   readonly buyerCancellable = buyerCancellable;
   readonly maxUnits = MAX_UNITS;
   readonly shippingSummary = shippingSummary;
+  readonly shippingFollowUp = shippingFollowUp;
+  readonly zoneDetail = zoneDetail;
+  readonly isCoordinate = isCoordinate;
   readonly shippingProblem = shippingProblem;
   readonly toMinor = toMinor;
   readonly departments = DEPARTMENTS;
@@ -197,7 +205,14 @@ export class CommerceComponent {
       name: "",
       priceMinor: 0,
       leadTime: "",
+      pricing: "fixed",
+      note: "",
     });
+  }
+  /** A coordinate zone charges nothing at checkout, so its cost goes back to 0. */
+  setPricing(zone: ShippingZone, pricing: ZonePricing) {
+    zone.pricing = pricing;
+    if (pricing === "coordinate") zone.priceMinor = 0;
   }
   removeZone(d: Settings, index: number) {
     d.shipping.delivery.zones.splice(index, 1);
