@@ -173,6 +173,26 @@ legend {
   }
 }
 
+// Acción secundaria como enlace subrayado, con área táctil de 44px.
+.text-button {
+  border: 0;
+  background: none;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  color: var(--color-primary-dark);
+  font: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.4rem 0;
+}
+.text-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

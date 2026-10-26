@@ -26,27 +26,9 @@
 .small {
   font-size: 0.85rem;
 }
-.text-button {
-  border: 0;
-  background: none;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  color: var(--color-primary-dark);
-  font: inherit;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0.4rem 0;
-}
 // "← Seguir explorando" separado del título de la vista.
 .commerce > .text-button {
   margin-bottom: 0.75rem;
-}
-.text-button:disabled {
-  opacity: 0.5;
-  cursor: wait;
 }
 .account-card {
   max-width: 480px;
