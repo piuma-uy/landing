@@ -23,9 +23,18 @@ export class CatalogService {
       shareReplay({ bufferSize: 1, refCount: false }),
     );
   private readonly categories = this.shop.enabled
-    ? combineLatest([this.source, toObservable(this.shop.products)]).pipe(
-        map(([source, products]) =>
-          products === null ? undefined : adaptCatalog(source, products),
+    ? combineLatest([
+        this.source,
+        toObservable(this.shop.products),
+        toObservable(this.shop.offline),
+      ]).pipe(
+        // API caída: el catálogo estático sigue a la vista, con precios y consulta por WhatsApp.
+        map(([source, products, offline]) =>
+          offline
+            ? source
+            : products === null
+              ? undefined
+              : adaptCatalog(source, products),
         ),
       )
     : this.source;

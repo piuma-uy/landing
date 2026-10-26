@@ -1,4 +1,10 @@
-import { Injectable, computed, inject, signal } from "@angular/core";
+import {
+  Injectable,
+  computed,
+  inject,
+  isDevMode,
+  signal,
+} from "@angular/core";
 import { RUNTIME_CONFIG } from "./config";
 import { CognitoAuth, decodeJwt } from "./cognito";
 import { AnalyticsService } from "../services/analytics.service";
@@ -69,6 +75,27 @@ import {
   PAYMENT_METHOD_REQUIRED,
   checkoutLimitMessage,
 } from "./orders";
+import {
+  Failure,
+  guardedFetch,
+  networkFailure,
+  responseFailure,
+  retryable,
+  shownMessage,
+} from "./errors";
+const apiError = (f: Failure) => new ApiError(f.message, f.status, f.code);
+/** The technical detail of a failure: only in the console of a development build. */
+function devLog(...detail: unknown[]) {
+  if (isDevMode()) console.error("[tienda]", ...detail);
+}
+/** Every request of the shop (API, Cognito): with a timeout, and without the browser's texts. */
+const safeFetch = guardedFetch(
+  (...args) => fetch(...args),
+  (cause, input) => {
+    devLog("Sin respuesta de", String(input), cause);
+    return apiError(networkFailure());
+  },
+);
 export interface User {
   id: string;
   email: string;
@@ -161,7 +188,7 @@ export class CommerceService {
       ? new CognitoAuth(
           this.config.cognito,
           {
-            fetch: (...args) => fetch(...args),
+            fetch: safeFetch,
             storage: sessionStorage,
             crypto,
             now: Date.now,
@@ -221,6 +248,16 @@ export class CommerceService {
     () => !!this.error() && ORDERS_LINK_CODES.includes(this.errorCode()),
   );
   readonly notice = signal("");
+  /** The action that failed for lack of connection or a down API: "Reintentar" runs it again. */
+  private readonly retryFn = signal<(() => Promise<void>) | null>(null);
+  readonly canRetry = computed(() => !!this.error() && !!this.retryFn());
+  /**
+   * The API did not answer the product list: the catalog falls back to the static one (prices
+   * and WhatsApp, no cart) until a retry loads it.
+   */
+  readonly offline = signal(false);
+  /** Stock, cart and checkout are on: commerce enabled and the API answering. */
+  readonly selling = computed(() => this.enabled && !this.offline());
   readonly busy = signal(false);
   readonly ready = signal(false);
   readonly cartCount = computed(() => unitCount(this.cart()));
@@ -247,7 +284,7 @@ export class CommerceService {
     retried = false,
   ): Promise<T> {
     const token = await this.cognito?.getAccessToken();
-    const response = await fetch(this.base + path, {
+    const response = await safeFetch(this.base + path, {
       method,
       credentials: this.cognito ? "omit" : "include",
       headers: {
@@ -275,14 +312,13 @@ export class CommerceService {
         this.clearAdmin();
         this.mfaRequired.set(true);
       }
-      throw new ApiError(
+      const failure = responseFailure(response.status, data);
+      if (retryable(failure.status, failure.code))
+        devLog(method, path, response.status, data);
+      throw apiError(
         code === MFA_CHECK_UNAVAILABLE
-          ? MFA_UNAVAILABLE_MESSAGE
-          : (data.error?.message ??
-              data.message ??
-              "No se pudo completar la operación"),
-        response.status,
-        code,
+          ? { ...failure, message: MFA_UNAVAILABLE_MESSAGE }
+          : failure,
       );
     }
     return data;
@@ -299,7 +335,7 @@ export class CommerceService {
     this.historyCursor.set(undefined);
   }
   private readonly enrollment = new TotpEnrollment(
-    (...args) => fetch(...args),
+    safeFetch,
     decodeJwt,
   );
   private readonly transfers = new TransferApi((path, method, body) =>
@@ -333,11 +369,16 @@ export class CommerceService {
     this.error.set("");
     this.errorCode.set("");
     this.notice.set("");
+    this.retryFn.set(null);
     this.running = (async () => {
       try {
         await fn();
       } catch (e) {
-        this.error.set(e instanceof Error ? e.message : "Ocurrió un error");
+        // ApiError already logged its detail where it was built.
+        if (!(e instanceof ApiError)) devLog(e);
+        this.error.set(shownMessage(e));
+        if (e instanceof ApiError && retryable(e.status, e.code))
+          this.retryFn.set(fn);
         this.errorCode.set(
           (e instanceof ApiError && e.code) ||
             (e instanceof EnrollmentError && e.type) ||
@@ -348,6 +389,11 @@ export class CommerceService {
       }
     })();
     await this.running;
+  }
+  /** "Reintentar": the failed action again (a checkout keeps its Idempotency-Key). */
+  retry() {
+    const fn = this.retryFn();
+    if (fn) void this.run(fn);
   }
   /**
    * The data a view needs is never dropped like a repeated click: "Mis pedidos" or the panel
@@ -423,11 +469,14 @@ export class CommerceService {
         onUpdate: (order) => set({ order }),
       });
     } catch (e) {
+      if (!(e instanceof ApiError)) devLog(e);
       this.error.set(
         e instanceof ApiError && e.status === 404
           ? "No encontramos ese pedido en tu cuenta."
           : "No pudimos consultar el estado del pago. Probá actualizar en unos segundos.",
       );
+      if (e instanceof ApiError && retryable(e.status, e.code))
+        this.retryFn.set(() => this.followPayment());
     } finally {
       set({ checking: false });
     }
@@ -477,7 +526,9 @@ export class CommerceService {
   async reloadProducts() {
     try {
       this.products.set(await this.pages<Product>("/products"));
+      this.offline.set(false);
     } catch (e) {
+      this.offline.set(e instanceof ApiError && retryable(e.status, e.code));
       this.products.set([]);
       throw e;
     }
