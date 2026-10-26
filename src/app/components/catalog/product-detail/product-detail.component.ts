@@ -136,6 +136,14 @@ export class ProductDetailComponent {
     this.selectedPhotoIndex.set(0);
   }
 
+  /** Veces que se agregó desde esta ficha: cada una vuelve a dibujar la tilde del botón. */
+  readonly added = signal(0);
+
+  async add(sku: string): Promise<void> {
+    await this.shop.add(sku);
+    if (!this.shop.error()) this.added.update((n) => n + 1);
+  }
+
   selectPhoto(index: number): void {
     this.selectedPhotoIndex.set(index);
   }

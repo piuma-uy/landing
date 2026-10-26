@@ -23,6 +23,17 @@ html {
   }
 }
 
+// View Transitions del catálogo (catalog.component: transition()): cortas y con frenado suave; la
+// foto que viaja conserva las esquinas redondeadas de la tarjeta.
+::view-transition-group(*) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+::view-transition-group(piuma-foto) {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
 // Radios y checkboxes con el tono de la marca en vez del azul del navegador.
 :root {
   accent-color: var(--color-primary-dark);

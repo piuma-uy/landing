@@ -37,7 +37,10 @@
             <div class="grid grid--types">
               @for (type of category.types; track type.id) {
                 <button type="button" class="type-card" (click)="openType(type.id)">
-                  <span class="type-card__media">
+                  <span
+                    class="type-card__media"
+                    [style.view-transition-name]="type.id === morphId() ? 'piuma-foto' : null"
+                  >
                     <img [src]="type.image" [alt]="type.alt" loading="lazy" width="800" height="1000" />
                   </span>
                   <span class="type-card__body">

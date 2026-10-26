@@ -159,9 +159,15 @@
             type="button"
             class="btn btn--primary detail__cta"
             [disabled]="shop.busy() || !sku() || stock() < 1"
-            (click)="shop.add(sku()!)"
+            (click)="add(sku()!)"
           >
             Agregar al carrito
+            <!-- Una tilde que aparece y se va con cada agregado; el aviso lo lee el lector de pantalla. -->
+            @for (n of [added()]; track n) {
+              @if (n) {
+                <span class="detail__added" aria-hidden="true">✓</span>
+              }
+            }
           </button>
         }
         <a
