@@ -1,0 +1,49 @@
+<section class="policy container" aria-labelledby="policy-title">
+  <span class="eyebrow">Envíos</span>
+  <h1 id="policy-title">Cómo te llega tu pedido</h1>
+  <p class="policy__lead">
+    Elegís la zona al confirmar la compra y después te escribimos por WhatsApp
+    para coordinar la entrega.
+  </p>
+
+  <div class="policy__grid">
+    @for (section of sections(); track section.title) {
+      <article class="policy__card">
+        <h2>{{ section.title }}</h2>
+        <p>{{ section.text }}</p>
+        @if (section.items?.length) {
+          <ul class="policy__zones">
+            @for (item of section.items; track item) {
+              <li>{{ item }}</li>
+            }
+          </ul>
+        }
+      </article>
+    }
+  </div>
+
+  <div class="policy__actions">
+    @if (shop.shippingFrom() === "cart") {
+      <button type="button" class="btn btn--outline" (click)="back()">
+        Volver al carrito
+      </button>
+    } @else {
+      <button
+        type="button"
+        class="btn btn--outline"
+        (click)="shop.section('catalogo')"
+      >
+        Ver la colección
+      </button>
+    }
+    <a
+      [href]="askLink()"
+      class="btn btn--whatsapp"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <app-whatsapp-icon />
+      Consultar un envío
+    </a>
+  </div>
+</section>

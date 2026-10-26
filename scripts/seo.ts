@@ -15,6 +15,12 @@
 import type { Category, ProductType } from "../src/app/models/catalog.model.ts";
 import { catalogPath, pageMeta, type PageMeta } from "../src/app/core/catalog-seo.ts";
 import { generalMessage, normalizeWhatsapp, waLink } from "../src/app/core/whatsapp.ts";
+import {
+  FALLBACK_POLICY,
+  SHIPPING_PATH,
+  policyDescription,
+  policySections,
+} from "../src/app/core/shipping-policy.ts";
 
 export interface Site {
   /** Origen público sin barra final, ej. https://piuma.uy */
@@ -91,14 +97,31 @@ function productDetail(site: Site, type: ProductType): string {
   ].join("");
 }
 
+/** /envios/: la política estática de Piuma (sin API en el build). */
+function shippingBody(): string {
+  return (
+    `<nav aria-label="Ruta"><a href="/">Inicio</a></nav>` +
+    `<h1>Cómo te llega tu pedido</h1>` +
+    policySections(FALLBACK_POLICY)
+      .map(
+        (s) =>
+          `<h2>${escapeHtml(s.title)}</h2><p>${escapeHtml(s.text)}</p>` +
+          (s.items?.length ? `<ul>${s.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>` : ""),
+      )
+      .join("")
+  );
+}
+
 function body(
   site: Site,
   categories: Category[],
   category: Category | null,
   type: ProductType | null,
+  shipping = false,
 ): string {
   let main: string;
-  if (category && type) {
+  if (shipping) main = shippingBody();
+  else if (category && type) {
     main =
       `<nav aria-label="Ruta"><a href="/">Inicio</a> › <a href="${catalogPath(category.id)}">${escapeHtml(category.name)}</a></nav>` +
       `<h1>${escapeHtml(type.fullName)}</h1>${productDetail(site, type)}`;
@@ -124,7 +147,8 @@ function body(
     `<div class="prerender">` +
     `<header><p><a href="/">${escapeHtml(site.brandName)}</a></p></header>` +
     `<main>${main}</main>` +
-    `<footer><p><a href="${escapeHtml(whatsappLink(site))}">WhatsApp</a>` +
+    `<footer><p><a href="${SHIPPING_PATH}">Envíos</a>` +
+    ` · <a href="${escapeHtml(whatsappLink(site))}">WhatsApp</a>` +
     ` · <a href="mailto:${escapeHtml(site.email)}">${escapeHtml(site.email)}</a>` +
     ` · <a href="${escapeHtml(site.instagramUrl)}">Instagram</a> · ${escapeHtml(site.city)}</p></footer>` +
     `</div>`
@@ -251,8 +275,9 @@ function render(
   categories: Category[],
   category: Category | null,
   type: ProductType | null,
+  shipping = false,
 ): Page {
-  const meta = pageMeta(site.brandName, category, type);
+  const meta = shipping ? shippingMeta(site) : pageMeta(site.brandName, category, type);
   const title = escapeHtml(meta.title);
   const description = escapeHtml(meta.description);
   const head = [
@@ -260,7 +285,9 @@ function render(
     `<meta property="og:url" content="${site.url}${meta.path}">`,
     `<meta property="og:site_name" content="${escapeHtml(site.brandName)}">`,
     `<meta name="twitter:card" content="summary_large_image">`,
-    `<script type="application/ld+json">${jsonForScript(structuredData(site, categories, category, type))}</script>`,
+    `<script type="application/ld+json">${jsonForScript(
+      shipping ? shippingData(site) : structuredData(site, categories, category, type),
+    )}</script>`,
     `<style>.prerender{display:none}</style>`,
     `<noscript><style>.prerender{display:block;padding:1rem}</style></noscript>`,
   ].join("\n    ");
@@ -273,17 +300,42 @@ function render(
   );
   out = replace(out, /<\/head>/, () => `  ${head}\n  </head>`);
   out = replace(out, /<app-root><\/app-root>/, () =>
-    `<app-root>${body(site, categories, category, type)}</app-root>`,
+    `<app-root>${body(site, categories, category, type, shipping)}</app-root>`,
   );
   return { ...meta, html: out };
 }
 
-/** Todas las páginas públicas del catálogo, a partir del index.html que deja `ng build`. */
+const shippingMeta = (site: Site): PageMeta => ({
+  path: SHIPPING_PATH,
+  title: `Envíos y entregas | ${site.brandName}`,
+  description: policyDescription(FALLBACK_POLICY),
+});
+
+/** Store y BreadcrumbList; la política en sí va como texto. */
+function shippingData(site: Site) {
+  const [store] = structuredData(site, [])["@graph"];
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      store,
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Inicio", item: `${site.url}/` },
+          { "@type": "ListItem", position: 2, name: "Envíos", item: `${site.url}${SHIPPING_PATH}` },
+        ],
+      },
+    ],
+  };
+}
+
+/** Todas las páginas públicas: catálogo y /envios/, a partir del index.html que deja `ng build`. */
 export function prerenderPages(html: string, site: Site, categories: Category[]): Page[] {
   if (!/<base href="\/"\s*\/?>/.test(html))
     throw new Error('prerender: index.html necesita <base href="/"> para servirse en subrutas');
   return [
     render(html, site, categories, null, null),
+    render(html, site, categories, null, null, true),
     ...categories.flatMap((c) => [
       render(html, site, categories, c, null),
       ...c.types.map((t) => render(html, site, categories, c, t)),
@@ -310,6 +362,7 @@ export function sitemapXml(site: Site, categories: Category[], lastmod: string):
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`,
     entry("/", ["assets/images/hero-piuma.webp"]),
+    entry(SHIPPING_PATH, []),
     ...categories.flatMap((c) => [
       entry(catalogPath(c.id), [c.image]),
       ...c.types.map((t) =>

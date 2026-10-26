@@ -29,9 +29,9 @@ test("catalogPath y parseCatalogPath son inversas", () => {
     assert.equal(parseCatalogPath(other), null, other);
 });
 
-test("una página por URL pública: inicio, cada categoría y cada producto", () => {
+test("una página por URL pública: inicio, envíos, cada categoría y cada producto", () => {
   const products = categories.reduce((n, c) => n + c.types.length, 0);
-  assert.equal(pages.length, 1 + categories.length + products);
+  assert.equal(pages.length, 2 + categories.length + products);
   assert.equal(new Set(pages.map((p) => p.path)).size, pages.length);
 });
 
@@ -93,4 +93,22 @@ test("robots.txt y sitemap.xml apuntan al dominio configurado", () => {
 
 test("sin <base href> no se puede servir en subrutas", () => {
   assert.throws(() => prerenderPages(index.replace(/<base[^>]*>/, ""), site, categories), /base href/);
+});
+
+test("/envios/ prerenderizada: política de Piuma, meta propia, breadcrumb y en el sitemap (T68)", () => {
+  const html = page("/envios/");
+  assert.ok(html.includes("<title>Envíos y entregas | Piuma</title>"));
+  assert.ok(html.includes('<link rel="canonical" href="https://piuma.uy/envios/">'));
+  const description = html.match(/<meta\s+name="description"\s+content="([^"]*)"/)![1];
+  assert.match(description, /^Envío gratis en Carrasco, Pocitos/);
+  assert.ok(description.length <= 156, description);
+  for (const text of ["24 a 72 h", "Punta Carretas", "Ciudad de la Costa", "tipo DAC", "WhatsApp"])
+    assert.ok(html.includes(text), text);
+  assert.deepEqual(
+    jsonLd(html)["@graph"].map((n: { "@type": string }) => n["@type"]),
+    ["Store", "BreadcrumbList"],
+  );
+  // Todas las páginas enlazan la política desde el pie.
+  assert.ok(pages.every((p) => p.html.includes('<a href="/envios/">Envíos</a>')));
+  assert.ok(sitemapXml(site, categories, "2026-10-26").includes("<loc>https://piuma.uy/envios/</loc>"));
 });
