@@ -3,29 +3,42 @@
     <p class="preview-label">Tienda de prueba · Sin cobros</p>
   }
   @if (shop.error() || shop.notice()) {
-    <div
-      class="feedback container"
-      [class.feedback--error]="!!shop.error()"
-      [attr.role]="shop.error() ? 'alert' : 'status'"
-    >
-      {{ shop.error() || shop.notice() }}
-      @if (shop.ordersLink()) {
+    <!-- API caída en la home: el aviso ocupa su lugar en la página en vez de flotar (T58). -->
+    <div [class.feedback-band]="shop.offline() && shop.view() === 'shop'">
+      <div
+        class="feedback container"
+        [class.feedback--error]="!!shop.error()"
+        [attr.role]="shop.error() ? 'alert' : 'status'"
+      >
+        {{ shop.error() || shop.notice() }}
+        @if (shop.ordersLink()) {
+          <button
+            type="button"
+            class="feedback__action"
+            (click)="shop.open('orders')"
+          >
+            Ir a Mis pedidos
+          </button>
+        }
+        @if (shop.canRetry()) {
+          <button
+            type="button"
+            class="feedback__action"
+            [disabled]="shop.busy()"
+            (click)="shop.retry()"
+          >
+            Reintentar
+          </button>
+        }
         <button
           type="button"
-          class="feedback__action"
-          (click)="shop.open('orders')"
+          class="feedback__close"
+          aria-label="Cerrar mensaje"
+          (click)="shop.error.set(''); shop.notice.set('')"
         >
-          Ir a Mis pedidos
+          ×
         </button>
-      }
-      <button
-        type="button"
-        class="feedback__close"
-        aria-label="Cerrar mensaje"
-        (click)="shop.error.set(''); shop.notice.set('')"
-      >
-        ×
-      </button>
+      </div>
     </div>
   }
   @if (shop.view() !== "shop") {

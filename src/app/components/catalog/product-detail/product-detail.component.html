@@ -146,7 +146,7 @@
 
       <p class="detail__price">{{ formattedPrice() }}</p>
 
-      @if (shop.enabled) {
+      @if (shop.selling()) {
         <p class="detail__stock">
           {{
             stock() > 0 ? stock() + " disponibles" : "Sin stock por el momento"
@@ -154,7 +154,7 @@
         </p>
       }
       <div class="detail__actions">
-        @if (shop.enabled) {
+        @if (shop.selling()) {
           <button
             type="button"
             class="btn btn--primary detail__cta"

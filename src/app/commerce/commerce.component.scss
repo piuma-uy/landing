@@ -226,6 +226,20 @@ input:read-only {
   text-decoration: underline;
   cursor: pointer;
 }
+// API caída en la home: el aviso ocupa su lugar bajo el encabezado y el hero y el catálogo
+// estático siguen debajo, sin que nada los tape (también en el teléfono). La banda tiene el
+// color con el que empieza el hero y se monta sobre su margen superior, que queda vacío.
+.feedback-band {
+  position: relative;
+  padding-top: calc(var(--header-height) + 1rem);
+  margin-bottom: calc(-1 * var(--header-height));
+  background: var(--color-secondary);
+}
+.feedback-band .feedback {
+  position: relative;
+  inset: auto;
+  transform: none;
+}
 .admin-tabs {
   display: flex;
   flex-wrap: wrap;

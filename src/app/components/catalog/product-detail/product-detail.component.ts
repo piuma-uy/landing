@@ -110,7 +110,7 @@ export class ProductDetailComponent {
       currency: this.type().currency,
       maximumFractionDigits: 0,
     }).format(
-      this.shop.enabled
+      this.shop.selling()
         ? (this.variant().priceByColor?.[this.activeColor()] ?? 0) / 100
         : this.variant().price,
     ),
