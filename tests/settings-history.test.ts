@@ -2,8 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   bankChange,
-  changeRows,
   changedBy,
+  historyItem,
+  listJoin,
+  when,
   maskAccount,
   needsOlder,
   type SettingsHistoryEntry,
@@ -46,8 +48,8 @@ test("maskAccount keeps only the last 4 digits", () => {
   assert.equal(maskAccount(null), "");
 });
 
-test("changeRows: bank details masked, other fields by value or by name", () => {
-  const rows = changeRows(
+test("historyItem: one sentence, values before → after, account masked", () => {
+  const item = historyItem(
     entry(0, {
       changes: [
         {
@@ -69,31 +71,26 @@ test("changeRows: bank details masked, other fields by value or by name", () => 
         { field: "shipping" },
       ],
     }),
+    null,
+    NOW,
   );
-  assert.deepEqual(rows, [
+  assert.equal(item?.who, "admin@piuma.uy");
+  assert.equal(
+    item?.what,
+    "cambió los datos bancarios, el WhatsApp, el mail, los avisos por WhatsApp y los envíos",
+  );
+  assert.deepEqual(item?.details, [
     {
       label: "Datos bancarios",
-      values: {
-        before: "Sin datos",
-        after: "BROU · Caja de ahorro · •••• 4567 · Piuma SAS · UYU",
-      },
+      before: "Sin datos",
+      after: "BROU · Caja de ahorro · •••• 4567 · Piuma SAS · UYU",
     },
-    {
-      label: "WhatsApp de Piuma",
-      values: { before: "Sin número", after: "+59899123456" },
-    },
-    {
-      label: "Mail de Piuma",
-      values: { before: "a@piuma.uy", after: "b@piuma.uy" },
-    },
-    {
-      label: "Avisos por WhatsApp",
-      values: { before: "Apagados", after: "Activados" },
-    },
-    { label: "Envíos", values: null },
+    { label: "WhatsApp", before: "Sin número", after: "+598 99 123 456" },
+    { label: "Mail", before: "a@piuma.uy", after: "b@piuma.uy" },
+    { label: "Avisos por WhatsApp", before: "Apagados", after: "Activados" },
   ]);
   assert.ok(
-    !JSON.stringify(rows).includes("1234567"),
+    !JSON.stringify(item).includes("1234567"),
     "full account never shown",
   );
 });
@@ -159,4 +156,56 @@ test("needsOlder reads more pages only while a recent bank change could be there
     ),
     false,
   );
+});
+
+test("historyItem: the signed-in administrator is «Vos», saves without changes are left out", () => {
+  const mine = historyItem(
+    entry(0, {
+      changes: [
+        {
+          field: "contact.whatsappNumber",
+          before: "+59899000111",
+          after: "+59891345454",
+        },
+      ],
+    }),
+    "ADMIN@piuma.uy",
+    NOW,
+  );
+  assert.equal(mine?.who, "Vos");
+  assert.equal(mine?.what, "cambiaste el WhatsApp");
+  assert.equal(historyItem(entry(0, { changes: [] }), null, NOW), null);
+  const limits = historyItem(
+    entry(0, {
+      changedByEmail: null,
+      changes: [
+        { field: "transfer.holdHours" },
+        { field: "card" },
+        { field: "orders" },
+      ],
+    }),
+    null,
+    NOW,
+  );
+  assert.equal(limits?.who, "Alguien del equipo");
+  assert.equal(limits?.what, "cambió las reservas y límites");
+  assert.deepEqual(limits?.details, []);
+});
+
+test("when: today, yesterday or the date, in Montevideo time", () => {
+  // NOW is 2026-10-23 12:00 in Montevideo (UTC-3).
+  assert.equal(when("2026-10-23T14:40:00.000Z", NOW), "hoy a las 11:40");
+  assert.equal(when("2026-10-23T02:05:00.000Z", NOW), "ayer a las 23:05");
+  assert.equal(when("2026-10-20T18:40:00.000Z", NOW), "el 20/10 a las 15:40");
+  assert.equal(
+    when("2025-12-31T18:00:00.000Z", NOW),
+    "el 31/12/2025 a las 15:00",
+  );
+  assert.equal(when("nope", NOW), "");
+});
+
+test("listJoin reads like Spanish", () => {
+  assert.equal(listJoin(["a"]), "a");
+  assert.equal(listJoin(["a", "b"]), "a y b");
+  assert.equal(listJoin(["a", "b", "c"]), "a, b y c");
 });

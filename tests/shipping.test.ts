@@ -9,7 +9,6 @@ import {
   quoteBody,
   shippingFollowUp,
   shippingInput,
-  shippingProblem,
   shippingSummary,
   toMinor,
   zoneDetail,
@@ -348,26 +347,6 @@ test("pesos typed in the panel become minor units", () => {
   assert.equal(toMinor(null), null);
   assert.equal(toMinor(-1), null);
   assert.equal(toMinor("abc"), null);
-});
-
-test("the panel cannot save a shipping policy the API would reject", () => {
-  const ok = configured;
-  assert.equal(shippingProblem(ok), "");
-  assert.match(
-    shippingProblem({
-      ...ok,
-      pickup: { enabled: false, details: "" },
-      delivery: { ...ok.delivery, enabled: false },
-    }),
-    /retiro o el envío/,
-  );
-  assert.match(
-    shippingProblem({
-      ...ok,
-      delivery: { enabled: true, zones: [], freeFromMinor: null },
-    }),
-    /al menos una zona/,
-  );
 });
 
 test("settings PUT body sends shipping with expectedVersion, and omits it when absent", () => {

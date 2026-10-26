@@ -12,7 +12,6 @@ import {
   ApiError,
   OrderTransfer,
   PaymentMethods,
-  SETTINGS_CONFLICT,
   Settings,
   TransferApi,
   statusLabel,
@@ -27,6 +26,7 @@ import {
   defaultChoice,
   orderFulfillment,
   quoteBody,
+  shippingInput,
 } from "./shipping";
 import {
   CardApi,
@@ -68,6 +68,15 @@ import {
   needsOlder,
   ALERT_MAX_PAGES,
 } from "./settings-history";
+import {
+  SECTION_CONFLICT,
+  SECTION_SAVED,
+  applySection,
+  sameForm,
+  sectionForm,
+  type Forms,
+  type SectionId,
+} from "./settings-form";
 import {
   ORDERS_LINK_CODES,
   ORDER_CANCELLED,
@@ -891,13 +900,55 @@ export class CommerceService {
       this.notice.set("Pedido cancelado y stock restituido");
     });
   }
-  async saveSettings(settings: Settings) {
+  /**
+   * Saves one section of Configuración on top of the stored settings (T62). A 409 from a change
+   * to another section is retried once on the new copy, keeping what Piuma typed; when that same
+   * section changed, the form shows the stored values and the section explains why. Returns the
+   * message for the section, or "" when the failure went to the usual error notice.
+   */
+  async saveSettingsSection<K extends SectionId>(id: K, form: Forms[K]) {
+    let result = { ok: false, message: "" };
     await this.run(async () => {
-      const r = await this.transfers.saveSettings(settings);
-      this.settings.set(r.settings);
-      if (r.conflict) throw new Error(SETTINGS_CONFLICT);
-      this.notice.set("Configuración guardada");
+      let base = this.settings();
+      if (!base) return;
+      for (let attempt = 0; ; attempt++) {
+        const next = applySection(id, form, base);
+        let r: Awaited<ReturnType<TransferApi["saveSettings"]>>;
+        try {
+          r = await this.transfers.saveSettings({
+            ...next,
+            shipping: shippingInput(next.shipping),
+          });
+        } catch (e) {
+          if (e instanceof ApiError && e.code === "VALIDATION_ERROR")
+            throw new ApiError(
+              "No pudimos guardar: revisá los datos de esta sección y probá de nuevo.",
+              e.status,
+              e.code,
+            );
+          throw e;
+        }
+        if (!r.conflict) {
+          this.settings.set(r.settings);
+          result = { ok: true, message: SECTION_SAVED[id] };
+          break;
+        }
+        const fresh = r.settings;
+        if (
+          attempt === 0 &&
+          sameForm(sectionForm(id, base), sectionForm(id, fresh))
+        ) {
+          base = fresh;
+          continue;
+        }
+        this.settings.set(fresh);
+        result = { ok: false, message: SECTION_CONFLICT };
+        break;
+      }
+      // Saved already: a history that does not reload now stays as it was until the next visit.
+      await this.loadHistory().catch(devLog);
     });
+    return result;
   }
   async saveProduct(product: Product) {
     await this.run(async () => {

@@ -87,8 +87,6 @@ export const EXPIRY_PRINCIPALS = [
   "system:card-expiry",
   "system:pending-expiry",
 ];
-export const SETTINGS_CONFLICT =
-  "Otro cambio de configuración se guardó antes. Cargamos la versión actual: revisala y volvé a guardar.";
 export function transferOffered(methods: PaymentMethods | null) {
   return !!methods?.transfer.enabled && !!methods.transfer.instructions;
 }

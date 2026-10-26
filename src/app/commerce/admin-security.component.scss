@@ -1,4 +1,5 @@
-// Second factor enrollment and settings history (T28); split from commerce.component.scss
+// Second factor enrollment and the bank details alert (T28; the history moved to
+// admin-settings.component.scss in T62); split from commerce.component.scss
 // so each stylesheet stays within the component style budget.
 .second-factor {
   max-width: 700px;
@@ -35,29 +36,6 @@
 }
 .totp-form label {
   margin: 0;
-}
-.history {
-  margin-top: 1.5rem;
-}
-.history-entry {
-  border-top: 1px solid var(--color-border);
-  padding: 0.9rem 0;
-}
-.history-entry header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem 1rem;
-}
-.history-entry ul {
-  margin: 0.5rem 0 0;
-  padding-left: 1.1rem;
-}
-.history-entry li + li {
-  margin-top: 0.4rem;
-}
-.history-value {
-  display: block;
-  overflow-wrap: anywhere;
 }
 .security-alert {
   background: #fcf0ec;

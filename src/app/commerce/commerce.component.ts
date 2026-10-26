@@ -3,39 +3,31 @@ import {
   Component,
   computed,
   inject,
-  linkedSignal,
   signal,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { DomSanitizer } from "@angular/platform-browser";
 import { CommerceService, Order, Product } from "./commerce.service";
-import { Settings } from "./transfer";
-import { formatWhatsapp, normalizeWhatsapp } from "../core/whatsapp";
 import { WhatsappService } from "../services/whatsapp.service";
 import { WhatsappIconComponent } from "../shared/whatsapp-icon/whatsapp-icon.component";
 import { buyerCancellable, dateTime, reservedUntil } from "./orders";
 import { MAX_UNITS } from "./cart";
 import { groupSecret } from "./mfa";
 import { qrPath } from "./qr";
-import { changeRows, changedBy } from "./settings-history";
+import { AdminSettingsComponent } from "./admin-settings.component";
 import {
   DEPARTMENTS,
   PICKUP_FALLBACK,
   emptyAddress,
   isCoordinate,
   shippingFollowUp,
-  shippingInput,
-  shippingProblem,
   shippingSummary,
-  toMinor,
   zoneDetail,
-  type ShippingZone,
-  type ZonePricing,
 } from "./shipping";
 @Component({
   selector: "app-commerce",
   standalone: true,
-  imports: [FormsModule, WhatsappIconComponent],
+  imports: [FormsModule, WhatsappIconComponent, AdminSettingsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./commerce.component.html",
   styleUrls: ["./commerce.component.scss", "./admin-security.component.scss"],
@@ -69,22 +61,9 @@ export class CommerceComponent {
     groupSecret(this.shop.totp()?.secret ?? ""),
   );
   totpInput = "";
-  readonly historyRows = computed(() =>
-    this.shop.history().map((entry) => ({
-      entry,
-      by: changedBy(entry),
-      rows: changeRows(entry),
-    })),
-  );
   bankReference = "";
   cancelReason = "Transferencia no recibida";
-  /** Editable copy of the stored settings; replaced whenever the server sends new ones. */
-  readonly draft = linkedSignal<Settings | null>(() => {
-    const s = this.shop.settings();
-    return s && structuredClone(s);
-  });
   readonly whatsapp = inject(WhatsappService);
-  readonly whatsappPlaceholder = formatWhatsapp(this.whatsapp.number());
   readonly dateTime = dateTime;
   readonly reservedUntil = reservedUntil;
   readonly buyerCancellable = buyerCancellable;
@@ -93,8 +72,6 @@ export class CommerceComponent {
   readonly shippingFollowUp = shippingFollowUp;
   readonly zoneDetail = zoneDetail;
   readonly isCoordinate = isCoordinate;
-  readonly shippingProblem = shippingProblem;
-  readonly toMinor = toMinor;
   readonly departments = DEPARTMENTS;
   readonly pickupFallback = PICKUP_FALLBACK;
   /** Delivery address; sent only when the buyer picks a delivery zone. */
@@ -187,11 +164,14 @@ export class CommerceComponent {
   }
   showHistory() {
     this.openTab("settings");
-    requestAnimationFrame(() =>
-      document
-        .getElementById("settings-history")
-        ?.scrollIntoView({ behavior: "smooth" }),
-    );
+    // Configuración loads on demand: wait (up to ~2 s) for the history to be on screen.
+    let frames = 120;
+    const scroll = () => {
+      const history = document.getElementById("settings-history");
+      if (history) history.scrollIntoView({ behavior: "smooth" });
+      else if (--frames) requestAnimationFrame(scroll);
+    };
+    requestAnimationFrame(scroll);
   }
   /** Reference Piuma knows the order by: the transfer one, or the short id. */
   orderRef(order: Order) {
@@ -204,54 +184,10 @@ export class CommerceComponent {
       this.whatsapp.receiptLink(t, this.shop.money(t.amountMinor, t.currency))
     );
   }
-  /** Why the typed WhatsApp number cannot be saved, if anything (it is stored in E.164). */
-  whatsappProblem(number: string | null) {
-    return number?.trim() && !normalizeWhatsapp(number)
-      ? "Revisá el número: con código de país, por ejemplo " +
-          this.whatsappPlaceholder +
-          "."
-      : "";
-  }
-  normalizeWhatsapp(d: Settings) {
-    d.contact.whatsappNumber =
-      normalizeWhatsapp(d.contact.whatsappNumber) ?? d.contact.whatsappNumber;
-  }
-  saveSettings() {
-    // On success or 409 the service stores the server copy, which resets the draft.
-    const draft = this.draft();
-    if (draft)
-      void this.shop.saveSettings({
-        ...draft,
-        contact: {
-          whatsappNumber:
-            normalizeWhatsapp(draft.contact.whatsappNumber) ??
-            draft.contact.whatsappNumber,
-        },
-        shipping: shippingInput(draft.shipping),
-      });
-  }
   /** The API quoted this zone with the free-shipping threshold applied. */
   freeZone(zoneId: string) {
     const s = this.shop.quote()?.shipping;
     return s?.method === "delivery" && s.zoneId === zoneId && s.freeShipping;
-  }
-  addZone(d: Settings) {
-    d.shipping.delivery.zones.push({
-      id: "",
-      name: "",
-      priceMinor: 0,
-      leadTime: "",
-      pricing: "fixed",
-      note: "",
-    });
-  }
-  /** A coordinate zone charges nothing at checkout, so its cost goes back to 0. */
-  setPricing(zone: ShippingZone, pricing: ZonePricing) {
-    zone.pricing = pricing;
-    if (pricing === "coordinate") zone.priceMinor = 0;
-  }
-  removeZone(d: Settings, index: number) {
-    d.shipping.delivery.zones.splice(index, 1);
   }
   review(order: Order, action: "confirm" | "cancel") {
     this.reviewing.set({ id: order.id, action });

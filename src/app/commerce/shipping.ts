@@ -189,14 +189,6 @@ export function shippingFollowUp(order: {
     : "Con el pago confirmado, Piuma te escribe por WhatsApp para coordinar " +
         what;
 }
-/** Why the shipping section of the settings form cannot be saved yet, if anything. */
-export function shippingProblem(s: ShippingSettings) {
-  if (!s.pickup.enabled && !s.delivery.enabled)
-    return "Habilitá el retiro o el envío a domicilio.";
-  if (s.delivery.enabled && !s.delivery.zones.length)
-    return "Agregá al menos una zona antes de habilitar los envíos.";
-  return "";
-}
 /** Stable zone id derived from its name, unique among the given ids. */
 export function zoneId(name: string, taken: string[]) {
   const base =

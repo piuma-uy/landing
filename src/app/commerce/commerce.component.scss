@@ -410,19 +410,6 @@ details p {
 .pay-option small {
   overflow-wrap: anywhere;
 }
-.zone {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1rem 1rem 0.4rem;
-  margin: 0 0 1rem;
-}
-.add-zone {
-  margin-bottom: 1.2rem;
-}
-.form-problem {
-  color: var(--color-error);
-  font-size: 0.85rem;
-}
 .transfer-amount {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -482,9 +469,6 @@ details p {
 }
 .order .confirm-step {
   margin-top: 1rem;
-}
-.settings-form h2 {
-  margin-bottom: 1rem;
 }
 @media (max-width: 800px) {
   .cart-layout {
