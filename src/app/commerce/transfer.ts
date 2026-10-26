@@ -1,4 +1,5 @@
 // Bank transfer and shop settings (T23 contract). Framework-free so node --test can load it.
+import { deadline } from "./orders";
 import type { ShippingSettings } from "./shipping";
 export interface TransferInstructions {
   bank: string;
@@ -13,7 +14,12 @@ export interface OrderTransfer {
   instructions: TransferInstructions;
   amountMinor: number;
   currency: string;
+  /** What the buyer writes in the transfer concept: their phone since T70, before it the order code. */
   reference: string;
+  /** "phone" since T70; "order" (or absent, older API) when reference is the order code. */
+  referenceType?: "phone" | "order";
+  /** Hours the products are reserved for; absent on orders from before T70. */
+  holdHours?: number;
   expiresAt: string;
   whatsappUrl: string;
 }
@@ -87,6 +93,48 @@ export const EXPIRY_PRINCIPALS = [
   "system:card-expiry",
   "system:pending-expiry",
 ];
+/** Code Piuma knows the order by (mails, WhatsApp); the transfer reference before T70. */
+export const orderCode = (order: Pick<TransferOrder, "id">) =>
+  order.id.slice(0, 8).toUpperCase();
+/** The buyer quotes their phone in the transfer (T70) rather than the order code. */
+export const phoneReference = (t: Pick<OrderTransfer, "referenceType">) =>
+  t.referenceType === "phone";
+/** "Te reservamos los productos por 48 horas, hasta el martes 28/10 a las 18:58 (hora de Uruguay)." */
+export function reservationText(
+  t: Pick<OrderTransfer, "holdHours" | "expiresAt">,
+) {
+  const hours = t.holdHours
+    ? ` por ${t.holdHours} ${t.holdHours === 1 ? "hora" : "horas"},`
+    : "";
+  return `Te reservamos los productos${hours} hasta el ${deadline(t.expiresAt)} (hora de Uruguay).`;
+}
+/** The shop's promise once the money arrives: the mail is automatic, the call is Piuma's. */
+export const CONFIRMATION_PROMISE =
+  "Te confirmamos por mail y por teléfono apenas se acrediten los fondos.";
+/** Search of "Transferencias por confirmar" (T70): GET /admin/orders?status=pending_transfer. */
+export type TransferSearch = { phone: string } | { name: string };
+/**
+ * What the administrator typed: digits search by phone (the API ignores 0/+598 and spaces),
+ * anything else by name. null when it is too short to search (under 4 digits or 2 letters).
+ */
+export function transferSearch(input: string): TransferSearch | null {
+  const q = input.trim().slice(0, 100);
+  if (/^[+0-9 ().-]+$/.test(q))
+    return q.replace(/\D/g, "").length >= 4 ? { phone: q } : null;
+  return q.length >= 2 ? { name: q } : null;
+}
+/** Last 8 digits: the same phone typed with 0, +598 or spaces gives the same key. */
+export const phoneKey = (phone: string | undefined) =>
+  (phone ?? "").replace(/\D/g, "").slice(-8);
+/** How many of these orders share each phone, by phoneKey. */
+export function phoneCounts(orders: { contact?: { phone: string } }[]) {
+  const counts = new Map<string, number>();
+  for (const o of orders) {
+    const key = phoneKey(o.contact?.phone);
+    if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
+}
 export function transferOffered(methods: PaymentMethods | null) {
   return !!methods?.transfer.enabled && !!methods.transfer.instructions;
 }
@@ -157,13 +205,19 @@ export class TransferApi {
   paymentMethods() {
     return this.request<PaymentMethods>("/payment-methods");
   }
-  /** Every page of transfers awaiting confirmation, soonest expiry first. */
-  async pending<T extends TransferOrder>() {
+  /** Every page of transfers awaiting confirmation, soonest expiry first; optionally searched. */
+  async pending<T extends TransferOrder>(search?: TransferSearch) {
     const rows: T[] = [];
+    const filter = search
+      ? Object.entries(search)
+          .map(([k, v]) => `&${k}=${encodeURIComponent(v)}`)
+          .join("")
+      : "";
     let cursor: string | undefined;
     do {
       const page: { items: T[]; nextCursor?: string } = await this.request(
         "/admin/orders?status=pending_transfer" +
+          filter +
           (cursor ? "&cursor=" + encodeURIComponent(cursor) : ""),
       );
       rows.push(...page.items);

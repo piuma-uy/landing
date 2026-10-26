@@ -11,6 +11,7 @@ import {
   TOO_MANY_OPEN_ORDERS,
   checkoutLimitMessage,
   dateTime,
+  deadline,
   reservedUntil,
 } from "../src/app/commerce/orders.ts";
 
@@ -106,4 +107,17 @@ test("cancellation refusals explain what happened (R5)", () => {
   // Anything else keeps the API message (404, 502/503 of the provider…).
   assert.equal(cancelErrorMessage("NOT_FOUND"), null);
   assert.equal(cancelErrorMessage(undefined), null);
+});
+
+test("deadlines name the weekday, in Montevideo time", () => {
+  assert.equal(
+    deadline("2026-10-28T21:58:00.000Z"),
+    "miércoles 28/10 a las 18:58",
+  );
+  assert.equal(
+    deadline("2026-10-27T03:30:00.000Z"),
+    "martes 27/10 a las 00:30",
+  );
+  assert.equal(deadline(undefined), "");
+  assert.equal(deadline("no-date"), "");
 });

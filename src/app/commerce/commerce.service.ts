@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  computed,
-  inject,
-  isDevMode,
-  signal,
-} from "@angular/core";
+import { Injectable, computed, inject, isDevMode, signal } from "@angular/core";
 import { RUNTIME_CONFIG } from "./config";
 import { CognitoAuth, decodeJwt } from "./cognito";
 import { AnalyticsService } from "../services/analytics.service";
@@ -14,8 +8,10 @@ import {
   PaymentMethods,
   Settings,
   TransferApi,
+  orderCode,
   statusLabel,
   transferOffered,
+  transferSearch,
 } from "./transfer";
 import {
   Address,
@@ -233,6 +229,10 @@ export class CommerceService {
   readonly adminProducts = signal<Product[]>([]);
   readonly adminOrders = signal<Order[]>([]);
   readonly pendingTransfers = signal<Order[]>([]);
+  /** Search of "Transferencias por confirmar" (T70): what was searched and what the API found. */
+  readonly transferSearch = signal<{ query: string; items: Order[] } | null>(
+    null,
+  );
   readonly settings = signal<Settings | null>(null);
   /** The API refused /admin/* with MFA_REQUIRED: the panel shows only the TOTP enrollment. */
   readonly mfaRequired = signal(false);
@@ -382,14 +382,12 @@ export class CommerceService {
     this.adminProducts.set([]);
     this.metrics.set([]);
     this.pendingTransfers.set([]);
+    this.transferSearch.set(null);
     this.settings.set(null);
     this.history.set([]);
     this.historyCursor.set(undefined);
   }
-  private readonly enrollment = new TotpEnrollment(
-    safeFetch,
-    decodeJwt,
-  );
+  private readonly enrollment = new TotpEnrollment(safeFetch, decodeJwt);
   private readonly transfers = new TransferApi((path, method, body) =>
     this.request(path, method, body),
   );
@@ -980,22 +978,50 @@ export class CommerceService {
     });
   }
 
+  /** Searches pending transfers by phone (digits) or name; an empty box shows them all. */
+  async searchTransfers(input: string) {
+    if (!input.trim()) return this.clearTransferSearch();
+    const search = transferSearch(input);
+    // Enter while the panel still loads: search once it finishes instead of dropping it.
+    await this.load(async () => {
+      if (!search)
+        throw new Error(
+          "Escribí al menos 4 números del teléfono o 2 letras del nombre.",
+        );
+      this.transferSearch.set({
+        query: input.trim(),
+        items: await this.transfers.pending<Order>(search),
+      });
+    });
+  }
+  clearTransferSearch() {
+    this.transferSearch.set(null);
+  }
+  /** After a confirmation or cancellation: the full list and the open search. */
+  private async reloadTransfers() {
+    const query = this.transferSearch()?.query;
+    const search = query ? transferSearch(query) : null;
+    const [all, found] = await Promise.all([
+      this.transfers.pending<Order>(),
+      search ? this.transfers.pending<Order>(search) : null,
+    ]);
+    this.pendingTransfers.set(all);
+    if (query && found) this.transferSearch.set({ query, items: found });
+  }
   async confirmTransfer(order: Order, bankReference: string) {
     await this.run(async () => {
       await this.transfers.confirm(order, bankReference);
-      this.pendingTransfers.set(await this.transfers.pending<Order>());
+      await this.reloadTransfers();
       this.metrics.set(await this.pages<Metric>("/admin/metrics"));
       this.notice.set(
-        "Acreditación confirmada. Pedido " +
-          (order.transfer?.reference ?? order.id.slice(0, 8)) +
-          " pagado",
+        "Acreditación confirmada. Pedido " + orderCode(order) + " pagado",
       );
     });
   }
   async cancelTransfer(order: Order, reason: string) {
     await this.run(async () => {
       await this.transfers.cancel(order, reason);
-      this.pendingTransfers.set(await this.transfers.pending<Order>());
+      await this.reloadTransfers();
       await this.reloadProducts();
       this.notice.set("Pedido cancelado y stock restituido");
     });

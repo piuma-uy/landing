@@ -102,8 +102,13 @@ test("a server link wins when it is https wa.me; anything else falls back", () =
 
 test("prefilled messages carry reference, amount, product and size", () => {
   assert.equal(
-    receiptMessage("Piuma", "ABCD1234", "$ 3.000,50"),
+    receiptMessage("Piuma", "ABCD1234", "ABCD1234", "$ 3.000,50"),
     "¡Hola Piuma! Te envío el comprobante de la transferencia del pedido ABCD1234 por $ 3.000,50.",
+  );
+  // T70: the phone is the reference; the order code tells apart orders of one phone.
+  assert.equal(
+    receiptMessage("Piuma", "ABCD1234", "091 813 234", "$ 3.000,50"),
+    "¡Hola Piuma! Te envío el comprobante de la transferencia de $ 3.000,50 del pedido ABCD1234, con la referencia 091 813 234.",
   );
   assert.equal(
     productMessage(
