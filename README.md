@@ -48,7 +48,7 @@ Los formularios son los mismos en Docker (`"cookie"`), con sólo ingreso y regis
     "loginUrl": "<login_url>",
     "clientId": "<client_id>",
     "redirectUri": "https://<origen>/",
-    "logoutUri": "https://<origen>/",
+    "logoutUri": "https://<origen>",
     "issuer": "<cognito_issuer>",
     "google": false
   }
@@ -56,7 +56,8 @@ Los formularios son los mismos en Docker (`"cookie"`), con sólo ingreso y regis
 ```
 
 Todos son valores públicos (outputs de Terraform); nunca va un secreto. `redirectUri`/`logoutUri` son opcionales
-(por defecto, el origen con `/`) y deben estar registrados en `callback_urls`/`logout_urls` del cliente Cognito.
+(por defecto, el origen con `/` y el origen sin `/`) y deben estar registrados **tal cual** en `callback_urls`/`logout_urls`
+del cliente Cognito: con otro carácter, la salida de la hosted UI termina en su página de error (T61c).
 Con `issuer` (`https://cognito-idp.<región>.amazonaws.com/<pool>`) el `iss` del `id_token` tiene que coincidir;
 además se exige `aud` (string o lista con el `clientId`) y `exp` vigente, con 5 min de tolerancia de reloj.
 
