@@ -58,6 +58,17 @@
         @case ("cart") {
           <span class="eyebrow">Elegido para tu descanso</span>
           <h1>Tu carrito</h1>
+          @if (shop.completed() || shop.cart().length) {
+            <!-- Dónde está la compra: carrito → entrega y pago → confirmación. -->
+            <!-- Con el pedido hecho, el gracias va arriba y "qué pasa ahora" abajo, fuera de los
+                 paneles de pago (el de transferencia es de T70). -->
+            @defer (on immediate) {
+              <app-checkout-steps [step]="checkoutStep()" />
+              @if (shop.completed(); as order) {
+                <app-receipt-thanks [order]="order" />
+              }
+            }
+          }
           @if (shop.completed(); as order) {
             @if (order.transfer; as t) {
               <div class="panel receipt transfer">
@@ -271,60 +282,27 @@
                 </div>
               </div>
             }
+            @defer (on immediate) {
+              <div class="panel receipt">
+                <app-receipt-next [order]="order" [steps]="nextSteps(order)" />
+              </div>
+            }
           } @else if (!shop.cart().length) {
             <div class="panel empty">
-              <h2>Tu próximo descanso empieza acá</h2>
-              <p class="muted">Todavía no agregaste productos al carrito.</p>
-              <button class="btn btn--primary" (click)="shop.open('shop')">
-                Explorar la colección
-              </button>
+              @defer (on immediate) {
+                <app-empty-state
+                  title="Tu próximo descanso empieza acá"
+                  text="Todavía no agregaste productos. Mirá acolchados, sábanas y almohadas, o contanos qué buscás y te ayudamos a elegir la medida."
+                  actionLabel="Explorar la colección"
+                  (action)="shop.open('shop')"
+                />
+              }
             </div>
           } @else {
             <div class="cart-layout">
-              <div class="cart-lines">
-                @for (line of shop.cartRows(); track line.sku) {
-                  <article class="cart-line panel">
-                    @if (line.product; as p) {
-                      <img [src]="p.image" [alt]="p.name" />
-                      <div>
-                        <h3>{{ p.name }}</h3>
-                        <p class="muted">{{ p.size }} · {{ p.color }}</p>
-                        <strong>{{
-                          shop.money(p.priceMinor, p.currency)
-                        }}</strong>
-                        <p class="muted small">{{ p.stock }} disponibles</p>
-                      </div>
-                    } @else {
-                      <div>
-                        <h3>Producto no disponible</h3>
-                        <p class="muted">
-                          Retiralo del carrito para continuar.
-                        </p>
-                      </div>
-                    }
-                    <div class="quantity">
-                      <label [for]="'qty-' + line.sku">Cantidad</label
-                      ><input
-                        [id]="'qty-' + line.sku"
-                        type="number"
-                        min="1"
-                        [max]="maxUnits"
-                        [value]="line.quantity"
-                        [disabled]="shop.busy()"
-                        (change)="
-                          shop.quantity(line.sku, +$any($event.target).value)
-                        "
-                      /><button
-                        class="text-button"
-                        [disabled]="shop.busy()"
-                        (click)="shop.quantity(line.sku, 0)"
-                      >
-                        Quitar
-                      </button>
-                    </div>
-                  </article>
-                }
-              </div>
+              @defer (on immediate) {
+                <app-cart-lines />
+              }
               <aside class="panel summary">
                 <form
                   #checkoutForm="ngForm"
@@ -487,13 +465,15 @@
             <p role="status">Cargando pedidos…</p>
           } @else if (!shop.orders().length) {
             <div class="panel empty">
-              <h2>Todavía no hay pedidos</h2>
-              <p class="muted">
-                Cuando hagas un pedido, lo vas a ver acá con su estado.
-              </p>
-              <button class="btn btn--primary" (click)="shop.open('shop')">
-                Ver colección
-              </button>
+              @defer (on immediate) {
+                <app-empty-state
+                  icon="list"
+                  title="Todavía no hay pedidos"
+                  text="Cuando hagas un pedido lo vas a ver acá, con cada paso: el pago, la confirmación y la entrega."
+                  actionLabel="Ver colección"
+                  (action)="shop.open('shop')"
+                />
+              }
             </div>
           } @else {
             @for (order of shop.orders().slice().reverse(); track order.id) {
@@ -511,20 +491,14 @@
                     >{{ shop.status(order) }}</span
                   >
                 </header>
-                <ul>
-                  @for (line of order.items; track line.sku) {
-                    <li>
-                      {{ line.quantity }} × {{ line.name }} · {{ line.size }} ·
-                      {{ line.color
-                      }}<strong>{{
-                        shop.money(
-                          line.priceMinor * line.quantity,
-                          order.currency
-                        )
-                      }}</strong>
-                    </li>
-                  }
-                </ul>
+                <!-- Dónde está el pedido: recibido → pago → retiro o entrega. -->
+                @defer (on immediate) {
+                  <app-order-progress
+                    [order]="order"
+                    [status]="shop.status(order)"
+                  />
+                  <app-order-lines [order]="order" />
+                }
                 <p class="small shipping-line">
                   {{ shippingSummary(order.shipping) }}
                   @if (order.shipping?.method === "delivery") {

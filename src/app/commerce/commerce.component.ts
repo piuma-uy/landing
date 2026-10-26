@@ -20,7 +20,15 @@ import {
   phoneReference,
   reservationText,
 } from "./transfer";
-import { MAX_UNITS } from "./cart";
+import {
+  CartLinesComponent,
+  CheckoutStepsComponent,
+  EmptyStateComponent,
+  OrderLinesComponent,
+  OrderProgressComponent,
+  ReceiptNextComponent,
+  ReceiptThanksComponent,
+} from "./order-extras/order-extras";
 import { groupSecret } from "./mfa";
 import { qrPath } from "./qr";
 import { AdminSettingsComponent } from "./admin-settings.component";
@@ -40,6 +48,13 @@ import { DeliveryComponent } from "./delivery/delivery.component";
     AdminSettingsComponent,
     AccountComponent,
     DeliveryComponent,
+    CheckoutStepsComponent,
+    CartLinesComponent,
+    EmptyStateComponent,
+    OrderProgressComponent,
+    OrderLinesComponent,
+    ReceiptThanksComponent,
+    ReceiptNextComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./commerce.component.html",
@@ -87,9 +102,34 @@ export class CommerceComponent {
   readonly reservationText = reservationText;
   readonly confirmationPromise = CONFIRMATION_PROMISE;
   readonly buyerCancellable = buyerCancellable;
-  readonly maxUnits = MAX_UNITS;
   readonly shippingSummary = shippingSummary;
   readonly shippingFollowUp = shippingFollowUp;
+  /** 0 cart, 1 reviewed (shipping and payment on screen), 2 order created. */
+  readonly checkoutStep = computed(() =>
+    this.shop.completed() ? 2 : this.shop.quote() ? 1 : 0,
+  );
+  /** "Qué pasa ahora" de la confirmación, según cómo se paga. */
+  nextSteps(order: Order) {
+    const handover = `Te escribimos por WhatsApp para coordinar ${
+      order.shipping?.method === "delivery" ? "la entrega" : "el retiro"
+    }.`;
+    if (order.transfer)
+      return [
+        phoneReference(order.transfer)
+          ? `Transferí el monto exacto con tu teléfono ${order.transfer.reference} como referencia.`
+          : `Transferí el monto exacto con la referencia ${order.transfer.reference}.`,
+        "Mandanos el comprobante por WhatsApp.",
+        CONFIRMATION_PROMISE,
+        handover,
+      ];
+    if (order.paymentMethod === "card")
+      return [
+        "Pagás en el sitio seguro de Mercado Pago.",
+        "Te avisamos por mail cuando se apruebe el pago.",
+        handover,
+      ];
+    return [];
+  }
   /** Delivery address; sent only when the buyer picks a delivery zone. */
   address = emptyAddress();
   /** "Gratis (Pocitos)", "A coordinar", "Sin costo"… for the summary. */

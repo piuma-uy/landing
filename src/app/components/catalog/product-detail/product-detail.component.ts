@@ -1,24 +1,46 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
   computed,
   inject,
   input,
   output,
   signal,
+  viewChild,
 } from "@angular/core";
 import { LowerCasePipe } from "@angular/common";
 import { Photo, ProductType, Variant } from "../../../models/catalog.model";
 import { WhatsappService } from "../../../services/whatsapp.service";
 import { WhatsappIconComponent } from "../../../shared/whatsapp-icon/whatsapp-icon.component";
+import {
+  BuyBarComponent,
+  PhotoZoomComponent,
+  ProductBenefitsComponent,
+  ProductMoreComponent,
+} from "./product-extras";
 import { CommerceService } from "../../../commerce/commerce.service";
 import { swatchFor } from "../../../core/color-swatches";
 import { policyTeaser } from "../../../core/shipping-policy";
+import {
+  colorSoldOut,
+  sizeSoldOut,
+  stockLabel,
+} from "../../../core/product-info";
 
 @Component({
   selector: "app-product-detail",
   standalone: true,
-  imports: [LowerCasePipe, WhatsappIconComponent],
+  imports: [
+    LowerCasePipe,
+    WhatsappIconComponent,
+    BuyBarComponent,
+    PhotoZoomComponent,
+    ProductBenefitsComponent,
+    ProductMoreComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./product-detail.component.html",
   styleUrl: "./product-detail.component.scss",
@@ -37,9 +59,31 @@ export class ProductDetailComponent {
   private readonly whatsapp = inject(WhatsappService);
   /** "Envío gratis en Carrasco, Pocitos y más", con las zonas del API cuando ya respondió. */
   readonly shippingTeaser = computed(() => policyTeaser(this.shop.policy()));
+  readonly sizeSoldOut = sizeSoldOut;
+  readonly colorSoldOut = colorSoldOut;
+  readonly stockInfo = computed(() => stockLabel(this.stock()));
+  /** Barra fija del teléfono: visible con la ficha en pantalla y su botón de compra fuera. */
+  readonly barShown = signal(false);
+  private readonly detailRef = viewChild.required<ElementRef<HTMLElement>>("detail");
+  private readonly actionsRef = viewChild.required<ElementRef<HTMLElement>>("actions");
 
   constructor() {
     this.shop.loadPolicy();
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      if (!("IntersectionObserver" in window)) return;
+      const seen = new Map<Element, boolean>();
+      const observer = new IntersectionObserver((entries) => {
+        for (const e of entries) seen.set(e.target, e.isIntersecting);
+        this.barShown.set(
+          !!seen.get(this.detailRef().nativeElement) &&
+            !seen.get(this.actionsRef().nativeElement),
+        );
+      });
+      observer.observe(this.detailRef().nativeElement);
+      observer.observe(this.actionsRef().nativeElement);
+      destroyRef.onDestroy(() => observer.disconnect());
+    });
   }
 
   readonly type = input.required<ProductType>();
@@ -57,10 +101,6 @@ export class ProductDetailComponent {
 
   readonly availableColors = computed(() => this.variant().colors);
 
-  /** Medidas que informan peso. Vacío en todo lo que no sea acolchado. */
-  readonly weights = computed(() =>
-    this.type().variants.filter((variant) => variant.weightGrams !== undefined),
-  );
 
   /**
    * Al cambiar de medida el color elegido puede dejar de existir (King no viene en azul).

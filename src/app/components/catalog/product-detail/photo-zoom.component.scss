@@ -1,0 +1,85 @@
+// Cubre la foto entera: tocarla en cualquier parte la amplía.
+.trigger {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+
+  &:focus-visible {
+    outline-offset: -4px;
+  }
+}
+
+.hint {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: rgba(251, 248, 244, 0.9);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+
+  svg {
+    width: 1.3rem;
+    height: 1.3rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+  }
+}
+
+.zoom {
+  width: 100%;
+  max-width: min(100vw, 900px);
+  max-height: 100dvh;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-out;
+
+  &::backdrop {
+    background-color: rgba(47, 44, 41, 0.88);
+  }
+
+  img {
+    width: 100%;
+    max-height: 100dvh;
+    object-fit: contain;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    &[open] {
+      animation: zoom-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+  }
+}
+
+@keyframes zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.zoom__close {
+  position: fixed;
+  top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  right: 0.5rem;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}

@@ -1,0 +1,44 @@
+@if (type().includes; as includes) {
+  <p class="detail__includes">{{ includes }}</p>
+}
+
+@if (type().longDescription; as paragraphs) {
+  <div class="detail__long">
+    @if (type().longDescriptionTitle; as longTitle) {
+      <h4 class="detail__long-title">{{ longTitle }}</h4>
+    }
+    @for (paragraph of paragraphs; track $index) {
+      <p>{{ paragraph }}</p>
+    }
+  </div>
+}
+
+@if (type().features; as features) {
+  <ul class="features">
+    @for (feature of features; track feature) {
+      <li class="features__item">{{ feature }}</li>
+    }
+  </ul>
+}
+
+<!-- Sólo los acolchados traen peso; el resto de los productos no muestra este bloque. -->
+@if (weights().length) {
+  <section class="weights">
+    <h4 class="weights__title">Peso por medida</h4>
+    <table class="weights__table">
+      <tbody>
+        @for (option of weights(); track option.size) {
+          <tr
+            [class.weights__row--active]="
+              option.size === size()
+            "
+          >
+            <th scope="row">{{ option.size }}</th>
+            <td class="weights__size">{{ option.productSize }}</td>
+            <td class="weights__value">{{ option.weightGrams }} g</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}

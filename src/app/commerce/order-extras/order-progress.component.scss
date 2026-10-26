@@ -1,0 +1,72 @@
+// Puntos unidos por una línea: hecho (tilde), en curso (anillo) y lo que falta (gris).
+.progress {
+  display: flex;
+  margin: 1.25rem 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+.progress__step {
+  position: relative;
+  flex: 1;
+  padding-top: 1.9rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--color-text-muted);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: #fff;
+    font-size: 0.7rem;
+  }
+
+  &:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: calc(0.675rem - 1px);
+    left: 1.35rem;
+    right: 0.25rem;
+    height: 2px;
+    background: var(--color-border);
+  }
+
+  &[data-state="done"] {
+    color: var(--color-text);
+
+    &::before {
+      content: "✓";
+      border-color: var(--color-primary-dark);
+      background: var(--color-primary-dark);
+    }
+    &::after {
+      background: var(--color-primary);
+    }
+  }
+
+  &[data-state="current"] {
+    color: var(--color-text);
+    font-weight: 600;
+
+    &::before {
+      border-color: var(--color-primary-dark);
+      box-shadow: 0 0 0 4px var(--color-secondary);
+    }
+  }
+
+  &[data-state="cancelled"]::before {
+    content: "×";
+    border-color: var(--color-text-muted);
+    background: var(--color-text-muted);
+    font-size: 0.85rem;
+  }
+}

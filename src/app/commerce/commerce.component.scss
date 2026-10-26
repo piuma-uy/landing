@@ -86,35 +86,6 @@ input:read-only {
   grid-template-columns: 1fr 320px;
   gap: 1.5rem;
 }
-.cart-line {
-  display: grid;
-  grid-template-columns: 90px 1fr 85px;
-  gap: 1rem;
-  align-items: start;
-}
-.cart-line img {
-  width: 90px;
-  height: 110px;
-  object-fit: cover;
-  border-radius: var(--radius-md);
-}
-.cart-line h3 {
-  font-size: 1.05rem;
-}
-.cart-line p {
-  margin-bottom: 0.3rem;
-}
-.quantity {
-  display: grid;
-  gap: 0.3rem;
-}
-.quantity label {
-  font-size: 0.8rem;
-  margin: 0;
-}
-.quantity input {
-  padding: 0.5rem;
-}
 .summary {
   height: fit-content;
   position: sticky;
@@ -136,21 +107,6 @@ input:read-only {
 .order h2 {
   font-size: 1.2rem;
   margin: 0;
-}
-.order ul {
-  list-style: none;
-  padding: 0;
-}
-.order li {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.7rem 0;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.9rem;
-}
-.order li strong {
-  white-space: nowrap;
 }
 .order-bottom {
   display: flex;
@@ -477,18 +433,6 @@ details p {
   }
 }
 @media (max-width: 480px) {
-  .cart-line {
-    grid-template-columns: 65px 1fr;
-  }
-  .cart-line img {
-    width: 65px;
-    height: 85px;
-  }
-  .quantity {
-    grid-column: 2;
-    grid-template-columns: 1fr 60px 1fr;
-    align-items: center;
-  }
   .panel {
     padding: 1rem;
   }
@@ -498,7 +442,6 @@ details p {
   .form-grid {
     grid-template-columns: 1fr;
   }
-  .order li,
   .order-bottom {
     flex-wrap: wrap;
   }
@@ -521,7 +464,8 @@ details p {
 // max(48px, 3rem) cubre el alto del botón aunque se agrande la letra (T63b).
 .preview-label {
   position: fixed;
-  bottom: calc(var(--space-sm) + max(48px, 3rem) + var(--space-xs) + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--space-sm) + max(48px, 3rem) + var(--space-xs) + env(safe-area-inset-bottom, 0px) + var(--buy-bar-offset, 0px));
+  transition: bottom 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
   right: var(--space-sm);
   z-index: 100;
   padding: 0.2rem 0.7rem;

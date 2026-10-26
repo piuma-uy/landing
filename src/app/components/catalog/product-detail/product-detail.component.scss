@@ -31,7 +31,8 @@
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  // clip y no hidden: hidden crea un contenedor de scroll y apaga el sticky de la foto.
+  overflow: clip;
 
   @include from(v.$bp-md) {
     grid-template-columns: 1fr 1fr;
@@ -42,13 +43,19 @@
 .detail__media {
   display: flex;
   flex-direction: column;
+
+  // En pantallas anchas la foto acompaña mientras se leen los detalles.
+  @include from(v.$bp-md) {
+    position: sticky;
+    top: var(--header-height);
+    align-self: start;
+  }
 }
 
 .detail__photo {
   position: relative;
   background-color: var(--color-secondary);
   aspect-ratio: 4 / 5;
-  flex: 1;
 
   img {
     width: 100%;
@@ -76,8 +83,8 @@
 
 .thumbs__item {
   flex: 0 0 auto;
-  width: 60px;
-  height: 75px;
+  width: 64px;
+  height: 80px;
   padding: 0;
   overflow: hidden;
   background: none;
@@ -140,53 +147,53 @@
 
 .detail__description {
   color: var(--color-text-muted);
-  margin-bottom: 0.4rem;
-}
-
-.detail__includes {
-  font-size: 0.85rem;
-  font-style: italic;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-md);
-}
-
-.detail__long-title {
-  font-family: var(--font-heading);
-  font-size: 1.02rem;
-  line-height: 1.35;
-  margin-bottom: 0.5rem;
-}
-
-.detail__long {
   margin-bottom: var(--space-sm);
-
-  p {
-    font-size: 0.92rem;
-    line-height: 1.65;
-    color: var(--color-text-muted);
-    margin-bottom: 0.75rem;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
 }
 
-.features {
+// Precio y stock, juntos y arriba de los selectores.
+.detail__buy {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  list-style: none;
-  margin: 0 0 var(--space-md);
-  padding: 0;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding-block: var(--space-sm);
+  margin-bottom: var(--space-md);
+  border-block: 1px solid var(--color-border);
 }
 
-.features__item {
-  padding: 0.3rem 0.7rem;
-  background-color: var(--color-secondary);
-  border-radius: 999px;
-  font-size: 0.78rem;
+.detail__stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 0.88rem;
   color: var(--color-text);
+
+  // Punto de estado; el texto dice lo mismo, el color sólo acompaña.
+  &::before {
+    content: "";
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background-color: var(--color-success);
+  }
+
+  &[data-tone="low"] {
+    color: var(--color-primary-dark);
+    font-weight: 500;
+
+    &::before {
+      background-color: var(--color-primary);
+    }
+  }
+
+  &[data-tone="out"] {
+    color: var(--color-text-muted);
+
+    &::before {
+      background-color: var(--color-border);
+    }
+  }
 }
 
 // --- Selectores ------------------------------------------------
@@ -199,11 +206,20 @@
 
 .selector__legend {
   padding: 0;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
   font-size: 0.76rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+}
+
+// Lo elegido, al lado del título del grupo ("MEDIDA  Queen").
+.selector__picked {
+  margin-left: 0.4rem;
+  font-size: 0.9rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text);
 }
 
 .selector__options {
@@ -219,14 +235,16 @@
 }
 
 .chip {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.1rem;
-  padding: 0.5rem 0.85rem;
+  min-height: 44px;
+  padding: 0.55rem 0.95rem;
   background-color: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-family: var(--font-body);
   color: var(--color-text);
@@ -238,10 +256,48 @@
     border-color: var(--color-accent);
   }
 
+  // Elegida: borde doble en terracota y tilde, para que se lea sin depender del fondo.
   &--active {
     border-color: var(--color-primary);
     background-color: var(--color-secondary);
+    box-shadow: inset 0 0 0 1px var(--color-primary);
+
+    .chip__label {
+      font-weight: 600;
+    }
+
+    &::after {
+      content: "✓";
+      position: absolute;
+      top: -0.45rem;
+      right: -0.45rem;
+      display: grid;
+      place-items: center;
+      width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 50%;
+      background-color: var(--color-primary-dark);
+      color: #fff;
+      font-size: 0.65rem;
+    }
   }
+
+  // Agotada: se puede elegir (para ver el precio o consultar), pero se lee apagada.
+  &--out {
+    border-style: dashed;
+
+    .chip__label,
+    .chip__size {
+      color: var(--color-text-muted);
+    }
+  }
+}
+
+.chip__out {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary-dark);
 }
 
 .chip__label {
@@ -252,64 +308,6 @@
 .chip__size {
   font-size: 0.74rem;
   color: var(--color-text-muted);
-}
-
-// --- Peso por medida ---------------------------------------------
-// Bloque propio, fuera del selector: el peso es información de referencia,
-// no algo que se elija, y dentro del chip agrandaba los botones.
-.weights {
-  margin: 0 0 var(--space-md);
-}
-
-.weights__title {
-  font-size: 0.76rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  margin-bottom: 0.5rem;
-}
-
-.weights__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-
-  th,
-  td {
-    padding: 0.4rem 0.5rem;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  tr:last-child th,
-  tr:last-child td {
-    border-bottom: 0;
-  }
-
-  th {
-    font-weight: 500;
-    color: var(--color-text);
-  }
-}
-
-.weights__size {
-  color: var(--color-text-muted);
-}
-
-.weights__value {
-  text-align: right;
-  white-space: nowrap;
-  color: var(--color-text);
-}
-
-// Resalta la fila de la medida elegida, para atar la tabla al selector de arriba.
-.weights__row--active {
-  background-color: var(--color-secondary);
-
-  // Sobre el beige el terracota no llega a AA: el fondo ya marca la fila, el peso la refuerza.
-  .weights__value {
-    font-weight: 600;
-  }
 }
 
 .swatch {
@@ -336,6 +334,17 @@
   &--active {
     border-color: var(--color-primary);
     background-color: var(--color-secondary);
+    box-shadow: inset 0 0 0 1px var(--color-primary);
+    font-weight: 500;
+  }
+
+  &--out {
+    border-style: dashed;
+    color: var(--color-text-muted);
+
+    .swatch__name {
+      text-decoration: line-through;
+    }
   }
 }
 
@@ -349,15 +358,16 @@
 
 .detail__price {
   font-family: var(--font-heading);
-  font-size: 1.9rem;
-  margin: 0 0 var(--space-sm);
+  font-size: 2.2rem;
+  line-height: 1.1;
+  margin: 0;
 }
 
 .detail__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.85rem;
-  margin-top: 1rem;
+  margin-top: var(--space-md);
 }
 
 .detail__shipping {

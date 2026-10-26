@@ -34,6 +34,16 @@ html {
   overflow: hidden;
 }
 
+// Barra fija de compra de la ficha (teléfono) a la vista: lo que flota abajo (WhatsApp, rótulo de
+// prueba) sube su alto para no taparla.
+body:has(.buy-bar--shown) {
+  --buy-bar-offset: 4.25rem;
+
+  @media (min-width: 768px) {
+    --buy-bar-offset: 0px;
+  }
+}
+
 // Radios y checkboxes con el tono de la marca en vez del azul del navegador.
 :root {
   accent-color: var(--color-primary-dark);

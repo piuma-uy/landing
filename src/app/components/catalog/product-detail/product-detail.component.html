@@ -1,4 +1,4 @@
-<article class="detail">
+<article class="detail" #detail>
   <button type="button" class="detail__back" (click)="back.emit()">
     <span aria-hidden="true">←</span> Volver a {{ categoryName() }}
   </button>
@@ -12,6 +12,13 @@
           width="800"
           height="1000"
         />
+        <!-- Tocar la foto la abre a pantalla completa (diferido: llega apenas se abre la ficha). -->
+        @defer (on immediate) {
+          <app-photo-zoom
+            [src]="displayedPhoto().src"
+            [alt]="displayedPhoto().alt"
+          />
+        }
         @if (imageIsReference()) {
           <p class="detail__image-note">
             Foto de referencia — todavía no tenemos foto propia en
@@ -56,43 +63,36 @@
 
       <p class="detail__description">{{ type().description }}</p>
 
-      @if (type().includes; as includes) {
-        <p class="detail__includes">{{ includes }}</p>
-      }
-
-      @if (type().longDescription; as paragraphs) {
-        <div class="detail__long">
-          @if (type().longDescriptionTitle; as longTitle) {
-            <h4 class="detail__long-title">{{ longTitle }}</h4>
-          }
-          @for (paragraph of paragraphs; track $index) {
-            <p>{{ paragraph }}</p>
-          }
-        </div>
-      }
-
-      @if (type().features; as features) {
-        <ul class="features">
-          @for (feature of features; track feature) {
-            <li class="features__item">{{ feature }}</li>
-          }
-        </ul>
-      }
+      <!-- Precio y disponibilidad arriba: lo primero que se busca, sin bajar hasta el final. -->
+      <div class="detail__buy">
+        <p class="detail__price">{{ formattedPrice() }}</p>
+        @if (shop.selling()) {
+          <p class="detail__stock" [attr.data-tone]="stockInfo().tone">
+            {{ stockInfo().text }}
+          </p>
+        }
+      </div>
 
       <!-- Selector de medida: el precio se actualiza con lo elegido. -->
       <fieldset class="selector">
-        <legend class="selector__legend">Medida</legend>
+        <legend class="selector__legend">
+          Medida <span class="selector__picked">{{ variant().size }}</span>
+        </legend>
         <div class="selector__options">
           @for (option of type().variants; track option.size; let i = $index) {
             <button
               type="button"
               class="chip"
               [class.chip--active]="i === selectedSizeIndex()"
+              [class.chip--out]="sizeSoldOut(option)"
               [attr.aria-pressed]="i === selectedSizeIndex()"
               (click)="selectSize(i)"
             >
               <span class="chip__label">{{ option.size }}</span>
               <span class="chip__size">{{ option.productSize }}</span>
+              @if (sizeSoldOut(option)) {
+                <span class="chip__out">Agotado</span>
+              }
             </button>
           }
         </div>
@@ -101,37 +101,24 @@
         }
       </fieldset>
 
-      <!-- Sólo los acolchados traen peso; el resto de los productos no muestra este bloque. -->
-      @if (weights().length) {
-        <section class="weights">
-          <h4 class="weights__title">Peso por medida</h4>
-          <table class="weights__table">
-            <tbody>
-              @for (option of weights(); track option.size) {
-                <tr
-                  [class.weights__row--active]="option.size === variant().size"
-                >
-                  <th scope="row">{{ option.size }}</th>
-                  <td class="weights__size">{{ option.productSize }}</td>
-                  <td class="weights__value">{{ option.weightGrams }} g</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </section>
-      }
-
       <!-- Los colores dependen de la medida: no todas las medidas tienen todos los colores. -->
       <fieldset class="selector">
-        <legend class="selector__legend">Color</legend>
+        <legend class="selector__legend">
+          Color <span class="selector__picked">{{ activeColor() }}</span>
+        </legend>
         <div class="selector__options selector__options--colors">
           @for (color of availableColors(); track color) {
             <button
               type="button"
               class="swatch"
               [class.swatch--active]="color === activeColor()"
+              [class.swatch--out]="colorSoldOut(variant(), color)"
               [attr.aria-pressed]="color === activeColor()"
-              [attr.aria-label]="'Color ' + color"
+              [attr.aria-label]="
+                'Color ' +
+                color +
+                (colorSoldOut(variant(), color) ? ', agotado' : '')
+              "
               (click)="selectColor(color)"
             >
               <span
@@ -144,16 +131,7 @@
         </div>
       </fieldset>
 
-      <p class="detail__price">{{ formattedPrice() }}</p>
-
-      @if (shop.selling()) {
-        <p class="detail__stock">
-          {{
-            stock() > 0 ? stock() + " disponibles" : "Sin stock por el momento"
-          }}
-        </p>
-      }
-      <div class="detail__actions">
+      <div class="detail__actions" #actions>
         @if (shop.selling()) {
           <button
             type="button"
@@ -188,6 +166,28 @@
         {{ shippingTeaser() }} ·
         <a href="/envios/" (click)="shop.showShipping($event)">ver zonas</a>
       </p>
+
+      <!-- Beneficios y detalles: debajo de la compra, para leer con calma (diferidos: no hacen
+           falta al abrir la ficha). -->
+      @defer (on immediate) {
+        <app-product-benefits />
+        <app-product-more [type]="type()" [size]="variant().size" />
+      }
     </div>
   </div>
+
+  <!-- Teléfono: con el botón de compra fuera de la pantalla, una barra fija con precio y "Agregar". -->
+  @if (shop.selling()) {
+    @defer (on immediate) {
+      <app-buy-bar
+        [shown]="barShown()"
+        [product]="type().fullName"
+        [choice]="variant().size + ' · ' + activeColor()"
+        [price]="formattedPrice()"
+        [soldOut]="stock() < 1"
+        [disabled]="shop.busy() || !sku()"
+        (add)="add(sku()!)"
+      />
+    }
+  }
 </article>
