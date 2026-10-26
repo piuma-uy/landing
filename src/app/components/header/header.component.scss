@@ -36,6 +36,7 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  min-height: 44px;
 
   img {
     height: 38px;
@@ -148,7 +149,9 @@
 }
 
 .nav__link {
-  display: block;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
   padding: 0.5rem 0;
   font-size: 0.98rem;
   color: var(--color-text);
@@ -175,7 +178,7 @@
   background: none;
   font: inherit;
   cursor: pointer;
-  padding: 0;
+  padding: 0.5rem 0;
 }
 
 .header--commerce .nav__list {

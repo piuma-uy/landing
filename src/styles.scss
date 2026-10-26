@@ -23,6 +23,11 @@ html {
   }
 }
 
+// Radios y checkboxes con el tono de la marca en vez del azul del navegador.
+:root {
+  accent-color: var(--color-primary-dark);
+}
+
 body {
   margin: 0;
   background-color: var(--color-bg);
@@ -74,6 +79,14 @@ img {
   border-radius: var(--radius-sm);
 }
 
+// Leyendas de los grupos de opciones (entrega, pago, zonas): alineadas con las etiquetas.
+legend {
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
 // --- Utilidades compartidas -----------------------------------
 
 .container {
@@ -97,7 +110,8 @@ img {
   font-size: 0.78rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-primary);
+  // Texto chico: el terracota oscuro llega a contraste AA, el claro no.
+  color: var(--color-primary-dark);
   margin-bottom: var(--space-xs);
 }
 
@@ -106,12 +120,16 @@ img {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  // Mismo alto para <button> y <a>: sin line-height propio el enlace heredaba el del body.
+  min-height: 44px;
   padding: 0.8rem 1.6rem;
   border: 1px solid transparent;
   border-radius: 999px;
   font-family: var(--font-body);
   font-size: 0.95rem;
   font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
   cursor: pointer;
   transition: background-color var(--transition), color var(--transition),
     border-color var(--transition), transform var(--transition);

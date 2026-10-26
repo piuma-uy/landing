@@ -61,9 +61,16 @@
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 0.4rem;
     font-size: 0.92rem;
     color: rgba(239, 230, 218, 0.82);
+  }
+
+  // Filas de 44px (área táctil) en vez de separar los enlaces con gap.
+  li,
+  a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
   }
 
   a:hover {

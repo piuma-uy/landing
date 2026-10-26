@@ -137,7 +137,11 @@ export class CommerceComponent {
       },
       this.registering(),
     );
-    if (this.shop.user()) this.password = "";
+    if (this.shop.user()) {
+      this.password = "";
+      // Al cerrar sesión el formulario vuelve a "Ingresar", no a "Crear cuenta".
+      this.registering.set(false);
+    }
   }
   edit(p: Product) {
     this.editing = { ...p };

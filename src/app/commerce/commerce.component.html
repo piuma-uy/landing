@@ -680,6 +680,9 @@
           } @else if (!shop.orders().length) {
             <div class="panel empty">
               <h2>Todavía no hay pedidos</h2>
+              <p class="muted">
+                Cuando hagas un pedido, lo vas a ver acá con su estado.
+              </p>
               <button class="btn btn--primary" (click)="shop.open('shop')">
                 Ver colección
               </button>

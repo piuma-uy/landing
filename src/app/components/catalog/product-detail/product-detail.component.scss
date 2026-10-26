@@ -9,6 +9,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  min-height: 44px;
   margin-bottom: var(--space-sm);
   padding: 0.5rem 0;
   background: none;
@@ -132,7 +133,7 @@
   margin: 0 0 0.5rem;
   font-size: 0.8rem;
   letter-spacing: 0.04em;
-  color: var(--color-primary);
+  color: var(--color-primary-dark);
 }
 
 .detail__description {
@@ -303,8 +304,9 @@
 .weights__row--active {
   background-color: var(--color-secondary);
 
+  // Sobre el beige el terracota no llega a AA: el fondo ya marca la fila, el peso la refuerza.
   .weights__value {
-    color: var(--color-primary);
+    font-weight: 600;
   }
 }
 
@@ -312,7 +314,8 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+  min-height: 44px;
+  padding: 0.35rem 0.9rem 0.35rem 0.6rem;
   background-color: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: 999px;
