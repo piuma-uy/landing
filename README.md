@@ -14,7 +14,8 @@ npm test         # typecheck de tests/ + unitarios (node --test, requiere Node.j
 ```
 
 Los unitarios (`tests/*.test.ts`) cubren la lógica sin Angular: catálogo (`core/catalog-adapter.ts`), carrito
-(`commerce/cart.ts`), login Cognito PKCE (`commerce/cognito.ts`), checkout e `Idempotency-Key`
+(`commerce/cart.ts`), login Cognito con SRP y PKCE (`commerce/cognito.ts`, `commerce/srp.ts`, contra vectores de
+`AuthenticationHelper` de AWS y un user pool simulado en `tests/fake-user-pool.ts`), checkout e `Idempotency-Key`
 (`commerce/checkout.ts`), envíos, transferencia, tarjeta, segundo factor, QR e historial de ajustes. Los componentes y el flujo completo en navegador (login,
 checkout aprobado/pendiente/rechazado, teléfono y desktop) se prueban con los e2e de `../piuma-backend`.
 
@@ -27,9 +28,16 @@ Por defecto el comercio está apagado (`{"commerceEnabled":false,"apiBaseUrl":""
 
 - `"cookie"` (o ausente): API local de Docker (`http://localhost` o `127.0.0.1`), formulario propio y cookie de
   sesión (`openapi.local.yaml`).
-- `"cognito"`: API en AWS. Login en la UI alojada de Cognito con code + PKCE S256; el access token queda sólo en
-  memoria y viaja como `Authorization: Bearer`. Al recargar la página hay que volver a ingresar (Cognito recuerda
-  la sesión, así que no pide la contraseña de nuevo).
+- `"cognito"`: API en AWS. Ingreso, registro con código, contraseña olvidada y cambio de la contraseña temporal
+  con los formularios de la tienda (`commerce/account/`, T61) contra la API del user pool: `USER_SRP_AUTH`
+  (`commerce/srp.ts`, sin librerías; la contraseña no sale del navegador). Google, si está habilitado, sigue por la
+  UI alojada de Cognito con code + PKCE S256. Access e id token quedan sólo en memoria y el access viaja como
+  `Authorization: Bearer`. Sólo el refresh token se guarda en `sessionStorage` (esta pestaña; se borra al cerrarla o
+  al salir): al recargar o volver de Mercado Pago la sesión se renueva sin la contraseña (T61b). Si Cognito ya no la
+  renueva, se borra y la tienda pide ingresar de nuevo. Sin `issuer` (nombra el user pool) el
+  botón "Ingresar" vuelve a la UI alojada.
+
+Los formularios son los mismos en Docker (`"cookie"`), con sólo ingreso y registro.
 
 ```json
 {

@@ -252,13 +252,37 @@ test("failed refresh ends the session", async () => {
   assert.equal(await s.auth.refresh(), false);
   assert.equal(s.auth.user, null);
   assert.equal(await s.auth.getAccessToken(), "");
+  assert.equal(s.store.has("piuma-session"), false);
+});
+
+test("hosted UI: the refresh token alone stays in the tab and renews after a reload (T61b)", async () => {
+  const s = setup({ issuer: ISSUER });
+  await login(s);
+  assert.deepEqual(JSON.parse(s.store.get("piuma-session")!), {
+    refreshToken: "refresh-1",
+    source: "hosted",
+  });
+  const reloaded = setup({ issuer: ISSUER });
+  for (const [k, v] of s.store) reloaded.store.set(k, v);
+  reloaded.responses.push({ ...tokens(""), refresh_token: undefined });
+  const user = await reloaded.auth.restore();
+  assert.equal(user !== "expired" && user?.email, "ana@example.com");
+  assert.equal(reloaded.calls[0].url, LOGIN + "/oauth2/token");
+  assert.equal(reloaded.calls[0].body.get("grant_type"), "refresh_token");
+  assert.equal(reloaded.calls[0].body.get("refresh_token"), "refresh-1");
+  // Refused by Cognito (revoked or expired): forgotten.
+  const late = setup({ issuer: ISSUER });
+  for (const [k, v] of s.store) late.store.set(k, v);
+  late.responses.push(null);
+  assert.equal(await late.auth.restore(), "expired");
+  assert.equal(late.store.has("piuma-session"), false);
 });
 
 test("logout revokes the refresh token and builds the Cognito logout URL", async () => {
   const s = setup({ logoutUri: ORIGIN + "/adios" });
   await login(s);
   s.responses.push({ ok: true });
-  const url = new URL(await s.auth.logout());
+  const url = new URL((await s.auth.logout())!);
   assert.equal(url.origin + url.pathname, LOGIN + "/logout");
   assert.equal(url.searchParams.get("client_id"), CLIENT);
   assert.equal(url.searchParams.get("logout_uri"), ORIGIN + "/adios");

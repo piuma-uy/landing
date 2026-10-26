@@ -92,6 +92,8 @@ import {
   retryable,
   shownMessage,
 } from "./errors";
+const SESSION_EXPIRED =
+  "Tu sesión terminó. Ingresá de nuevo para seguir con tu compra.";
 const apiError = (f: Failure) => new ApiError(f.message, f.status, f.code);
 /** The technical detail of a failure: only in the console of a development build. */
 function devLog(...detail: unknown[]) {
@@ -201,6 +203,7 @@ export class CommerceService {
             storage: sessionStorage,
             crypto,
             now: Date.now,
+            srp: () => import("./srp"),
           },
           location.origin,
         )
@@ -425,8 +428,18 @@ export class CommerceService {
           return;
         }
         this.noteReturn(url);
+        // The public catalog first, without a token: with the API down nothing below runs and
+        // "Reintentar" repeats it all, with this tab's session still kept.
         await this.reloadProducts();
-        this.cart.set(this.readGuest());
+        // A reload or the way back from Mercado Pago: this tab's refresh token renews the
+        // session without the password (T61b).
+        const restored = await this.cognito.restore();
+        if (restored === "expired") {
+          this.view.set("account");
+          this.notice.set(SESSION_EXPIRED);
+          this.cart.set(this.readGuest());
+        } else if (restored) await this.signedIn(restored, { restored: true });
+        else this.cart.set(this.readGuest());
         return;
       }
       this.noteReturn(new URL(location.href));
@@ -525,9 +538,17 @@ export class CommerceService {
       void this.followPayment();
     }
   }
-  /** Cognito mode: leaves the page for the hosted UI (login, signup or Google). */
+  /**
+   * Cognito mode: the shop's own forms (T61), or the hosted UI for Google and for a config
+   * without the issuer. A session that cannot do what was asked (needsRelogin) ends first.
+   */
   async redirectToLogin(options: { signup?: boolean; provider?: string } = {}) {
     if (!this.cognito) return;
+    if (this.cognito.forms && !options.provider) {
+      if (this.user()) await this.logout();
+      this.open("account");
+      return;
+    }
     await this.run(async () => {
       location.assign(await this.cognito!.authorizeUrl(options));
     });
@@ -568,21 +589,28 @@ export class CommerceService {
     if (view === "admin" && this.user()?.admin)
       void this.load(() => this.loadAdmin());
   }
+  /**
+   * Docker (cookie) mode: local account. Errors are thrown, not shown in the banner, so the
+   * account form shows them next to its fields (T61).
+   */
   async login(
     input: { email: string; password: string; name?: string },
     register = false,
   ) {
-    await this.run(async () => {
-      const r = await this.request<{ user: User }>(
-        register ? "/auth/register" : "/auth/login",
-        "POST",
-        input,
-      );
-      await this.signedIn(r.user);
-    });
+    const r = await this.request<{ user: User }>(
+      register ? "/auth/register" : "/auth/login",
+      "POST",
+      input,
+    );
+    await this.enter(r.user);
   }
-  // Shared by both modes: keeps the server cart and merges the guest one into it.
-  private async signedIn(user: User) {
+  /** A session started by the account forms (either mode): cart, panel and pending payment. */
+  async enter(user: User) {
+    await this.load(() => this.signedIn(user));
+  }
+  // Shared by both modes: keeps the server cart and merges the guest one into it. A restored
+  // session (reload) stays on the page the buyer was looking at.
+  private async signedIn(user: User, options: { restored?: boolean } = {}) {
     this.user.set(user);
     const remote = (await this.request<{ items: Line[] }>("/cart")).items;
     const merged = mergeGuest(remote, this.readGuest());
@@ -595,6 +623,7 @@ export class CommerceService {
       await this.saveCart(merged);
       localStorage.removeItem("piuma-cart");
     }
+    if (options.restored) return;
     this.view.set(user.admin ? "admin" : "cart");
     if (user.admin) await this.loadAdmin();
     if (sessionStorage.getItem("piuma-payment-return")) this.resumeReturn();
@@ -604,7 +633,9 @@ export class CommerceService {
       // Checkout attempt, switch keys, payment return and OAuth attempt (FE-06).
       clearSession(sessionStorage);
       if (this.cognito) {
-        location.assign(await this.cognito.logout());
+        // The hosted UI (Google) also ends its own cookie; the shop's forms have none (T61).
+        const url = await this.cognito.logout();
+        if (url) location.assign(url);
       } else await this.request("/auth/logout", "POST", {});
       this.user.set(null);
       this.cart.set([]);
