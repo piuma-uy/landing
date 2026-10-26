@@ -1,0 +1,229 @@
+@use '../../../styles/mixins' as m;
+@use '../../../styles/variables' as v;
+
+// Ingreso, registro y recuperación (T61): la misma tarjeta de la tienda en AWS y en Docker.
+:host {
+  display: block;
+}
+
+.account-card {
+  max-width: 480px;
+  margin: 1.5rem auto 2rem;
+  padding: 1.5rem 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+
+  @include m.from(v.$bp-sm) {
+    padding: 2rem;
+  }
+}
+
+h1 {
+  font-size: clamp(2rem, 8vw, 2.6rem);
+  margin: 0 0 0.6rem;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.lead {
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+}
+
+form,
+.stack {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.stack {
+  gap: 0.7rem;
+}
+
+form .btn {
+  margin-top: 0.75rem;
+  width: 100%;
+}
+
+.stack .btn,
+.divider + .btn {
+  width: 100%;
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem;
+  // 16px: iOS no hace zoom al enfocar el campo.
+  font: inherit;
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  transition: border-color var(--transition), box-shadow var(--transition);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary-dark);
+    box-shadow: 0 0 0 3px rgba(176, 122, 92, 0.25);
+  }
+
+  &[aria-invalid='true'] {
+    border-color: var(--color-error);
+  }
+}
+
+.code {
+  font-size: 1.35rem;
+  letter-spacing: 0.35em;
+  font-variant-numeric: tabular-nums;
+}
+
+.password {
+  position: relative;
+
+  input {
+    padding-right: 6.5rem;
+  }
+}
+
+.password__toggle {
+  position: absolute;
+  inset: 2px 2px 2px auto;
+  min-width: 44px;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.field__error {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-error);
+
+  &::before {
+    content: '!';
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: 0.1rem;
+    border-radius: 50%;
+    background: var(--color-error);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+}
+
+.rules {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  svg {
+    flex: none;
+  }
+}
+
+.rules__ok {
+  color: var(--color-success);
+}
+
+.message {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  line-height: 1.45;
+
+  svg {
+    flex: none;
+    margin-top: 0.1rem;
+  }
+}
+
+.message--error {
+  background: #f8ebe7;
+  color: #7d3a2d;
+  border: 1px solid #ecc9bf;
+}
+
+.message--notice {
+  background: #edf3ee;
+  color: #36573f;
+  border: 1px solid #cfe0d3;
+}
+
+.forgot {
+  justify-self: start;
+  margin: -0.5rem 0 0.25rem;
+  font-size: 0.9rem;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 1.25rem 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.4rem;
+  margin: 1.25rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+
+  & + .switch {
+    margin-top: 0.25rem;
+  }
+}

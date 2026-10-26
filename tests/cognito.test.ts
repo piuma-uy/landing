@@ -258,7 +258,7 @@ test("logout revokes the refresh token and builds the Cognito logout URL", async
   const s = setup({ logoutUri: ORIGIN + "/adios" });
   await login(s);
   s.responses.push({ ok: true });
-  const url = new URL(await s.auth.logout());
+  const url = new URL((await s.auth.logout())!);
   assert.equal(url.origin + url.pathname, LOGIN + "/logout");
   assert.equal(url.searchParams.get("client_id"), CLIENT);
   assert.equal(url.searchParams.get("logout_uri"), ORIGIN + "/adios");

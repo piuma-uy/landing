@@ -201,6 +201,7 @@ export class CommerceService {
             storage: sessionStorage,
             crypto,
             now: Date.now,
+            srp: () => import("./srp"),
           },
           location.origin,
         )
@@ -525,9 +526,17 @@ export class CommerceService {
       void this.followPayment();
     }
   }
-  /** Cognito mode: leaves the page for the hosted UI (login, signup or Google). */
+  /**
+   * Cognito mode: the shop's own forms (T61), or the hosted UI for Google and for a config
+   * without the issuer. A session that cannot do what was asked (needsRelogin) ends first.
+   */
   async redirectToLogin(options: { signup?: boolean; provider?: string } = {}) {
     if (!this.cognito) return;
+    if (this.cognito.forms && !options.provider) {
+      if (this.user()) await this.logout();
+      this.open("account");
+      return;
+    }
     await this.run(async () => {
       location.assign(await this.cognito!.authorizeUrl(options));
     });
@@ -568,18 +577,24 @@ export class CommerceService {
     if (view === "admin" && this.user()?.admin)
       void this.load(() => this.loadAdmin());
   }
+  /**
+   * Docker (cookie) mode: local account. Errors are thrown, not shown in the banner, so the
+   * account form shows them next to its fields (T61).
+   */
   async login(
     input: { email: string; password: string; name?: string },
     register = false,
   ) {
-    await this.run(async () => {
-      const r = await this.request<{ user: User }>(
-        register ? "/auth/register" : "/auth/login",
-        "POST",
-        input,
-      );
-      await this.signedIn(r.user);
-    });
+    const r = await this.request<{ user: User }>(
+      register ? "/auth/register" : "/auth/login",
+      "POST",
+      input,
+    );
+    await this.enter(r.user);
+  }
+  /** A session started by the account forms (either mode): cart, panel and pending payment. */
+  async enter(user: User) {
+    await this.load(() => this.signedIn(user));
   }
   // Shared by both modes: keeps the server cart and merges the guest one into it.
   private async signedIn(user: User) {
@@ -604,7 +619,9 @@ export class CommerceService {
       // Checkout attempt, switch keys, payment return and OAuth attempt (FE-06).
       clearSession(sessionStorage);
       if (this.cognito) {
-        location.assign(await this.cognito.logout());
+        // The hosted UI (Google) also ends its own cookie; the shop's forms have none (T61).
+        const url = await this.cognito.logout();
+        if (url) location.assign(url);
       } else await this.request("/auth/logout", "POST", {});
       this.user.set(null);
       this.cart.set([]);

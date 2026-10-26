@@ -10,6 +10,7 @@ import { DomSanitizer } from "@angular/platform-browser";
 import { CommerceService, Order, Product } from "./commerce.service";
 import { WhatsappService } from "../services/whatsapp.service";
 import { WhatsappIconComponent } from "../shared/whatsapp-icon/whatsapp-icon.component";
+import { AccountComponent } from "./account/account.component";
 import { buyerCancellable, dateTime, reservedUntil } from "./orders";
 import { MAX_UNITS } from "./cart";
 import { groupSecret } from "./mfa";
@@ -27,14 +28,18 @@ import {
 @Component({
   selector: "app-commerce",
   standalone: true,
-  imports: [FormsModule, WhatsappIconComponent, AdminSettingsComponent],
+  imports: [
+    FormsModule,
+    WhatsappIconComponent,
+    AdminSettingsComponent,
+    AccountComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./commerce.component.html",
   styleUrls: ["./commerce.component.scss", "./admin-security.component.scss"],
 })
 export class CommerceComponent {
   readonly shop = inject(CommerceService);
-  readonly registering = signal(false);
   readonly adminTab = signal<
     "overview" | "products" | "transfers" | "settings"
   >("overview");
@@ -85,9 +90,6 @@ export class CommerceComponent {
   readonly paidCount = computed(() =>
     this.shop.metrics().reduce((s, m) => s + m.paidOrders, 0),
   );
-  email = "";
-  password = "";
-  name = "";
   contactPhone = "";
   search = "";
   editing: Product | null = null;
@@ -109,21 +111,6 @@ export class CommerceComponent {
     }
     return [...groups.values()];
   });
-  async submitAccount() {
-    await this.shop.login(
-      {
-        email: this.email,
-        password: this.password,
-        ...(this.registering() ? { name: this.name } : {}),
-      },
-      this.registering(),
-    );
-    if (this.shop.user()) {
-      this.password = "";
-      // Al cerrar sesión el formulario vuelve a "Ingresar", no a "Crear cuenta".
-      this.registering.set(false);
-    }
-  }
   edit(p: Product) {
     this.editing = { ...p };
     this.price = p.priceMinor / 100;
