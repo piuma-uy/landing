@@ -83,6 +83,11 @@ Lo que sí hay son **URLs propias por categoría y producto**, reflejadas con la
 `/catalogo/<categoría>/<producto>/` (ver [`catalog-seo.ts`](../src/app/core/catalog-seo.ts)). Entrar directo a una abre esa
 categoría o ficha, y el botón atrás del navegador vuelve al nivel anterior. Son las páginas que se prerenderizan.
 
+`/envios/` (política de envíos, T68) funciona igual: `CommerceService.shippingPage` la muestra en lugar de las secciones
+de inicio, los enlaces del pie, la ficha y el checkout la abren con `pushState` y atrás vuelve a donde estaba (desde el
+checkout, al carrito tal cual). El texto sale de [`shipping-policy.ts`](../src/app/core/shipping-policy.ts): las zonas de
+`GET /shipping-options` cuando la tienda está conectada y, sin API o sin política guardada, la de Piuma.
+
 ## SEO y prerender
 
 No hay SSR: el hosting es estático (S3 + CloudFront en AWS; Vercel para la landing pública de `main`). `npm run build` corre
@@ -94,6 +99,7 @@ No hay SSR: el hosting es estático (S3 + CloudFront en AWS; Vercel para la land
   `ItemList`, `BreadcrumbList`) y el contenido como HTML semántico dentro de `<app-root>` para crawlers sin JavaScript. Ese
   HTML se oculta con CSS (sólo se ve en `<noscript>`) y Angular lo reemplaza al arrancar; no se agregan scripts inline
   (CSP `script-src 'self'`).
+- `envios/index.html`: la política de Piuma (`FALLBACK_POLICY`, sin API en el build) con `Store` y `BreadcrumbList`.
 - `robots.txt` y `sitemap.xml` (con imágenes).
 
 El dominio sale de `SITE_URL` al compilar (por defecto `https://piuma.uy`): `SITE_URL=https://piuma-landing.vercel.app npm
@@ -136,8 +142,8 @@ src/
    ├─ models/catalog.model.ts      Category → ProductType → Variant
    ├─ services/                    catálogo, analytics (Umami) y links wa.me
    ├─ shared/                      íconos y botón flotante de WhatsApp
-   └─ components/                  header, hero, catalog (+ product-detail), about, contact, footer
-scripts/prerender.ts               páginas del catálogo, robots.txt y sitemap.xml
+   └─ components/                  header, hero, catalog (+ product-detail), about, contact, footer, shipping-policy
+scripts/prerender.ts               páginas del catálogo y /envios/, robots.txt y sitemap.xml
 tests/                             unitarios node --test (sin Angular)
 ```
 

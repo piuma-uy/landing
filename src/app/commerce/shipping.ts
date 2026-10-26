@@ -102,13 +102,20 @@ export function sameChoice(a: Fulfillment | null, b: Fulfillment | null) {
     ? b.method === "pickup"
     : b.method === "delivery" && a.zoneId === b.zoneId;
 }
-/** Keeps the current choice while it is still offered; otherwise the first one. */
+/**
+ * Keeps the current choice while it is still offered; otherwise pickup when offered. A
+ * delivery zone is never picked for the buyer: the checkout asks where to deliver (T68).
+ */
 export function defaultChoice(
   options: ShippingOptions | null,
   current: Fulfillment | null = null,
 ): Fulfillment | null {
   const all = choices(options);
-  return all.find((c) => sameChoice(c, current)) ?? all[0] ?? null;
+  return (
+    all.find((c) => sameChoice(c, current)) ??
+    all.find((c) => c.method === "pickup") ??
+    null
+  );
 }
 /** POST /cart/quote body: items plus the choice, never a price. */
 export function quoteBody(items: Line[], choice: Fulfillment | null) {
@@ -158,18 +165,156 @@ export function shippingSummary(
 export function isCoordinate(zone: Pick<ShippingZone, "pricing">) {
   return zone.pricing === "coordinate";
 }
+export type DestinationGroup = "free" | "paid" | "coordinate";
 /**
- * Checkout line under a zone: free zones (or the free-shipping threshold the API quoted)
- * say so with the lead time, coordinate zones say they are arranged over WhatsApp.
+ * One entry of the checkout's "¿Adónde querés que te lo llevemos?" select: a zone, or one of the
+ * two halves of the shop's single catch-all coordinate zone ("Otra zona / interior"), which the
+ * buyer reads as "Otra zona de Montevideo" and "Interior del país" (same zoneId). city and
+ * department prefill the address.
  */
-export function zoneDetail(zone: ShippingZone, quotedFree = false) {
+export interface Destination {
+  key: string;
+  zoneId: string;
+  label: string;
+  group: DestinationGroup;
+  city: string;
+  department: string;
+}
+const GROUP_LABELS: Record<DestinationGroup, string> = {
+  free: "Envío gratis",
+  paid: "Con costo de envío",
+  coordinate: "A coordinar por WhatsApp",
+};
+const fold = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+/** Places near Montevideo that belong to another department, for the address prefill. */
+const LOCALITIES: Record<string, string> = {
+  "ciudad de la costa": "Canelones",
+  "las piedras": "Canelones",
+  "la paz": "Canelones",
+  pando: "Canelones",
+  solymar: "Canelones",
+  lagomar: "Canelones",
+  "el pinar": "Canelones",
+  atlantida: "Canelones",
+  "punta del este": "Maldonado",
+  piriapolis: "Maldonado",
+};
+/** Zone name as the buyer reads it: without the panel's "(a coordinar)" tag. */
+export function zoneLabel(name: string) {
+  return name.replace(/\s*\(a coordinar\)\s*$/i, "").trim() || name.trim();
+}
+/** Address a zone suggests: a neighbourhood is the city; "interior" leaves the department open. */
+function zonePlace(name: string) {
+  const n = fold(zoneLabel(name));
+  if (/interior/.test(n)) return { city: "", department: "" };
+  const department = DEPARTMENTS.find((d) => fold(d) === n);
+  if (department) return { city: "", department };
+  if (/montevideo|otra|resto/.test(n))
+    return { city: "", department: "Montevideo" };
+  return { city: zoneLabel(name), department: LOCALITIES[n] ?? "Montevideo" };
+}
+export function destinations(options: ShippingOptions | null): Destination[] {
+  if (!options?.delivery.enabled) return [];
+  const zones = options.delivery.zones;
+  const catchAll = zones.filter(isCoordinate).length === 1;
+  return zones.flatMap((z): Destination[] => {
+    const group: DestinationGroup = isCoordinate(z)
+      ? "coordinate"
+      : z.priceMinor
+        ? "paid"
+        : "free";
+    if (group === "coordinate" && catchAll && /otra|resto|interior/.test(fold(z.name)))
+      return [
+        {
+          key: z.id + "#montevideo",
+          zoneId: z.id,
+          label: "Otra zona de Montevideo",
+          group,
+          city: "",
+          department: "Montevideo",
+        },
+        {
+          key: z.id + "#interior",
+          zoneId: z.id,
+          label: "Interior del país",
+          group,
+          city: "",
+          department: "",
+        },
+      ];
+    return [
+      { key: z.id, zoneId: z.id, label: zoneLabel(z.name), group, ...zonePlace(z.name) },
+    ];
+  });
+}
+/** Destinations in <optgroup>s: free first, then priced, then arranged over WhatsApp. */
+export function destinationGroups(list: Destination[]) {
+  return (["free", "paid", "coordinate"] as const)
+    .map((group) => ({
+      group,
+      label: GROUP_LABELS[group],
+      items: list.filter((d) => d.group === group),
+    }))
+    .filter((g) => g.items.length);
+}
+/**
+ * The address with the new destination's city and department, except what the buyer typed
+ * (anything that is not the previous destination's prefill, or the form's default).
+ */
+export function prefillAddress(
+  address: Address,
+  to: Pick<Destination, "city" | "department">,
+  from: Pick<Destination, "city" | "department"> | null,
+): Address {
+  const was = from ?? { city: "", department: emptyAddress().department };
+  const typed = (value: string, prefilled: string) =>
+    !!value.trim() && value !== prefilled;
+  return {
+    ...address,
+    city: typed(address.city, was.city) ? address.city : to.city,
+    department: typed(address.department, was.department)
+      ? address.department
+      : to.department,
+  };
+}
+/**
+ * The one line under the select once a zone is chosen: free (or free by the threshold the API
+ * quoted) and priced zones with the lead time, coordinate zones arranged over WhatsApp.
+ */
+export function deliveryResult(
+  zone: ShippingZone,
+  quotedFree = false,
+  price = "",
+) {
+  if (isCoordinate(zone))
+    return "Envío a coordinar por WhatsApp (propio o agencia); no se cobra ahora";
+  const head = quotedFree || !zone.priceMinor ? "Envío gratis" : `Envío ${price}`;
   const lead = zone.leadTime.trim();
-  const head = isCoordinate(zone)
-    ? "A coordinar por WhatsApp"
-    : quotedFree || !zone.priceMinor
-      ? "Envío gratis"
-      : "";
-  return [head, lead].filter(Boolean).join(" · ");
+  return lead ? `${head} · llega en ${lead}` : head;
+}
+/**
+ * The summary's shipping amount: "Sin costo" for pickup, "Gratis (Pocitos)", "A coordinar", or
+ * the price and the place; "Elegí la zona" while delivery has no destination yet.
+ */
+export function shippingCost(
+  shipping: ShippingQuote | null | undefined,
+  delivering: boolean,
+  place: string | null,
+  price: (minor: number) => string,
+) {
+  if (!delivering) return "Sin costo";
+  if (!place || shipping?.method !== "delivery") return "Elegí la zona";
+  if (shipping.coordinate) return "A coordinar";
+  const cost =
+    shipping.freeShipping || !shipping.priceMinor
+      ? "Gratis"
+      : price(shipping.priceMinor);
+  return `${cost} (${place})`;
 }
 /**
  * What happens after the purchase of a delivery order: Piuma writes over WhatsApp to agree

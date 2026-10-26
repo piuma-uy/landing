@@ -14,6 +14,7 @@ import { CatalogComponent } from "./components/catalog/catalog.component";
 import { AboutComponent } from "./components/about/about.component";
 import { ContactComponent } from "./components/contact/contact.component";
 import { FooterComponent } from "./components/footer/footer.component";
+import { ShippingPolicyComponent } from "./components/shipping-policy/shipping-policy.component";
 import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.component";
 
 @Component({
@@ -27,6 +28,7 @@ import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.compone
     AboutComponent,
     ContactComponent,
     FooterComponent,
+    ShippingPolicyComponent,
     WhatsappFabComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,7 +36,9 @@ import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.compone
     <app-header />
     <main>
       <app-commerce />
-      @if (!shop.enabled || shop.view() === "shop") {
+      @if (shop.shippingPage() && (!shop.enabled || shop.view() === "shop")) {
+        <app-shipping-policy />
+      } @else if (!shop.enabled || shop.view() === "shop") {
         <app-hero />
         <app-catalog />
         <app-about />

@@ -11,7 +11,11 @@ import {
   shippingInput,
   shippingSummary,
   toMinor,
-  zoneDetail,
+  deliveryResult,
+  destinationGroups,
+  destinations,
+  prefillAddress,
+  shippingCost,
   zoneId,
   type ShippingOptions,
   type ShippingSettings,
@@ -75,15 +79,10 @@ test("choices list pickup and every zone; the current one is kept while offered"
     ...configured,
     pickup: { enabled: false, details: "" },
   };
-  assert.deepEqual(defaultChoice(deliveryOnly), {
-    method: "delivery",
-    zoneId: "montevideo",
-  });
-  // Pickup chosen but now off: first zone.
-  assert.deepEqual(defaultChoice(deliveryOnly, { method: "pickup" }), {
-    method: "delivery",
-    zoneId: "montevideo",
-  });
+  // Delivery only: no zone is picked for the buyer, the checkout asks where (T68).
+  assert.equal(defaultChoice(deliveryOnly), null);
+  assert.equal(defaultChoice(deliveryOnly, { method: "pickup" }), null);
+  assert.deepEqual(defaultChoice(deliveryOnly, interior), interior);
 });
 
 test("quote and order bodies carry the choice, never a shipping price", () => {
@@ -282,26 +281,141 @@ test("coordinate zones go to the API with cost 0 and blank notes are left out (T
   ]);
 });
 
-test("checkout says which zones are free and which are arranged over WhatsApp (T29)", () => {
-  const zone = { id: "z", name: "Z", leadTime: "24 a 72 h" };
+/** Piuma's policy (T29): five free neighbourhoods and one catch-all zone arranged over WhatsApp. */
+const piuma: ShippingOptions = {
+  pickup: { enabled: false, details: "" },
+  delivery: {
+    enabled: true,
+    zones: [
+      ...["Carrasco", "Pocitos", "Ciudad de la Costa"].map((name) => ({
+        id: zoneId(name, []),
+        name,
+        priceMinor: 0,
+        leadTime: "24 a 72 h",
+        pricing: "fixed" as const,
+        note: "Envío gratis. Te escribimos por WhatsApp.",
+      })),
+      { id: "centro", name: "Centro", priceMinor: 25000, leadTime: "24 h", pricing: "fixed" },
+      {
+        id: "otra-zona",
+        name: "Otra zona / interior (a coordinar)",
+        priceMinor: 0,
+        leadTime: "24 a 72 h",
+        pricing: "coordinate",
+      },
+    ],
+    freeFromMinor: null,
+  },
+  currency: "UYU",
+};
+
+test("the checkout select groups places: free, priced, then arranged over WhatsApp (T68)", () => {
+  const list = destinations(piuma);
+  assert.deepEqual(
+    destinationGroups(list).map((g) => [g.label, g.items.map((d) => d.label)]),
+    [
+      ["Envío gratis", ["Carrasco", "Pocitos", "Ciudad de la Costa"]],
+      ["Con costo de envío", ["Centro"]],
+      ["A coordinar por WhatsApp", ["Otra zona de Montevideo", "Interior del país"]],
+    ],
+  );
+  // The catch-all zone splits in two places with the same zone and their own prefill.
+  const [montevideo, interior] = list.filter((d) => d.zoneId === "otra-zona");
+  assert.deepEqual(
+    [montevideo, interior].map((d) => [d.key, d.department]),
+    [
+      ["otra-zona#montevideo", "Montevideo"],
+      ["otra-zona#interior", ""],
+    ],
+  );
+  const pocitos = list.find((d) => d.key === "pocitos")!;
+  assert.deepEqual([pocitos.city, pocitos.department], ["Pocitos", "Montevideo"]);
+  const costa = list.find((d) => d.key === "ciudad-de-la-costa")!;
+  assert.deepEqual([costa.city, costa.department], ["Ciudad de la Costa", "Canelones"]);
+  // Two coordinate zones are shown by name, without the panel's "(a coordinar)".
+  const two = destinations({
+    ...piuma,
+    delivery: {
+      ...piuma.delivery,
+      zones: [
+        { id: "mvd", name: "Resto de Montevideo (a coordinar)", priceMinor: 0, leadTime: "", pricing: "coordinate" },
+        { id: "int", name: "Interior", priceMinor: 0, leadTime: "", pricing: "coordinate" },
+      ],
+    },
+  });
+  assert.deepEqual(
+    two.map((d) => [d.key, d.label, d.department]),
+    [
+      ["mvd", "Resto de Montevideo", "Montevideo"],
+      ["int", "Interior", ""],
+    ],
+  );
+  assert.deepEqual(destinations({ ...piuma, delivery: { ...piuma.delivery, enabled: false } }), []);
+  assert.deepEqual(destinations(null), []);
+});
+
+test("choosing a place prefills city and department, never over what the buyer typed (T68)", () => {
+  const list = destinations(piuma);
+  const [pocitos, carrasco, interior] = ["pocitos", "carrasco", "otra-zona#interior"].map(
+    (k) => list.find((d) => d.key === k)!,
+  );
+  const blank = { street: "Rambla 1", city: "", department: "Montevideo", notes: "" };
+  const first = prefillAddress(blank, pocitos, null);
+  assert.deepEqual(first, { ...blank, city: "Pocitos" });
+  // Another neighbourhood replaces the prefill; interior clears it and asks for the department.
+  assert.equal(prefillAddress(first, carrasco, pocitos).city, "Carrasco");
+  assert.deepEqual(
+    [prefillAddress(first, interior, pocitos).city, prefillAddress(first, interior, pocitos).department],
+    ["", ""],
+  );
+  const typed = { ...first, city: "Punta Gorda", department: "Canelones" };
+  assert.deepEqual(prefillAddress(typed, carrasco, pocitos), typed);
+});
+
+test("one result line per place and the summary amount (T68)", () => {
+  const [carrasco, , , centro, otra] = piuma.delivery.zones;
+  assert.equal(deliveryResult(carrasco), "Envío gratis · llega en 24 a 72 h");
+  assert.equal(deliveryResult(centro, false, "$ 250"), "Envío $ 250 · llega en 24 h");
+  // Free-shipping threshold quoted by the API.
+  assert.equal(deliveryResult(centro, true, "$ 250"), "Envío gratis · llega en 24 h");
+  assert.equal(deliveryResult({ ...carrasco, leadTime: " " }), "Envío gratis");
   assert.equal(
-    zoneDetail({ ...zone, priceMinor: 0, pricing: "fixed" }),
-    "Envío gratis · 24 a 72 h",
+    deliveryResult(otra, true),
+    "Envío a coordinar por WhatsApp (propio o agencia); no se cobra ahora",
   );
   // Zones saved before T29 have no pricing and are fixed.
-  assert.equal(zoneDetail({ ...zone, priceMinor: 25000 }), "24 a 72 h");
   assert.equal(
-    zoneDetail({ ...zone, priceMinor: 25000 }, true),
-    "Envío gratis · 24 a 72 h",
+    deliveryResult({ id: "z", name: "Z", priceMinor: 0, leadTime: "48 h" }),
+    "Envío gratis · llega en 48 h",
+  );
+  const price = (m: number) => `$ ${m / 100}`;
+  const quoted = {
+    method: "delivery" as const,
+    zoneId: "pocitos",
+    zoneName: "Pocitos",
+    leadTime: "24 a 72 h",
+    priceMinor: 0,
+    freeShipping: false,
+    coordinate: false,
+  };
+  assert.equal(shippingCost(quoted, true, "Pocitos", price), "Gratis (Pocitos)");
+  assert.equal(
+    shippingCost({ ...quoted, priceMinor: 25000 }, true, "Centro", price),
+    "$ 250 (Centro)",
   );
   assert.equal(
-    zoneDetail({ ...zone, priceMinor: 0, pricing: "coordinate" }, true),
-    "A coordinar por WhatsApp · 24 a 72 h",
+    shippingCost({ ...quoted, priceMinor: 25000, freeShipping: true }, true, "Centro", price),
+    "Gratis (Centro)",
   );
   assert.equal(
-    zoneDetail({ ...zone, leadTime: " ", priceMinor: 0 }),
-    "Envío gratis",
+    shippingCost({ ...quoted, coordinate: true }, true, "Interior del país", price),
+    "A coordinar",
   );
+  const pickup = { method: "pickup" as const, priceMinor: 0 as const, details: "" };
+  assert.equal(shippingCost(pickup, false, null, price), "Sin costo");
+  // "Envío" chosen, no place yet (the quote is still pickup, or has no shipping).
+  assert.equal(shippingCost(pickup, true, null, price), "Elegí la zona");
+  assert.equal(shippingCost(null, true, null, price), "Elegí la zona");
 });
 
 test("after the purchase a delivery order explains the WhatsApp follow-up (T29)", () => {

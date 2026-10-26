@@ -17,14 +17,12 @@ import { groupSecret } from "./mfa";
 import { qrPath } from "./qr";
 import { AdminSettingsComponent } from "./admin-settings.component";
 import {
-  DEPARTMENTS,
-  PICKUP_FALLBACK,
   emptyAddress,
-  isCoordinate,
+  shippingCost,
   shippingFollowUp,
   shippingSummary,
-  zoneDetail,
 } from "./shipping";
+import { DeliveryComponent } from "./delivery/delivery.component";
 @Component({
   selector: "app-commerce",
   standalone: true,
@@ -33,6 +31,7 @@ import {
     WhatsappIconComponent,
     AdminSettingsComponent,
     AccountComponent,
+    DeliveryComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./commerce.component.html",
@@ -75,12 +74,18 @@ export class CommerceComponent {
   readonly maxUnits = MAX_UNITS;
   readonly shippingSummary = shippingSummary;
   readonly shippingFollowUp = shippingFollowUp;
-  readonly zoneDetail = zoneDetail;
-  readonly isCoordinate = isCoordinate;
-  readonly departments = DEPARTMENTS;
-  readonly pickupFallback = PICKUP_FALLBACK;
   /** Delivery address; sent only when the buyer picks a delivery zone. */
   address = emptyAddress();
+  /** "Gratis (Pocitos)", "A coordinar", "Sin costo"… for the summary. */
+  readonly shippingCost = computed(() => {
+    const q = this.shop.quote();
+    return shippingCost(
+      q?.shipping,
+      this.shop.delivering(),
+      this.shop.destination()?.label ?? null,
+      (minor) => this.shop.money(minor, q?.currency),
+    );
+  });
   readonly sales = computed(() =>
     this.shop.metrics().reduce((s, m) => s + m.grossSalesMinor, 0),
   );
@@ -170,11 +175,6 @@ export class CommerceComponent {
       t &&
       this.whatsapp.receiptLink(t, this.shop.money(t.amountMinor, t.currency))
     );
-  }
-  /** The API quoted this zone with the free-shipping threshold applied. */
-  freeZone(zoneId: string) {
-    const s = this.shop.quote()?.shipping;
-    return s?.method === "delivery" && s.zoneId === zoneId && s.freeShipping;
   }
   review(order: Order, action: "confirm" | "cancel") {
     this.reviewing.set({ id: order.id, action });

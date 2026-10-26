@@ -13,6 +13,7 @@ import { WhatsappService } from "../../../services/whatsapp.service";
 import { WhatsappIconComponent } from "../../../shared/whatsapp-icon/whatsapp-icon.component";
 import { CommerceService } from "../../../commerce/commerce.service";
 import { swatchFor } from "../../../core/color-swatches";
+import { policyTeaser } from "../../../core/shipping-policy";
 
 @Component({
   selector: "app-product-detail",
@@ -34,6 +35,12 @@ export class ProductDetailComponent {
     () => this.variant().stockByColor?.[this.activeColor()] ?? 0,
   );
   private readonly whatsapp = inject(WhatsappService);
+  /** "Envío gratis en Carrasco, Pocitos y más", con las zonas del API cuando ya respondió. */
+  readonly shippingTeaser = computed(() => policyTeaser(this.shop.policy()));
+
+  constructor() {
+    this.shop.loadPolicy();
+  }
 
   readonly type = input.required<ProductType>();
   /** Nombre de la categoría contenedora, para el botón de volver. */

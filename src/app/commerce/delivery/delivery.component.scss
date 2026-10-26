@@ -1,0 +1,145 @@
+// Entrega del checkout (T68). Los campos repiten la base de commerce.component.scss: los estilos
+// de un componente no alcanzan a sus hijos.
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+.small {
+  font-size: 0.85rem;
+}
+.muted {
+  color: var(--color-text-muted);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.delivery {
+  margin: 0 0 1rem;
+}
+.delivery__title {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  padding: 0.25rem;
+  margin: 0 0 1rem;
+}
+.segmented label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-md) - 0.25rem);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition), color var(--transition),
+    border-color var(--transition);
+}
+// The radio covers its segment: tap, keyboard and screen reader land on the real input.
+.segmented input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.segmented label:has(input:checked) {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+  color: var(--color-text);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary-dark);
+  outline-offset: 2px;
+}
+.segmented label:has(input:disabled) {
+  cursor: wait;
+}
+.delivery__place {
+  margin-bottom: 0.6rem;
+}
+.delivery__place select {
+  min-height: 48px;
+}
+.delivery__result {
+  margin: 0 0 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+// Nothing chosen yet: no box, but the live region stays in place to announce the result.
+.delivery__result--empty {
+  padding: 0;
+  margin: 0;
+  background: none;
+}
+.delivery__note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+.delivery__note a {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .segmented label {
+    transition: none;
+  }
+}
+.address {
+  border: 0;
+  padding: 0;
+  margin: 1.5rem 0 0.5rem;
+}
+.address legend {
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+// Side by side on a phone; stacked in the narrow desktop summary.
+.address__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+}

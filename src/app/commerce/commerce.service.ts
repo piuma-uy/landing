@@ -24,10 +24,17 @@ import {
   ShippingOptions,
   ShippingQuote,
   defaultChoice,
+  destinations,
   orderFulfillment,
   quoteBody,
+  sameChoice,
   shippingInput,
 } from "./shipping";
+import {
+  SHIPPING_PATH,
+  isShippingPath,
+  shippingPolicy,
+} from "../core/shipping-policy";
 import {
   CardApi,
   Checkout,
@@ -209,6 +216,16 @@ export class CommerceService {
         )
       : null;
   readonly view = signal<View>("shop");
+  /** /envios/ (shipping policy) instead of the home sections; same document, no reload (T68). */
+  readonly shippingPage = signal(isShippingPath(location.pathname));
+  /** The view /envios/ was opened from ("¿Cómo funcionan los envíos?" in the checkout). */
+  readonly shippingFrom = signal<View | null>(null);
+  /** GET /shipping-options for the policy page and the product line; null until it answers. */
+  private readonly publicShipping = signal<ShippingOptions | null>(null);
+  private publicShippingAsked = false;
+  readonly policy = computed(() =>
+    shippingPolicy(this.shippingOptions() ?? this.publicShipping()),
+  );
   readonly user = signal<User | null>(null);
   readonly products = signal<Product[] | null>(null);
   readonly cart = signal<Line[]>([]);
@@ -245,6 +262,29 @@ export class CommerceService {
   readonly shippingOptions = signal<ShippingOptions | null>(null);
   /** Pickup or a delivery zone; the API prices it in the quote. */
   readonly shipTo = signal<Fulfillment | null>(null);
+  /**
+   * Checkout "Entrega" (T68): Envío or Retiro first, then one select of places. A place is a
+   * zone, or half of the catch-all coordinate zone, so its key is kept apart from the zoneId.
+   */
+  readonly destinations = computed(() => destinations(this.shippingOptions()));
+  private readonly place = signal("");
+  /** "Envío" pressed while the quote is still for pickup (no place chosen yet). */
+  private readonly wantsDelivery = signal(false);
+  readonly delivering = computed(() => {
+    const options = this.shippingOptions();
+    if (!options) return false;
+    return (
+      !options.pickup.enabled ||
+      this.shipTo()?.method === "delivery" ||
+      this.wantsDelivery()
+    );
+  });
+  readonly destination = computed(() => {
+    const to = this.shipTo();
+    if (to?.method !== "delivery") return null;
+    const all = this.destinations().filter((d) => d.zoneId === to.zoneId);
+    return all.find((d) => d.key === this.place()) ?? all[0] ?? null;
+  });
   readonly metrics = signal<Metric[]>([]);
   readonly quote = signal<Quote | null>(null);
   readonly completed = signal<Order | null>(null);
@@ -415,6 +455,17 @@ export class CommerceService {
     while (this.busy()) await this.running;
     await this.run(fn);
   }
+  constructor() {
+    // Back and forward between /envios/ and the page it was opened from.
+    addEventListener("popstate", () => {
+      const shipping = isShippingPath(location.pathname);
+      if (shipping === this.shippingPage()) return;
+      this.shippingPage.set(shipping);
+      const from = this.shippingFrom();
+      if (!shipping && from) this.view.set(from);
+      if (!shipping) this.shippingFrom.set(null);
+    });
+  }
   async initialize() {
     if (!this.enabled) return;
     await this.run(async () => {
@@ -571,6 +622,7 @@ export class CommerceService {
     // recargaría la página. Volver antes a "/" lo deja en un salto dentro del mismo documento.
     if (location.pathname !== "/")
       history.replaceState(history.state, "", "/" + location.search);
+    this.shippingPage.set(false);
     this.view.set("shop");
     requestAnimationFrame(() =>
       document.getElementById(fragment)?.scrollIntoView({ behavior: "smooth" }),
@@ -578,6 +630,10 @@ export class CommerceService {
   }
   open(view: View) {
     if (view === "orders" && this.user()?.admin) view = "admin";
+    if (this.shippingPage()) {
+      history.replaceState(history.state, "", "/" + location.search);
+      this.shippingPage.set(false);
+    }
     this.view.set(view);
     this.error.set("");
     this.notice.set("");
@@ -704,6 +760,19 @@ export class CommerceService {
       }
     });
   }
+  chooseDelivery(delivery: boolean) {
+    this.wantsDelivery.set(delivery);
+    if (!delivery && this.shipTo()?.method !== "pickup")
+      void this.chooseShipping({ method: "pickup" });
+  }
+  /** A place from the select; the zone is priced again only when it changes. */
+  chooseDestination(key: string) {
+    const to = this.destinations().find((d) => d.key === key);
+    if (!to) return;
+    this.place.set(key);
+    const choice = { method: "delivery" as const, zoneId: to.zoneId };
+    if (!sameChoice(this.shipTo(), choice)) void this.chooseShipping(choice);
+  }
   private async loadShippingOptions() {
     const options = await this.request<ShippingOptions>("/shipping-options");
     this.shippingOptions.set(options);
@@ -736,7 +805,7 @@ export class CommerceService {
       if (!this.quote())
         throw new Error("Revisá el pedido antes de confirmarlo");
       const shipTo = this.shipTo();
-      if (!shipTo) throw new Error("Elegí retiro o envío");
+      if (!shipTo) throw new Error("Elegí retiro o adónde te lo llevamos");
       const payload = {
         items: this.cart(),
         paymentMethod: paymentMethodFor(
@@ -1004,6 +1073,34 @@ export class CommerceService {
       await this.reloadProducts();
       this.notice.set("Pedido cancelado y stock restituido");
     });
+  }
+  /**
+   * "Envíos" links: /envios/ in the same document (a modified click opens it like any link).
+   * From the checkout, the browser's back button returns to it with the cart as it was.
+   */
+  showShipping(event?: MouseEvent) {
+    const modified =
+      event &&
+      (event.button || event.metaKey || event.ctrlKey || event.shiftKey);
+    if (modified) return;
+    event?.preventDefault();
+    if (!this.shippingPage()) {
+      this.shippingFrom.set(this.view() === "shop" ? null : this.view());
+      history.pushState(null, "", SHIPPING_PATH + location.search);
+    }
+    this.shippingPage.set(true);
+    this.view.set("shop");
+    window.scrollTo({ top: 0 });
+  }
+  /** Zones for the policy page and the product line, asked once (static policy meanwhile). */
+  loadPolicy() {
+    if (!this.enabled || this.publicShippingAsked || this.shippingOptions())
+      return;
+    this.publicShippingAsked = true;
+    this.request<ShippingOptions>("/shipping-options").then(
+      (options) => this.publicShipping.set(options),
+      () => (this.publicShippingAsked = false),
+    );
   }
   money(minor: number, currency = "UYU") {
     return new Intl.NumberFormat("es-UY", {

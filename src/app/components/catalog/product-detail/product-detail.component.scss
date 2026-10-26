@@ -360,6 +360,18 @@
   margin-top: 1rem;
 }
 
+.detail__shipping {
+  margin: 0.85rem 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+
+  a {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
 .detail__cta {
   width: 100%;
 

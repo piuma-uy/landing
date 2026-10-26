@@ -1,0 +1,78 @@
+@use 'variables' as v;
+@use 'mixins' as *;
+
+.policy {
+  padding-top: calc(var(--header-height) + var(--space-md));
+  padding-bottom: var(--space-xl);
+
+  @include from(v.$bp-md) {
+    padding-top: calc(var(--header-height) + var(--space-lg));
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin: 0 0 var(--space-sm);
+  }
+}
+
+.policy__lead {
+  max-width: 52ch;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.policy__grid {
+  display: grid;
+  gap: var(--space-sm);
+
+  @include from(v.$bp-md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.policy__card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+
+  h2 {
+    font-size: 1.25rem;
+    margin: 0 0 var(--space-xs);
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.policy__zones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  list-style: none;
+  margin: var(--space-sm) 0 0;
+  padding: 0;
+
+  li {
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    background: var(--color-secondary);
+    font-size: 0.9rem;
+  }
+}
+
+.policy__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+
+  .btn {
+    flex: 1 1 14rem;
+
+    @include from(v.$bp-md) {
+      flex: 0 0 auto;
+    }
+  }
+}
