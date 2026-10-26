@@ -7,10 +7,12 @@ import {
   orderFulfillment,
   pickupLabel,
   quoteBody,
+  shippingFollowUp,
   shippingInput,
   shippingProblem,
   shippingSummary,
   toMinor,
+  zoneDetail,
   zoneId,
   type ShippingOptions,
   type ShippingSettings,
@@ -214,23 +216,128 @@ test("zone ids are slugs of the name, unique, and existing ids are kept", () => 
           name: "Montevideo centro",
           priceMinor: 25000,
           leadTime: "24 h",
+          pricing: "fixed",
         },
         {
           id: "montevideo-2",
           name: "Montevideo",
           priceMinor: 30000,
           leadTime: "",
+          pricing: "fixed",
         },
         {
           id: "canelones",
           name: "Canelones",
           priceMinor: 35000,
           leadTime: "48 h",
+          pricing: "fixed",
         },
       ],
       freeFromMinor: null,
     },
   });
+});
+
+test("coordinate zones go to the API with cost 0 and blank notes are left out (T29)", () => {
+  const draft: ShippingSettings = {
+    pickup: { enabled: false, details: "" },
+    delivery: {
+      enabled: true,
+      zones: [
+        {
+          id: "carrasco",
+          name: "Carrasco",
+          priceMinor: 0,
+          leadTime: "24 a 72 h",
+          pricing: "fixed",
+          note: "  Te escribimos por WhatsApp. ",
+        },
+        {
+          id: "",
+          name: "Otra zona / interior",
+          priceMinor: 15000,
+          leadTime: "24 a 72 h",
+          pricing: "coordinate",
+          note: "   ",
+        },
+      ],
+      freeFromMinor: null,
+    },
+  };
+  assert.deepEqual(shippingInput(draft).delivery.zones, [
+    {
+      id: "carrasco",
+      name: "Carrasco",
+      priceMinor: 0,
+      leadTime: "24 a 72 h",
+      pricing: "fixed",
+      note: "Te escribimos por WhatsApp.",
+    },
+    {
+      id: "otra-zona-interior",
+      name: "Otra zona / interior",
+      priceMinor: 0,
+      leadTime: "24 a 72 h",
+      pricing: "coordinate",
+    },
+  ]);
+});
+
+test("checkout says which zones are free and which are arranged over WhatsApp (T29)", () => {
+  const zone = { id: "z", name: "Z", leadTime: "24 a 72 h" };
+  assert.equal(
+    zoneDetail({ ...zone, priceMinor: 0, pricing: "fixed" }),
+    "Envío gratis · 24 a 72 h",
+  );
+  // Zones saved before T29 have no pricing and are fixed.
+  assert.equal(zoneDetail({ ...zone, priceMinor: 25000 }), "24 a 72 h");
+  assert.equal(
+    zoneDetail({ ...zone, priceMinor: 25000 }, true),
+    "Envío gratis · 24 a 72 h",
+  );
+  assert.equal(
+    zoneDetail({ ...zone, priceMinor: 0, pricing: "coordinate" }, true),
+    "A coordinar por WhatsApp · 24 a 72 h",
+  );
+  assert.equal(
+    zoneDetail({ ...zone, leadTime: " ", priceMinor: 0 }),
+    "Envío gratis",
+  );
+});
+
+test("after the purchase a delivery order explains the WhatsApp follow-up (T29)", () => {
+  const delivery = {
+    method: "delivery" as const,
+    zoneId: "carrasco",
+    zoneName: "Carrasco",
+    leadTime: "24 a 72 h",
+    priceMinor: 0,
+    freeShipping: false,
+    coordinate: false,
+  };
+  assert.equal(
+    shippingFollowUp({ status: "paid", shipping: delivery }),
+    "Piuma te va a escribir por WhatsApp para coordinar lugar y horario de la entrega.",
+  );
+  assert.equal(
+    shippingFollowUp({
+      status: "pending_transfer",
+      shipping: { ...delivery, coordinate: true },
+    }),
+    "Con el pago confirmado, Piuma te escribe por WhatsApp para coordinar lugar, horario y costo del envío, que no se cobra en esta compra.",
+  );
+  assert.equal(
+    shippingFollowUp({ status: "cancelled", shipping: delivery }),
+    "",
+  );
+  assert.equal(
+    shippingFollowUp({
+      status: "paid",
+      shipping: { method: "pickup", priceMinor: 0, details: "" },
+    }),
+    "",
+  );
+  assert.equal(shippingFollowUp({ status: "paid" }), "");
 });
 
 test("pesos typed in the panel become minor units", () => {

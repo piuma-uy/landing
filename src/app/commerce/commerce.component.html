@@ -173,6 +173,9 @@
                 <p class="small shipping-line">
                   {{ shippingSummary(order.shipping) }}
                 </p>
+                @if (shippingFollowUp(order); as followUp) {
+                  <p class="small ship-follow-up">{{ followUp }}</p>
+                }
                 <div class="transfer-amount">
                   <span class="muted small">Monto exacto</span>
                   <strong>{{ shop.money(t.amountMinor, t.currency) }}</strong>
@@ -243,6 +246,9 @@
                 <p class="small shipping-line">
                   {{ shippingSummary(order.shipping) }}
                 </p>
+                @if (shippingFollowUp(order); as followUp) {
+                  <p class="small ship-follow-up">{{ followUp }}</p>
+                }
                 <p class="payment-note" role="status">
                   @if (reservedUntil(order); as until) {
                     Reservamos tus productos hasta el
@@ -286,6 +292,9 @@
                 <p class="small shipping-line">
                   {{ shippingSummary(order.shipping) }}
                 </p>
+                @if (shippingFollowUp(order); as followUp) {
+                  <p class="small ship-follow-up">{{ followUp }}</p>
+                }
                 <div class="payment-note" role="status">
                   <strong>El pago todavía no está disponible.</strong>
                   <p>
@@ -474,13 +483,23 @@
                               />
                               <span
                                 >Envío a {{ zone.name }}
-                                @if (zone.leadTime) {
-                                  <small>{{ zone.leadTime }}</small>
+                                @if (
+                                  zoneDetail(zone, freeZone(zone.id));
+                                  as detail
+                                ) {
+                                  <small>{{ detail }}</small>
+                                }
+                                @if (zone.note) {
+                                  <small class="zone-note">{{
+                                    zone.note
+                                  }}</small>
                                 }</span
                               ><strong class="option-price">{{
-                                freeZone(zone.id)
-                                  ? "Gratis"
-                                  : shop.money(zone.priceMinor, opts.currency)
+                                isCoordinate(zone)
+                                  ? "A coordinar"
+                                  : freeZone(zone.id) || !zone.priceMinor
+                                    ? "Gratis"
+                                    : shop.money(zone.priceMinor, opts.currency)
                               }}</strong></label
                             >
                           }
@@ -551,7 +570,9 @@
                             <dd class="shipping-cost">
                               @if (sh.method === "pickup") {
                                 Sin costo
-                              } @else if (sh.freeShipping) {
+                              } @else if (sh.coordinate) {
+                                A coordinar
+                              } @else if (sh.freeShipping || !sh.priceMinor) {
                                 Gratis
                               } @else {
                                 {{ shop.money(sh.priceMinor, q.currency) }}
@@ -564,6 +585,17 @@
                           <dd>{{ shop.money(q.totalMinor, q.currency) }}</dd>
                         </div>
                       </dl>
+                      @if (q.shipping?.method === "delivery") {
+                        <p class="small ship-follow-up">
+                          @if ($any(q.shipping).coordinate) {
+                            El envío no se suma al total: el costo y el horario
+                            se coordinan por WhatsApp después de la compra.
+                          } @else {
+                            Después de la compra te escribimos por WhatsApp para
+                            coordinar lugar y horario de la entrega.
+                          }
+                        </p>
+                      }
                     }
                     <p class="small">
                       Precios, envío y disponibilidad verificados. Al confirmar
@@ -687,12 +719,20 @@
                   @if (order.shipping?.method === "delivery") {
                     ·
                     {{
-                      order.shipping!.priceMinor
-                        ? shop.money(order.shipping!.priceMinor, order.currency)
-                        : "envío gratis"
+                      order.shipping!.coordinate
+                        ? "envío a coordinar"
+                        : order.shipping!.priceMinor
+                          ? shop.money(
+                              order.shipping!.priceMinor,
+                              order.currency
+                            )
+                          : "envío gratis"
                     }}
                   }
                 </p>
+                @if (shippingFollowUp(order); as followUp) {
+                  <p class="small ship-follow-up">{{ followUp }}</p>
+                }
                 <div class="order-bottom">
                   <strong
                     >Total
@@ -847,6 +887,9 @@
                     <p class="small shipping-line">
                       {{ shippingSummary(order.shipping) }}
                     </p>
+                    @if (shippingFollowUp(order); as followUp) {
+                      <p class="small ship-follow-up">{{ followUp }}</p>
+                    }
                     <p class="payment-note" role="status">
                       Mercado Pago confirmó el pago. Te mandamos el detalle por
                       mail.
@@ -1199,6 +1242,9 @@
                     </p>
                     <p class="small shipping-line">
                       {{ shippingSummary(order.shipping, true) }}
+                      @if ($any(order.shipping)?.coordinate) {
+                        · <strong>envío a coordinar por WhatsApp</strong>
+                      }
                     </p>
                     <p class="muted small">
                       Vence el
@@ -1489,6 +1535,19 @@
                                 maxlength="100"
                                 placeholder="Montevideo" /></label
                             ><label
+                              >Tipo de envío<select
+                                [name]="'zonePricing' + i"
+                                [ngModel]="zone.pricing ?? 'fixed'"
+                                (ngModelChange)="setPricing(zone, $event)"
+                              >
+                                <option value="fixed">
+                                  Costo fijo (0 = gratis)
+                                </option>
+                                <option value="coordinate">
+                                  A coordinar por WhatsApp
+                                </option>
+                              </select></label
+                            ><label
                               >Costo en pesos<input
                                 [name]="'zonePrice' + i"
                                 type="number"
@@ -1497,6 +1556,7 @@
                                 (ngModelChange)="
                                   zone.priceMinor = toMinor($event) ?? 0
                                 "
+                                [disabled]="isCoordinate(zone)"
                                 required
                                 min="0"
                                 step="0.01" /></label
@@ -1505,9 +1565,22 @@
                                 [name]="'zoneLeadTime' + i"
                                 [(ngModel)]="zone.leadTime"
                                 maxlength="100"
-                                placeholder="24 a 48 h hábiles"
+                                placeholder="24 a 72 h"
                             /></label>
                           </div>
+                          <label
+                            >Nota para el comprador (opcional)<textarea
+                              [name]="'zoneNote' + i"
+                              [(ngModel)]="zone.note"
+                              maxlength="300"
+                              rows="2"
+                              [placeholder]="
+                                isCoordinate(zone)
+                                  ? 'Envío propio o por agencia; costo y horario por WhatsApp'
+                                  : 'Te escribimos por WhatsApp para coordinar lugar y horario'
+                              "
+                            ></textarea>
+                          </label>
                           <button
                             type="button"
                             class="text-button"
@@ -1542,9 +1615,11 @@
                           step="0.01"
                       /></label>
                       <p class="muted small">
-                        El costo de cada zona se suma al total del pedido; con
-                        compras desde el monto de envío gratis, el envío es sin
-                        costo. Los pedidos ya hechos no cambian.
+                        El costo fijo de cada zona se suma al total del pedido
+                        (0 es envío gratis); con compras desde el monto de envío
+                        gratis, el envío es sin costo. Las zonas a coordinar no
+                        cobran envío en la compra: Piuma acuerda costo y horario
+                        por WhatsApp. Los pedidos ya hechos no cambian.
                       </p>
                       @if (shippingProblem(d.shipping); as problem) {
                         <p class="form-problem">{{ problem }}</p>

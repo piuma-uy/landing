@@ -1,10 +1,16 @@
-// Pickup and zone delivery (T22 contract). Framework-free so node --test can load it.
-// The API prices shipping; the browser only sends the choice and shows what comes back.
+// Pickup and zone delivery (T22 contract, T29 pricing). Framework-free so node --test can
+// load it. The API prices shipping; the browser only sends the choice and shows what comes back.
+/** fixed charges priceMinor (0 = free); coordinate charges nothing at checkout and the
+ * shop arranges cost and schedule over WhatsApp. Zones saved before T29 have no pricing. */
+export type ZonePricing = "fixed" | "coordinate";
 export interface ShippingZone {
   id: string;
   name: string;
   priceMinor: number;
   leadTime: string;
+  pricing?: ZonePricing;
+  /** Shown to the buyer and kept on the order (up to 300 characters). */
+  note?: string;
 }
 export interface ShippingSettings {
   pickup: { enabled: boolean; details: string };
@@ -34,6 +40,9 @@ export type ShippingQuote =
       leadTime: string;
       priceMinor: number;
       freeShipping: boolean;
+      /** true: nothing charged for shipping, arranged over WhatsApp (absent before T29). */
+      coordinate?: boolean;
+      note?: string;
       address?: Address;
     };
 export type Fulfillment =
@@ -146,6 +155,40 @@ export function shippingSummary(
     (shipping.leadTime ? ` · ${shipping.leadTime}` : "")
   );
 }
+export function isCoordinate(zone: Pick<ShippingZone, "pricing">) {
+  return zone.pricing === "coordinate";
+}
+/**
+ * Checkout line under a zone: free zones (or the free-shipping threshold the API quoted)
+ * say so with the lead time, coordinate zones say they are arranged over WhatsApp.
+ */
+export function zoneDetail(zone: ShippingZone, quotedFree = false) {
+  const lead = zone.leadTime.trim();
+  const head = isCoordinate(zone)
+    ? "A coordinar por WhatsApp"
+    : quotedFree || !zone.priceMinor
+      ? "Envío gratis"
+      : "";
+  return [head, lead].filter(Boolean).join(" · ");
+}
+/**
+ * What happens after the purchase of a delivery order: Piuma writes over WhatsApp to agree
+ * place and schedule (and the cost, for coordinate zones). Nothing for pickup or cancelled.
+ */
+export function shippingFollowUp(order: {
+  status: string;
+  shipping?: ShippingQuote;
+}) {
+  const s = order.shipping;
+  if (s?.method !== "delivery" || order.status === "cancelled") return "";
+  const what = s.coordinate
+    ? "lugar, horario y costo del envío, que no se cobra en esta compra."
+    : "lugar y horario de la entrega.";
+  return order.status === "paid"
+    ? "Piuma te va a escribir por WhatsApp para coordinar " + what
+    : "Con el pago confirmado, Piuma te escribe por WhatsApp para coordinar " +
+        what;
+}
 /** Why the shipping section of the settings form cannot be saved yet, if anything. */
 export function shippingProblem(s: ShippingSettings) {
   if (!s.pickup.enabled && !s.delivery.enabled)
@@ -176,7 +219,8 @@ export function toMinor(pesos: number | string | null | undefined) {
 }
 /**
  * settings.shipping for PUT /admin/settings: trims text, gives new zones (blank id) an
- * id from their name and keeps existing ids, which past orders reference.
+ * id from their name and keeps existing ids, which past orders reference. Coordinate zones
+ * go with cost 0 (the API rejects any other) and blank notes are left out.
  */
 export function shippingInput(s: ShippingSettings): ShippingSettings {
   const taken = s.delivery.zones.map((z) => z.id).filter(Boolean);
@@ -188,11 +232,15 @@ export function shippingInput(s: ShippingSettings): ShippingSettings {
         const name = z.name.trim();
         const id = z.id || zoneId(name, taken);
         if (!z.id) taken.push(id);
+        const pricing = z.pricing ?? "fixed";
+        const note = z.note?.trim();
         return {
           id,
           name,
-          priceMinor: z.priceMinor,
+          priceMinor: pricing === "coordinate" ? 0 : z.priceMinor,
           leadTime: z.leadTime.trim(),
+          pricing,
+          ...(note ? { note } : {}),
         };
       }),
       freeFromMinor: s.delivery.freeFromMinor || null,
