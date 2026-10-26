@@ -24,13 +24,13 @@
 
   <div class="policy__actions">
     @if (shop.shippingFrom() === "cart") {
-      <button type="button" class="btn btn--primary" (click)="back()">
+      <button type="button" class="btn btn--outline" (click)="back()">
         Volver al carrito
       </button>
     } @else {
       <button
         type="button"
-        class="btn btn--primary"
+        class="btn btn--outline"
         (click)="shop.section('catalogo')"
       >
         Ver la colección
