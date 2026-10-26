@@ -1,3 +1,6 @@
+@use "variables" as v;
+@use "mixins" as *;
+
 :host {
   display: block;
 }
@@ -534,10 +537,12 @@ details p {
   }
 }
 
+// En el teléfono va apilado arriba del botón flotante de WhatsApp (misma esquina, sin pisarse);
+// max(48px, 3rem) cubre el alto del botón aunque se agrande la letra (T63b).
 .preview-label {
   position: fixed;
-  bottom: 0.5rem;
-  right: 0.5rem;
+  bottom: calc(var(--space-sm) + max(48px, 3rem) + var(--space-xs) + env(safe-area-inset-bottom, 0px));
+  right: var(--space-sm);
   z-index: 100;
   padding: 0.2rem 0.7rem;
   border: 1px solid var(--color-border);
@@ -547,6 +552,12 @@ details p {
   font-size: 0.72rem;
   margin: 0;
   pointer-events: none;
+
+  // Desde tablet el botón flotante no existe: el rótulo vuelve al rincón.
+  @include from(v.$bp-md) {
+    bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+    right: 0.5rem;
+  }
 }
 .ship-whatsapp {
   margin: 0 0 1rem;
