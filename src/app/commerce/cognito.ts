@@ -497,6 +497,9 @@ export class CognitoAuth {
    * longer renews it (revoked, past its validity): it is forgotten and the buyer signs in again.
    */
   async restore(): Promise<CognitoUser | "expired" | null> {
+    // A sign-in that finished while the page was still loading already holds this tab's session:
+    // renewing it again could only lose it (a failed refresh forgets the session) (T79).
+    if (this.accessToken && this.profile) return this.profile;
     let saved: { refreshToken?: unknown; source?: unknown } | null = null;
     try {
       saved = JSON.parse(this.deps.storage.getItem(SESSION_KEY) ?? "null");
