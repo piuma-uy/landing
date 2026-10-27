@@ -17,7 +17,7 @@ import {
   RESEND_WAIT_S,
   codeOf,
   emailOk,
-  passwordOk,
+  passwordProblem,
   passwordRules,
 } from "../account";
 
@@ -131,11 +131,10 @@ export class AccountComponent implements OnDestroy {
       problems.email = "Escribí un correo válido, como nombre@gmail.com.";
     if (fields.includes("password")) {
       if (!this.password()) problems.password = "Escribí tu contraseña.";
-      else if (
-        this.newPassword() &&
-        !passwordOk(this.rules, this.password())
-      )
-        problems.password = "La contraseña todavía no cumple todo lo de la lista.";
+      else if (this.newPassword()) {
+        const problem = passwordProblem(this.rules, this.password());
+        if (problem) problems.password = problem;
+      }
     }
     if (fields.includes("code") && !codeOf(this.code))
       problems.code = "El código tiene 6 números.";

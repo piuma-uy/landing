@@ -4,44 +4,44 @@
 export interface PasswordRule {
   id: string;
   label: string;
+  /** What the field says when this rule stops the form. */
+  problem: string;
   ok: (password: string) => boolean;
   /** Listed only while it fails: rare enough not to lengthen the list. */
   quiet?: boolean;
 }
 
-// Cognito counts ASCII letters for upper/lower case, and these as special characters (password policy "require_symbols").
-const SYMBOL = /[\^$*.[\]{}()?"!@#%&/\\,><':;|_~`=+\- ]/;
+/** Cognito's policy (infra/auth.tf) and the Docker API: length only, no composition rules (T74). */
+export const PASSWORD_MIN_LENGTH = 8;
 
 const LENGTH: PasswordRule = {
   id: "length",
-  label: "12 caracteres o más",
-  ok: (p) => p.length >= 12,
+  label: `Mínimo ${PASSWORD_MIN_LENGTH} caracteres`,
+  problem: `La contraseña necesita ${PASSWORD_MIN_LENGTH} caracteres o más.`,
+  ok: (p) => p.length >= PASSWORD_MIN_LENGTH,
 };
 
 /**
- * What a new password needs. Cognito's policy (infra/auth.tf) asks for the four kinds of
- * character; the Docker API only for the length.
+ * What a new password needs: 8 characters, any of them (NIST SP 800-63B: length over complexity).
+ * Cognito also refuses spaces at either end; the Docker API takes them.
  */
 export function passwordRules(cognito: boolean): PasswordRule[] {
   if (!cognito) return [LENGTH];
   return [
     LENGTH,
-    { id: "upper", label: "Una mayúscula", ok: (p) => /[A-Z]/.test(p) },
-    { id: "lower", label: "Una minúscula", ok: (p) => /[a-z]/.test(p) },
-    { id: "number", label: "Un número", ok: (p) => /\d/.test(p) },
-    {
-      id: "symbol",
-      label: "Un símbolo, como ! ? # o -",
-      ok: (p) => SYMBOL.test(p),
-    },
     {
       id: "edges",
       label: "Sin espacios al principio ni al final",
+      problem: "Sacá los espacios del principio y del final de la contraseña.",
       ok: (p) => p === p.trim(),
       quiet: true,
     },
   ];
 }
+
+/** The message for the first rule the password breaks; "" when it meets them all. */
+export const passwordProblem = (rules: PasswordRule[], password: string) =>
+  rules.find((r) => !r.ok(password))?.problem ?? "";
 
 export const passwordOk = (rules: PasswordRule[], password: string) =>
   rules.every((r) => r.ok(password));

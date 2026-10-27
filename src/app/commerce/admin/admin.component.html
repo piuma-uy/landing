@@ -313,96 +313,51 @@
             · Vence el
             {{ dateTime(order.transfer?.expiresAt, true) }}
           </p>
-          @if (reviewing()?.id === order.id) {
-            @if (reviewing()?.action === "confirm") {
-              <form
-                class="confirm-step"
-                #confirmForm="ngForm"
-                (ngSubmit)="confirmTransfer(order)"
-              >
-                <p>
-                  ¿Ya viste acreditados
-                  <strong>{{
-                    shop.money(
-                      order.transfer?.amountMinor ?? order.totalMinor,
-                      order.transfer?.currency ?? order.currency
-                    )
-                  }}</strong>
-                  con la referencia
-                  <strong>{{ order.transfer?.reference }}</strong>
-                  (pedido {{ orderCode(order) }})? El pedido pasa a pagado y no
-                  se puede deshacer.
-                </p>
-                <label
-                  >Referencia del movimiento en el banco<input
-                    name="bankReference"
-                    [(ngModel)]="bankReference"
-                    required
-                    minlength="3"
-                    maxlength="120"
-                    pattern="[A-Za-z0-9._\/\-]+"
-                    autocomplete="off"
-                /></label>
-                <div class="actions">
-                  <button
-                    class="btn btn--primary"
-                    [disabled]="shop.busy() || !confirmForm.valid"
-                  >
-                    Sí, confirmar acreditación</button
-                  ><button
-                    type="button"
-                    class="btn btn--outline"
-                    (click)="reviewing.set(null)"
-                  >
-                    Volver
-                  </button>
-                </div>
-              </form>
-            } @else {
-              <form
-                class="confirm-step"
-                #cancelForm="ngForm"
-                (ngSubmit)="cancelTransfer(order)"
-              >
-                <p>
-                  El pedido se cancela y el stock vuelve a estar disponible.
-                </p>
-                <label
-                  >Motivo de cancelación<input
-                    name="cancelReason"
-                    [(ngModel)]="cancelReason"
-                    required
-                    minlength="3"
-                    maxlength="500"
-                /></label>
-                <div class="actions">
-                  <button
-                    class="btn btn--primary"
-                    [disabled]="shop.busy() || !cancelForm.valid"
-                  >
-                    Sí, cancelar pedido</button
-                  ><button
-                    type="button"
-                    class="btn btn--outline"
-                    (click)="reviewing.set(null)"
-                  >
-                    Volver
-                  </button>
-                </div>
-              </form>
-            }
+          @if (reviewing() === order.id) {
+            <form
+              class="confirm-step"
+              #cancelForm="ngForm"
+              (ngSubmit)="cancelTransfer(order)"
+            >
+              <p>
+                El pedido se cancela y el stock vuelve a estar disponible.
+              </p>
+              <label
+                >Motivo de cancelación<input
+                  name="cancelReason"
+                  [(ngModel)]="cancelReason"
+                  required
+                  minlength="3"
+                  maxlength="500"
+              /></label>
+              <div class="actions">
+                <button
+                  class="btn btn--primary"
+                  [disabled]="shop.busy() || !cancelForm.valid"
+                >
+                  Sí, cancelar pedido</button
+                ><button
+                  type="button"
+                  class="btn btn--outline"
+                  (click)="reviewing.set(null)"
+                >
+                  Volver
+                </button>
+              </div>
+            </form>
           } @else {
             <div class="actions">
               <button
                 class="btn btn--primary"
                 [disabled]="shop.busy()"
-                (click)="review(order, 'confirm')"
+                aria-haspopup="dialog"
+                (click)="askConfirm(order)"
               >
                 Confirmar acreditación</button
               ><button
                 class="btn btn--outline"
                 [disabled]="shop.busy()"
-                (click)="review(order, 'cancel')"
+                (click)="review(order)"
               >
                 Cancelar
               </button>
@@ -423,6 +378,103 @@
           <p class="panel empty">No hay transferencias por confirmar.</p>
         }
       }
+      <!-- T74: "¿Estás seguro?" before a payment that cannot be undone. Native modal dialog: the
+           page behind is inert, Escape and "Volver" close it and focus returns to the button. -->
+      <dialog
+        #confirmDialog
+        class="sure"
+        aria-labelledby="sure-title"
+        aria-describedby="sure-lead"
+        (close)="confirming.set(null)"
+        (click)="closeOnBackdrop($event)"
+      >
+        @if (confirming(); as order) {
+          <form class="sure__body" (ngSubmit)="confirmTransfer(order)">
+            <h2 id="sure-title" class="sure__title">¿Estás seguro?</h2>
+            <p id="sure-lead" class="sure__lead">
+              Confirmá sólo si ya ves la transferencia acreditada en el banco.
+              El pedido pasa a pagado y no se puede deshacer.
+            </p>
+            <dl class="sure__facts">
+              <div>
+                <dt>Cliente</dt>
+                <dd>{{ order.contact?.name }}</dd>
+              </div>
+              <div>
+                <dt>Monto</dt>
+                <dd class="sure__amount">
+                  {{
+                    shop.money(
+                      order.transfer?.amountMinor ?? order.totalMinor,
+                      order.transfer?.currency ?? order.currency
+                    )
+                  }}
+                </dd>
+              </div>
+              <div>
+                <dt>Teléfono</dt>
+                <dd>{{ order.contact?.phone }}</dd>
+              </div>
+              <div>
+                <dt>Zona</dt>
+                <dd>{{ orderZone(order.shipping) }}</dd>
+              </div>
+              <div>
+                <dt>Pedido</dt>
+                <dd>{{ orderCode(order) }} · {{ dateTime(order.createdAt) }}</dd>
+              </div>
+            </dl>
+            <label for="sure-reference"
+              >Referencia del movimiento en el banco
+              <span class="muted">(opcional)</span></label
+            >
+            <input
+              id="sure-reference"
+              name="bankReference"
+              [(ngModel)]="bankReference"
+              #reference="ngModel"
+              minlength="3"
+              maxlength="120"
+              pattern="[A-Za-z0-9._\/\-]+"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              aria-describedby="sure-reference-hint"
+              [attr.aria-invalid]="reference.invalid"
+            />
+            <p id="sure-reference-hint" class="muted small">
+              @if (reference.invalid) {
+                <span class="sure__error"
+                  >Usá letras, números, puntos o guiones, sin espacios (3 o
+                  más).</span
+                >
+              } @else {
+                Si el banco muestra un número de movimiento, anotalo. Si no,
+                dejalo vacío.
+              }
+            </p>
+            @if (confirmError(); as problem) {
+              <p class="sure__error" role="alert">{{ problem }}</p>
+            }
+            <div class="sure__actions">
+              <button
+                class="btn btn--primary"
+                [disabled]="shop.busy() || reference.invalid"
+              >
+                {{ shop.busy() ? "Confirmando…" : "Sí, ya se acreditó" }}
+              </button>
+              <button
+                type="button"
+                class="btn btn--outline"
+                autofocus
+                (click)="confirmDialog.close()"
+              >
+                Volver
+              </button>
+            </div>
+          </form>
+        }
+      </dialog>
     }
     @case ("settings") {
       <!-- Its own chunk: only administrators download it. -->

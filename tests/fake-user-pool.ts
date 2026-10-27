@@ -17,6 +17,20 @@ const N = BigInt(
 const G = 2n;
 export const CODE = "123456";
 
+/**
+ * The pool's password policy (infra/auth.tf, T74): 8 characters or more, nothing else; like
+ * Cognito, leading or trailing whitespace fails the API's own pattern first.
+ */
+function checkPolicy(password: string, prefix: string) {
+  // Same "type|message" error as answer()'s fail().
+  if (!/^\S(.*\S)?$/s.test(password))
+    throw new Error(
+      "InvalidParameterException|1 validation error detected: Value at 'password' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[\\S]+.*[\\S]+$",
+    );
+  if (password.length < 8)
+    throw new Error(`InvalidPasswordException|${prefix}: Password not long enough`);
+}
+
 function pow(b: bigint, e: bigint, m: bigint) {
   let r = 1n;
   b %= m;
@@ -157,8 +171,7 @@ export class FakeUserPool {
           if (!user!.confirmed) fail("UserNotConfirmedException", "User is not confirmed.");
         } else if (body.ChallengeName === "NEW_PASSWORD_REQUIRED") {
           if (s!.next !== "NEW_PASSWORD_REQUIRED") fail("NotAuthorizedException", "Invalid session");
-          if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,}$/.test(r.NEW_PASSWORD))
-            fail("InvalidPasswordException", "Password does not conform to policy");
+          checkPolicy(r.NEW_PASSWORD, "Password does not conform to policy");
           user!.password = r.NEW_PASSWORD;
           user!.temporary = false;
         } else if (body.ChallengeName === "SOFTWARE_TOKEN_MFA") {
@@ -184,8 +197,7 @@ export class FakeUserPool {
       }
       case "SignUp": {
         if (this.users.has(body.Username)) fail("UsernameExistsException", "User already exists");
-        if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,}$/.test(body.Password))
-          fail("InvalidPasswordException", "Password did not conform with policy");
+        checkPolicy(body.Password, "Password did not conform with policy");
         const name = body.UserAttributes.find((a: any) => a.Name === "name")?.Value;
         this.add(body.Username, { password: body.Password, name, confirmed: false });
         return {
@@ -205,8 +217,7 @@ export class FakeUserPool {
       case "ConfirmForgotPassword": {
         const user = this.users.get(body.Username);
         if (body.ConfirmationCode !== CODE || !user) fail("CodeMismatchException");
-        if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,}$/.test(body.Password))
-          fail("InvalidPasswordException", "Password does not conform to policy");
+        checkPolicy(body.Password, "Password does not conform to policy");
         user!.password = body.Password;
         return {};
       }

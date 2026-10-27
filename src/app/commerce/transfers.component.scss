@@ -24,3 +24,100 @@
 .confirmation-promise {
   font-weight: 500;
 }
+// "¿Estás seguro?" antes de confirmar una transferencia (T74): <dialog> nativo, centrado en
+// tablet y escritorio, hoja inferior a todo el ancho en el teléfono.
+.sure {
+  width: min(30rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  &::backdrop {
+    background-color: rgba(47, 44, 41, 0.55);
+  }
+}
+.sure__body {
+  padding: var(--space-md);
+}
+.sure__title {
+  margin: 0 0 0.4rem;
+}
+.sure__lead {
+  margin: 0 0 1rem;
+}
+.sure__facts {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1.2rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+
+  div {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 0.6rem;
+  }
+  dt {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+  dd {
+    margin: 0;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+}
+.sure__amount {
+  font-size: 1.15rem;
+}
+.sure label {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+.sure input {
+  min-height: 44px;
+}
+.sure__error {
+  color: var(--color-error);
+}
+.sure__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+@media (max-width: 599.98px) {
+  .sure {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    margin: auto 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .sure__body {
+    padding: var(--space-md) var(--space-sm)
+      calc(var(--space-sm) + env(safe-area-inset-bottom));
+  }
+  // Thumb-sized and stacked; the decision first.
+  .sure__actions .btn {
+    flex: 1 1 100%;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sure[open] {
+    animation: sure-in 180ms ease-out;
+  }
+}
+@keyframes sure-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+}
