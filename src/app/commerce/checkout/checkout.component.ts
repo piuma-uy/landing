@@ -24,9 +24,13 @@ import {
 } from "../checkout";
 import { type Address, addressMismatch, shippingCost } from "../shipping";
 import { phoneDisplay } from "../transfer";
+import { scrollBehavior } from "../screen";
 import { DeliveryComponent } from "../delivery/delivery.component";
 import { CartLinesComponent } from "../order-extras/order-extras";
 import { PhoneFieldComponent } from "../phone-field/phone-field.component";
+
+/** $bp-lg of src/styles/_variables.scss: two columns with the sticky summary. */
+const DESKTOP = 1024;
 
 /**
  * Checkout (T72): Tus datos · Entrega · Pago, one open at a time; a finished step folds into one
@@ -93,6 +97,16 @@ export class CheckoutComponent {
       this.shop.destination()?.label ?? null,
       (minor) => this.shop.money(minor, q?.currency),
     );
+  });
+  /** Pago's button: card goes to Mercado Pago from this click and only from it (T72c). */
+  readonly payLabel = computed(() => {
+    const card = this.shop.payWith() === "card" && this.shop.cardEnabled();
+    if (this.shop.busy())
+      return card ? "Te llevamos a Mercado Pago…" : "Guardando…";
+    if (card) return "Pagar con Mercado Pago";
+    return this.canPay()
+      ? "Confirmar y pagar " + this.total()
+      : "Confirmar pedido";
   });
   /** "Elegí adónde te lo llevamos" when Continuar is pressed without a place. */
   readonly placeError = signal("");
@@ -206,14 +220,18 @@ export class CheckoutComponent {
   private go(step: CheckoutStep) {
     this.chosen.set(step);
     this.placeError.set("");
-    // The new step's title takes the focus and the top of the screen (below the header).
+    // The new step's title takes the focus and the top of the screen (below the header). On
+    // desktop the page starts from the top: the steps fit, and the sticky summary stays whole.
     afterNextRender(
       () => {
         const section = this.section(step);
         section
           ?.querySelector<HTMLElement>("h2")
           ?.focus({ preventScroll: true });
-        section?.scrollIntoView({ block: "start" });
+        const behavior = scrollBehavior();
+        if (matchMedia(`(min-width: ${DESKTOP}px)`).matches)
+          window.scrollTo({ top: 0, behavior });
+        else section?.scrollIntoView({ block: "start", behavior });
       },
       { injector: this.injector },
     );

@@ -69,7 +69,17 @@
               <app-receipt-thanks [order]="order" />
             }
           }
-          @if (shop.completed(); as order) {
+          @if (shop.leaving(); as order) {
+            <!-- Card (T72c): the order exists and this tab is leaving for Mercado Pago. -->
+            <div class="panel receipt leaving" role="status">
+              <span class="spinner" aria-hidden="true"></span>
+              <h2>Te llevamos a Mercado Pago…</h2>
+              <p>
+                Pedido #{{ order.id.slice(0, 8) }} ·
+                {{ shop.money(order.totalMinor, order.currency) }}
+              </p>
+            </div>
+          } @else if (shop.completed(); as order) {
             @if (order.transfer; as t) {
               <div class="panel receipt transfer">
                 <span class="status">Pendiente de transferencia</span>
