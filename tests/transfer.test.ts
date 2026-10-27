@@ -8,6 +8,7 @@ import {
   orderCode,
   orderZone,
   phoneCounts,
+  phoneDisplay,
   phoneKey,
   phoneReference,
   reservationText,
@@ -350,4 +351,11 @@ test("transfer screen texts: hours, Uruguay time, phone reference and the promis
   assert.equal(phoneReference({}), false);
   assert.equal(orderCode({ id: "abcd1234ffff" }), "ABCD1234");
   assert.match(CONFIRMATION_PROMISE, /por mail y por teléfono/);
+});
+
+test("panel shows E.164 Uruguayan mobiles in national format, anything else as saved (T71)", () => {
+  assert.equal(phoneDisplay("+59891813234"), "091 813 234");
+  assert.equal(phoneDisplay("+5491112345678"), "+5491112345678");
+  assert.equal(phoneDisplay("099 123 456"), "099 123 456");
+  assert.equal(phoneDisplay(undefined), "");
 });

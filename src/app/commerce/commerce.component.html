@@ -306,7 +306,7 @@
               <aside class="panel summary">
                 <form
                   #checkoutForm="ngForm"
-                  (ngSubmit)="shop.checkout(contactPhone, address)"
+                  (ngSubmit)="contactPhone() && shop.checkout(contactPhone()!, address)"
                 >
                   <span class="eyebrow">Resumen</span>
                   <h2>
@@ -326,15 +326,16 @@
                   </p>
                   @if (shop.user(); as user) {
                     <p class="small">{{ user.name }} · {{ user.email }}</p>
-                    <label
-                      >Teléfono de contacto<input
-                        name="contactPhone"
-                        type="tel"
-                        [(ngModel)]="contactPhone"
-                        required
-                        pattern="[+0-9 ()-]{6,30}"
-                        autocomplete="tel"
-                    /></label>
+                    <!-- Lazy chunk with libphonenumber-js: only a checkout or the account needs it. -->
+                    @defer (on immediate) {
+                      <app-phone-field
+                        [initial]="shop.profile()?.phone ?? null"
+                        [disabled]="shop.busy()"
+                        (phoneChange)="contactPhone.set($event)"
+                      />
+                    } @placeholder (minimum 0ms) {
+                      <div class="phone-placeholder" aria-hidden="true"></div>
+                    }
                   }
                   @if (!shop.user()) {
                     <p>Ingresá para guardar tu pedido.</p>
@@ -349,7 +350,9 @@
                     <button
                       type="button"
                       class="btn btn--primary wide"
-                      [disabled]="shop.busy() || !checkoutForm.valid"
+                      [disabled]="
+                        shop.busy() || !checkoutForm.valid || !contactPhone()
+                      "
                       (click)="shop.review()"
                     >
                       {{ shop.busy() ? "Revisando…" : "Revisar pedido" }}
@@ -431,6 +434,7 @@
                       [disabled]="
                         shop.busy() ||
                         !checkoutForm.valid ||
+                        !contactPhone() ||
                         (shop.delivering() && !shop.destination())
                       "
                     >

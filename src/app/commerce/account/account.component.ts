@@ -11,6 +11,7 @@ import {
 import { NgTemplateOutlet } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { CommerceService } from "../commerce.service";
+import { PhoneFieldComponent } from "../phone-field/phone-field.component";
 import { AuthError, type SignInResult } from "../cognito";
 import { shownMessage } from "../errors";
 import {
@@ -70,13 +71,15 @@ const TEXTS: Record<Step, { title: string; lead: string }> = {
 @Component({
   selector: "app-account",
   standalone: true,
-  imports: [FormsModule, NgTemplateOutlet],
+  imports: [FormsModule, NgTemplateOutlet, PhoneFieldComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./account.component.html",
   styleUrl: "./account.component.scss",
 })
 export class AccountComponent implements OnDestroy {
   readonly shop = inject(CommerceService);
+  /** "Tu celular" as typed: E.164 once valid (T71). */
+  readonly phone = signal<string | null>(null);
   readonly cognito = this.shop.cognito;
   /** Cognito without the issuer in runtime-config: only the hosted UI can sign in. */
   readonly hosted = !!this.cognito && !this.cognito.forms;
