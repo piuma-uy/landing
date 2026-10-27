@@ -1,6 +1,11 @@
 // Bank transfer and shop settings (T23 contract). Framework-free so node --test can load it.
 import { deadline } from "./orders";
-import type { ShippingSettings } from "./shipping";
+import {
+  shippingSummary,
+  zoneLabel,
+  type ShippingQuote,
+  type ShippingSettings,
+} from "./shipping";
 export interface TransferInstructions {
   bank: string;
   accountType: string;
@@ -99,6 +104,15 @@ export const orderCode = (order: Pick<TransferOrder, "id">) =>
 /** The buyer quotes their phone in the transfer (T70) rather than the order code. */
 export const phoneReference = (t: Pick<OrderTransfer, "referenceType">) =>
   t.referenceType === "phone";
+/**
+ * Where the order goes, for "¿Estás seguro?" before confirming a transfer (T74): the zone as the
+ * buyer read it, or pickup as the row says it.
+ */
+export function orderZone(shipping: ShippingQuote | undefined) {
+  return shipping?.method === "delivery"
+    ? zoneLabel(shipping.zoneName)
+    : shippingSummary(shipping);
+}
 /** "Te reservamos los productos por 48 horas, hasta el martes 28/10 a las 18:58 (hora de Uruguay)." */
 export function reservationText(
   t: Pick<OrderTransfer, "holdHours" | "expiresAt">,
@@ -225,13 +239,17 @@ export class TransferApi {
     } while (cursor);
     return rows;
   }
-  /** The administrator saw the money at the bank: amount and currency come from the order. */
-  confirm<T extends TransferOrder>(order: T, bankReference: string) {
+  /**
+   * The administrator saw the money at the bank: amount and currency come from the order. The
+   * bank's movement id is optional (T74) and only sent when typed.
+   */
+  confirm<T extends TransferOrder>(order: T, bankReference = "") {
+    const reference = bankReference.trim();
     return this.request<T>(
       "/admin/orders/" + encodeURIComponent(order.id) + "/confirm-transfer",
       "POST",
       {
-        bankReference: bankReference.trim(),
+        ...(reference && { bankReference: reference }),
         amountMinor: order.transfer?.amountMinor ?? order.totalMinor,
         currency: order.transfer?.currency ?? order.currency,
       },

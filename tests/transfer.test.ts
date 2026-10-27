@@ -6,6 +6,7 @@ import {
   EXPIRY_PRINCIPAL,
   TransferApi,
   orderCode,
+  orderZone,
   phoneCounts,
   phoneKey,
   phoneReference,
@@ -167,6 +168,37 @@ test("confirm sends the bank reference with the transfer amount and currency", a
       body: { bankReference: "BANK-77", amountMinor: 300050, currency: "UYU" },
     },
   ]);
+});
+
+test("confirm without a bank reference leaves it out (optional, T74)", async () => {
+  for (const blank of [undefined, "", "   "]) {
+    const { client, calls } = api({ ...order, status: "paid" });
+    await client.confirm(order, blank);
+    assert.deepEqual(calls[0]!.body, { amountMinor: 300050, currency: "UYU" });
+  }
+});
+
+test("the confirmation dialog names the zone, or pickup (T74)", () => {
+  assert.equal(
+    orderZone({
+      method: "delivery",
+      zoneId: "mvd",
+      zoneName: "Interior (a coordinar)",
+      leadTime: "",
+      priceMinor: 0,
+      freeShipping: false,
+    }),
+    "Interior",
+  );
+  assert.equal(
+    orderZone({ method: "pickup", priceMinor: 0, details: "" }),
+    "Retiro a coordinar",
+  );
+  assert.equal(
+    orderZone({ method: "pickup", priceMinor: 0, details: "Pocitos, de tarde" }),
+    "Retiro: Pocitos, de tarde",
+  );
+  assert.equal(orderZone(undefined), "Retiro a coordinar");
 });
 
 test("cancel posts the trimmed reason", async () => {

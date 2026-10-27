@@ -1,15 +1,19 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   inject,
   signal,
+  viewChild,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { DomSanitizer } from "@angular/platform-browser";
 import { CommerceService, Order, Product } from "../commerce.service";
 import { dateTime } from "../orders";
-import { orderCode, phoneCounts, phoneKey } from "../transfer";
+import { orderCode, orderZone, phoneCounts, phoneKey } from "../transfer";
 import { groupSecret } from "../mfa";
 import { qrPath } from "../qr";
 import { AdminSettingsComponent } from "../admin-settings.component";
@@ -38,11 +42,14 @@ export class AdminComponent {
   readonly adminTab = signal<
     "overview" | "products" | "transfers" | "settings"
   >("overview");
-  /** Transfer row with an open confirmation step, and which action it confirms. */
-  readonly reviewing = signal<{
-    id: string;
-    action: "confirm" | "cancel";
-  } | null>(null);
+  /** Transfer row with the cancellation step open. */
+  readonly reviewing = signal<string | null>(null);
+  /** Transfer in the "¿Estás seguro?" dialog (T74), and why the last try failed. */
+  readonly confirming = signal<Order | null>(null);
+  readonly confirmError = signal("");
+  private readonly confirmDialog =
+    viewChild<ElementRef<HTMLDialogElement>>("confirmDialog");
+  private readonly injector = inject(Injector);
   private readonly sanitizer = inject(DomSanitizer);
   /** TOTP enrollment: QR of the otpauth URL, drawn here (no image leaves the browser). */
   readonly totpQr = computed(() => {
@@ -63,6 +70,7 @@ export class AdminComponent {
   cancelReason = "Transferencia no recibida";
   readonly dateTime = dateTime;
   readonly orderCode = orderCode;
+  readonly orderZone = orderZone;
   readonly shippingSummary = shippingSummary;
   readonly sales = computed(() =>
     this.shop.metrics().reduce((s, m) => s + m.grossSalesMinor, 0),
@@ -175,14 +183,29 @@ export class AdminComponent {
     this.reviewing.set(null);
     this.shop.clearTransferSearch();
   }
-  review(order: Order, action: "confirm" | "cancel") {
-    this.reviewing.set({ id: order.id, action });
-    this.bankReference = "";
+  review(order: Order) {
+    this.reviewing.set(order.id);
     this.cancelReason = "Transferencia no recibida";
+  }
+  /** Opens the dialog once its content is drawn, so the focus lands on "Volver" (autofocus). */
+  askConfirm(order: Order) {
+    this.reviewing.set(null);
+    this.bankReference = "";
+    this.confirmError.set("");
+    this.confirming.set(order);
+    afterNextRender(() => this.confirmDialog()?.nativeElement.showModal(), {
+      injector: this.injector,
+    });
+  }
+  /** A tap on the dimmed page around the dialog is "Volver". */
+  closeOnBackdrop(event: MouseEvent) {
+    const dialog = this.confirmDialog()?.nativeElement;
+    if (event.target === dialog) dialog?.close();
   }
   async confirmTransfer(order: Order) {
     await this.shop.confirmTransfer(order, this.bankReference);
-    if (!this.shop.error()) this.reviewing.set(null);
+    if (this.shop.error()) this.confirmError.set(this.shop.error());
+    else this.confirmDialog()?.nativeElement.close();
   }
   async cancelTransfer(order: Order) {
     await this.shop.cancelTransfer(order, this.cancelReason);

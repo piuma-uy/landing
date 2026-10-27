@@ -66,7 +66,9 @@ export function authErrorMessage(type: string, awsMessage = ""): string {
     case "AliasExistsException":
       return "Ya hay una cuenta con ese correo. Ingresá o recuperá tu contraseña.";
     case "InvalidPasswordException":
-      return "La contraseña no cumple los requisitos. Revisá la lista debajo del campo.";
+      return passwordMessage(awsMessage);
+    case "PasswordHistoryPolicyViolationException":
+      return "Esa contraseña ya la usaste antes. Elegí una distinta.";
     case "CodeMismatchException":
       return "El código no coincide. Revisá el último correo que te mandamos.";
     case "ExpiredCodeException":
@@ -78,14 +80,51 @@ export function authErrorMessage(type: string, awsMessage = ""): string {
     case "CodeDeliveryFailureException":
       return "No pudimos mandarte el correo. Probá de nuevo en unos minutos.";
     case "InvalidParameterException":
+      // Cognito's own pattern for passwords: no whitespace at either end.
+      if (/'password'|password.*pattern/i.test(awsMessage))
+        return EDGES_MESSAGE;
       return "Revisá los datos e intentá de nuevo.";
     case "EnableSoftwareTokenMFAException":
       return "El código de tu app autenticadora no coincide. Probá con el código nuevo.";
+    case "MFAMethodNotFoundException":
+    case "SoftwareTokenMFANotFoundException":
+      return "Tu cuenta no tiene app autenticadora configurada. Escribinos por WhatsApp y lo vemos.";
+    case "ForbiddenException":
+      return "No pudimos procesar el pedido desde esta conexión. Probá de nuevo en unos minutos.";
+    case "UserLambdaValidationException":
+    case "InvalidLambdaResponseException":
+    case "UnexpectedLambdaException":
+    case "InvalidUserPoolConfigurationException":
+    case "InvalidEmailRoleAccessPolicyException":
+    case "ResourceNotFoundException":
+    case "InternalErrorException":
+      return UNAVAILABLE_MESSAGE;
     case "NetworkError":
       return "No pudimos conectar. Revisá tu conexión y probá de nuevo.";
     default:
       return "No pudimos completar el ingreso. Probá de nuevo en unos minutos.";
   }
+}
+
+const UNAVAILABLE_MESSAGE =
+  "El ingreso no está disponible en este momento. Probá de nuevo en unos minutos.";
+const EDGES_MESSAGE =
+  "La contraseña no puede empezar ni terminar con un espacio. Sacalo y probá de nuevo.";
+
+/**
+ * InvalidPasswordException says which part of the pool's policy failed ("Password did not conform
+ * with policy: Password not long enough"). The policy only asks for 8 characters (T74, as
+ * PASSWORD_MIN_LENGTH in account.ts); the other parts only show up while a pool has the old rules.
+ */
+function passwordMessage(awsMessage: string): string {
+  if (/long enough/i.test(awsMessage))
+    return "La contraseña es muy corta: tiene que tener 8 caracteres o más.";
+  if (/uppercase/i.test(awsMessage)) return "La contraseña necesita al menos una mayúscula.";
+  if (/lowercase/i.test(awsMessage)) return "La contraseña necesita al menos una minúscula.";
+  if (/numeric/i.test(awsMessage)) return "La contraseña necesita al menos un número.";
+  if (/symbol/i.test(awsMessage)) return "La contraseña necesita al menos un símbolo, como ! ? # o -.";
+  if (/whitespace|pattern/i.test(awsMessage)) return EDGES_MESSAGE;
+  return "Esa contraseña no sirve. Usá 8 caracteres o más, sin espacios al principio ni al final.";
 }
 
 const TOO_MANY_MESSAGE =

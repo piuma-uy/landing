@@ -17,7 +17,7 @@ import {
   RESEND_WAIT_S,
   codeOf,
   emailOk,
-  passwordOk,
+  passwordProblem,
   passwordRules,
 } from "../account";
 
@@ -122,6 +122,14 @@ export class AccountComponent implements OnDestroy {
     requestAnimationFrame(() => this.heading()?.nativeElement.focus());
   }
 
+  /** A field error about the length goes away as soon as the password meets the rules. */
+  typePassword(value: string) {
+    this.password.set(value);
+    const { password, ...rest } = this.invalid();
+    if (password && value && !(this.newPassword() && passwordProblem(this.rules, value)))
+      this.invalid.set(rest);
+  }
+
   /** Field errors the server never needs to see; true when the form can go. */
   private check(fields: Field[]) {
     const problems: Partial<Record<Field, string>> = {};
@@ -131,11 +139,10 @@ export class AccountComponent implements OnDestroy {
       problems.email = "Escribí un correo válido, como nombre@gmail.com.";
     if (fields.includes("password")) {
       if (!this.password()) problems.password = "Escribí tu contraseña.";
-      else if (
-        this.newPassword() &&
-        !passwordOk(this.rules, this.password())
-      )
-        problems.password = "La contraseña todavía no cumple todo lo de la lista.";
+      else if (this.newPassword()) {
+        const problem = passwordProblem(this.rules, this.password());
+        if (problem) problems.password = problem;
+      }
     }
     if (fields.includes("code") && !codeOf(this.code))
       problems.code = "El código tiene 6 números.";

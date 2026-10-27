@@ -12,6 +12,7 @@ import {
   codeOf,
   emailOk,
   passwordOk,
+  passwordProblem,
   passwordRules,
 } from "../src/app/commerce/account.ts";
 import { CODE, FakeUserPool } from "./fake-user-pool.ts";
@@ -256,20 +257,63 @@ test("Cognito errors read in Spanish", () => {
   assert.match(authErrorMessage("Whatever"), /Probá de nuevo/);
 });
 
-test("password rules: Cognito's policy in AWS, the length in Docker", () => {
+test("password rules: 8 characters, nothing else (T74); Cognito also refuses spaces at the ends", () => {
   const cognito = passwordRules(true);
-  assert.equal(passwordOk(cognito, PASSWORD), true);
-  assert.equal(passwordOk(cognito, "sabanas-de-lino-42"), false);
-  assert.equal(passwordOk(cognito, "Sabanas de lino 42"), true);
-  assert.equal(passwordOk(cognito, " Sabanas-lino-42"), false);
-  assert.equal(passwordOk(cognito, "SabanasDeLino42"), false);
+  for (const ok of [PASSWORD, "sabanas1", "sábanas!", "12345678", "dos palabras"])
+    assert.equal(passwordOk(cognito, ok), true, ok);
+  assert.equal(passwordOk(cognito, "sabanas"), false);
+  assert.equal(passwordOk(cognito, " sabanas-lino"), false);
+  assert.equal(passwordOk(cognito, "sabanas-lino "), false);
+  // Only the length shows while typing; the spaces rule only while it fails.
   assert.deepEqual(
-    cognito.filter((r) => !r.ok("corta")).map((r) => r.id),
-    ["length", "upper", "number", "symbol"],
+    cognito.filter((r) => !r.quiet).map((r) => r.label),
+    ["Mínimo 8 caracteres"],
   );
+  assert.equal(passwordProblem(cognito, "corta"), "La contraseña necesita 8 caracteres o más.");
+  assert.match(passwordProblem(cognito, " sabanas-lino"), /espacios/);
+  assert.equal(passwordProblem(cognito, "sabanas1"), "");
   const local = passwordRules(false);
-  assert.equal(passwordOk(local, "doce-letras!"), true);
-  assert.equal(passwordOk(local, "once-letra"), false);
+  assert.equal(passwordOk(local, "ocho-car"), true);
+  assert.equal(passwordOk(local, " sabanas"), true);
+  assert.equal(passwordOk(local, "siete-c"), false);
+});
+
+test("every Cognito error of the account forms reads in Spanish", () => {
+  const cases: [string, string, RegExp][] = [
+    ["InvalidPasswordException", "Password did not conform with policy: Password not long enough", /muy corta: tiene que tener 8 caracteres/],
+    ["InvalidPasswordException", "Password does not conform to policy: Password must have uppercase characters", /mayúscula/],
+    ["InvalidPasswordException", "Password does not conform to policy: Password must have lowercase characters", /minúscula/],
+    ["InvalidPasswordException", "Password does not conform to policy: Password must have numeric characters", /un número/],
+    ["InvalidPasswordException", "Password does not conform to policy: Password must have symbol characters", /símbolo/],
+    ["InvalidPasswordException", "", /8 caracteres o más/],
+    [
+      "InvalidParameterException",
+      "1 validation error detected: Value at 'password' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[\\S]+.*[\\S]+$",
+      /empezar ni terminar con un espacio/,
+    ],
+    ["InvalidParameterException", "Invalid email address format.", /Revisá los datos/],
+    ["PasswordHistoryPolicyViolationException", "", /ya la usaste/],
+    ["NotAuthorizedException", "Incorrect username or password.", /no coinciden/],
+    ["NotAuthorizedException", "User is disabled.", /deshabilitada/],
+    ["NotAuthorizedException", "Invalid session for the user, session is expired.", /Empezá de nuevo/],
+    ["UserNotFoundException", "", /no coinciden/],
+    ["UserNotConfirmedException", "", /no está confirmada/],
+    ["PasswordResetRequiredException", "", /contraseña nueva/],
+    ["AliasExistsException", "", /Ya hay una cuenta/],
+    ["CodeMismatchException", "", /no coincide/],
+    ["TooManyFailedAttemptsException", "", /Demasiados intentos/],
+    ["TooManyRequestsException", "", /Demasiados intentos/],
+    ["CodeDeliveryFailureException", "", /correo/],
+    ["EnableSoftwareTokenMFAException", "", /autenticadora/],
+    ["SoftwareTokenMFANotFoundException", "", /autenticadora/],
+    ["ForbiddenException", "", /conexión/],
+    ["UserLambdaValidationException", "", /no está disponible/],
+    ["InternalErrorException", "", /no está disponible/],
+    ["ResourceNotFoundException", "", /no está disponible/],
+    ["NetworkError", "", /conexión/],
+  ];
+  for (const [type, message, expected] of cases)
+    assert.match(authErrorMessage(type, message), expected, `${type}: ${message}`);
 });
 
 test("email and code checks", () => {
