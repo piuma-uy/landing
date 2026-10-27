@@ -287,6 +287,10 @@ export class CommerceService {
     return all.find((d) => d.key === this.place()) ?? all[0] ?? null;
   });
   readonly metrics = signal<Metric[]>([]);
+  /** What "Pedidos pagados" counts, one row per order (T76); null when the API does not list them. */
+  readonly paidOrders = signal<Order[] | null>(null);
+  private readonly paidCursor = signal<string | undefined>(undefined);
+  readonly morePaid = computed(() => !!this.paidCursor());
   readonly quote = signal<Quote | null>(null);
   readonly completed = signal<Order | null>(null);
   readonly error = signal("");
@@ -382,6 +386,8 @@ export class CommerceService {
     this.adminOrders.set([]);
     this.adminProducts.set([]);
     this.metrics.set([]);
+    this.paidOrders.set(null);
+    this.paidCursor.set(undefined);
     this.pendingTransfers.set([]);
     this.transferSearch.set(null);
     this.settings.set(null);
@@ -905,9 +911,10 @@ export class CommerceService {
   /** Loads the panel; without a second factor it only leaves the enrollment on screen. */
   async loadAdmin() {
     try {
-      const [p, m, t, s] = await Promise.all([
+      const [p, m, paid, t, s] = await Promise.all([
         this.pages<Product>("/admin/products"),
         this.pages<Metric>("/admin/metrics"),
+        this.loadPaidOrders(),
         this.transfers.pending<Order>(),
         this.transfers.settings(),
         this.loadHistory(),
@@ -915,12 +922,42 @@ export class CommerceService {
       this.mfaRequired.set(false);
       this.adminProducts.set(p);
       this.metrics.set(m);
+      this.setPaid(paid);
       this.pendingTransfers.set(t);
       this.settings.set(s);
     } catch (e) {
       if (e instanceof ApiError && e.code === MFA_REQUIRED) return;
       throw e;
     }
+  }
+  /** Newest page of paid orders for the Resumen; null from an API without status=paid
+   * (deployed before T76). */
+  private async loadPaidOrders(cursor?: string) {
+    try {
+      return await this.request<{ items: Order[]; nextCursor?: string }>(
+        "/admin/orders?status=paid" +
+          (cursor ? "&cursor=" + encodeURIComponent(cursor) : ""),
+      );
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "INVALID_STATUS_FILTER")
+        return null;
+      throw e;
+    }
+  }
+  private setPaid(page: { items: Order[]; nextCursor?: string } | null) {
+    this.paidOrders.set(page && page.items);
+    this.paidCursor.set(page?.nextCursor);
+  }
+  /** "Ver más pedidos pagados": the next page, after the ones on screen. */
+  async loadMorePaid() {
+    await this.run(async () => {
+      const cursor = this.paidCursor();
+      if (!cursor) return;
+      const page = await this.loadPaidOrders(cursor);
+      if (!page) return;
+      this.paidOrders.update((rows) => [...(rows ?? []), ...page.items]);
+      this.paidCursor.set(page.nextCursor);
+    });
   }
   /**
    * First page of the settings history, plus older ones while they could still hold a bank
@@ -1018,7 +1055,12 @@ export class CommerceService {
     await this.run(async () => {
       await this.transfers.confirm(order, bankReference);
       await this.reloadTransfers();
-      this.metrics.set(await this.pages<Metric>("/admin/metrics"));
+      const [metrics, paid] = await Promise.all([
+        this.pages<Metric>("/admin/metrics"),
+        this.loadPaidOrders(),
+      ]);
+      this.metrics.set(metrics);
+      this.setPaid(paid);
       this.notice.set(
         "Acreditación confirmada. Pedido " + orderCode(order) + " pagado",
       );

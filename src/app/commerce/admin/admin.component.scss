@@ -3,3 +3,51 @@
 h2 {
   font-size: 1.4rem;
 }
+// Resumen (T76): five figures and the paid orders they count.
+.metrics {
+  grid-template-columns: repeat(5, 1fr);
+}
+.metrics strong {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+  .metric--sales {
+    grid-column: 1 / -1;
+  }
+}
+.paid-orders {
+  margin: 1.5rem 0;
+}
+.paid-orders h2 {
+  margin-bottom: 0.25rem;
+}
+.paid-order {
+  padding: 1rem 1.2rem;
+}
+.paid-order header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+// The order code reads in the body font: the heading font's old-style figures blur it.
+.paid-order h3 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.paid-order p,
+.paid-order ul {
+  margin: 0.35rem 0 0;
+}
+.paid-order ul {
+  padding-left: 1.1rem;
+}
+.paid-order__summary {
+  font-weight: 500;
+}

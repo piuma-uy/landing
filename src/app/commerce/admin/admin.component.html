@@ -139,13 +139,17 @@
   @switch (adminTab()) {
     @case ("overview") {
       <div class="metrics">
-        <article class="panel">
+        <article class="panel metric--sales">
           <span class="muted">Ventas cobradas</span
           ><strong>{{ shop.money(sales()) }}</strong>
         </article>
         <article class="panel">
           <span class="muted">Pedidos pagados</span
           ><strong>{{ paidCount() }}</strong>
+        </article>
+        <article class="panel">
+          <span class="muted">Unidades vendidas</span
+          ><strong>{{ unitsSold() }}</strong>
         </article>
         <article class="panel">
           <span class="muted">Productos</span
@@ -156,6 +160,55 @@
           ><strong>{{ activeCount() }}</strong>
         </article>
       </div>
+      @if (shop.paidOrders(); as paid) {
+        <section class="paid-orders" aria-labelledby="paid-orders-title">
+          <h2 id="paid-orders-title">Pedidos pagados</h2>
+          <p class="muted small">
+            Cada pedido cuenta una vez, aunque tenga varios productos o
+            unidades.
+          </p>
+          @for (order of visiblePaid(); track order.id) {
+            <article
+              class="panel paid-order"
+              [attr.data-order]="orderCode(order)"
+            >
+              <header>
+                <h3>Pedido #{{ orderCode(order) }}</h3>
+                <strong>{{
+                  shop.money(order.totalMinor, order.currency)
+                }}</strong>
+              </header>
+              <p class="muted small">
+                Pagado el {{ dateTime(order.paidAt ?? order.createdAt) }} ·
+                {{ order.contact?.name }}
+              </p>
+              <p class="small paid-order__summary">
+                {{ paidOrderSummary(order) }}
+              </p>
+              <ul class="small">
+                @for (line of order.items; track line.sku) {
+                  <li>
+                    {{ line.quantity }} × {{ line.name }} · {{ line.size }} ·
+                    {{ line.color }}
+                  </li>
+                }
+              </ul>
+            </article>
+          } @empty {
+            <p class="panel">Todavía no hay pedidos pagados.</p>
+          }
+          @if (paid.length > visiblePaid().length || shop.morePaid()) {
+            <button
+              type="button"
+              class="btn btn--outline"
+              [disabled]="shop.busy()"
+              (click)="showMorePaid()"
+            >
+              Ver más pedidos pagados
+            </button>
+          }
+        </section>
+      }
       <div class="payment-note">
         @if (shop.settings()?.transfer?.enabled) {
           <strong>Transferencia bancaria habilitada.</strong>
