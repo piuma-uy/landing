@@ -3,7 +3,9 @@
     <div class="footer__brand">
       <a href="#inicio" class="footer__logo" (click)="shop.section('inicio')">
         <img
-          src="assets/images/logo/logo-piuma-blanco.webp"
+          src="assets/images/logo/logo-piuma-blanco-300w.webp"
+          srcset="assets/images/logo/logo-piuma-blanco-300w.webp 300w, assets/images/logo/logo-piuma-blanco.webp 600w"
+          sizes="(min-width: 768px) 137px, 118px"
           [alt]="config.brandName + ' — ropa de cama'"
           width="600"
           height="316"

@@ -4,12 +4,16 @@
     <meta charset="utf-8" />
     <base href="/" />
     <title>Piuma — Ropa de cama de calidad | Sábanas, fundas y cubrecamas</title>
+    <!-- viewport-fit=cover: sin él env(safe-area-inset-*) vale 0 en Safari iOS. Sin interactive-widget:
+         la barra del checkout (T72) detecta el teclado porque achica sólo el viewport visual. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       name="description"
       content="Piuma: ropa de cama pensada para el descanso. Sábanas, fundas nórdicas, almohadas y cubrecamas en algodón y lino de calidad. Consultá por WhatsApp."
     />
     <meta name="theme-color" content="#faf7f2" />
+    <!-- Sólo hay paleta clara: que el modo oscuro del sistema no oscurezca la página por su cuenta. -->
+    <meta name="color-scheme" content="only light" />
 
     <!-- Open Graph / redes sociales. Reemplazar og:image y og:url al tener dominio propio. -->
     <meta property="og:type" content="website" />

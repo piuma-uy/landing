@@ -1,3 +1,4 @@
+@use "mixins" as *;
 // Cubre la foto entera: tocarla en cualquier parte la amplía.
 .trigger {
   position: absolute;
@@ -72,7 +73,7 @@
 .zoom__close {
   position: fixed;
   top: calc(0.5rem + env(safe-area-inset-top, 0px));
-  right: 0.5rem;
+  right: inline-safe(0.5rem, right);
   width: 44px;
   height: 44px;
   border: 0;

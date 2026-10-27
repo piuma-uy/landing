@@ -9,7 +9,7 @@
 }
 .line {
   display: grid;
-  grid-template-columns: 56px 1fr auto;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
   column-gap: 0.75rem;
   align-items: start;
   padding: 0.85rem 0;
@@ -53,7 +53,9 @@ p {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  // Con letra grande "Quitar" baja a otra línea en vez de salirse del resumen (T78).
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
   margin-top: 0.5rem;
 }
 .stepper {
@@ -63,9 +65,10 @@ p {
   border-radius: 999px;
   background: var(--color-bg);
 
+  // 44 px: el mínimo táctil del resto de la tienda (T78).
   button {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border: 0;
     border-radius: 50%;
     background: none;
@@ -92,6 +95,7 @@ output {
 }
 .text-button {
   min-height: 44px;
+  min-width: 44px;
   padding: 0;
   font-size: 0.85rem;
 }
@@ -119,5 +123,15 @@ output {
   }
   .text-button {
     min-height: 32px;
+  }
+}
+// Compacto para el mouse; con el dedo (iPad horizontal, laptops táctiles) vuelven a 44 px (T78).
+@media (min-width: v.$bp-lg) and (pointer: coarse) {
+  .stepper button {
+    width: 44px;
+    height: 44px;
+  }
+  .text-button {
+    min-height: 44px;
   }
 }

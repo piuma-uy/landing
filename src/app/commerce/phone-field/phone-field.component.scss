@@ -66,6 +66,9 @@
 }
 input {
   flex: 1;
+  // Ancho en porcentaje: el campo no aporta su ancho intrínseco (20 caracteres) al mínimo de la
+  // fila, que a 320 px (Safari, 360) se salía de la tarjeta de la cuenta (T78).
+  width: 100%;
   min-width: 0;
   min-height: 48px;
   border: 0;

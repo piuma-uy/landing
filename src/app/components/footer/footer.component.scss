@@ -84,10 +84,10 @@
   .container {
     padding-block: var(--space-sm);
     // Lugar para el acceso fijo a WhatsApp del teléfono, que si no tapa el texto.
-    padding-bottom: calc(var(--space-sm) + 4rem);
+    padding-bottom: calc(var(--space-sm) + 4rem + env(safe-area-inset-bottom, 0px));
 
     @include from(v.$bp-md) {
-      padding-bottom: var(--space-sm);
+      padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
     }
   }
 

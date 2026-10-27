@@ -17,6 +17,7 @@ import { SITE_CONFIG } from '../../core/site-config';
 import { catalogPath, pageMeta, parseCatalogPath } from '../../core/catalog-seo';
 import { ProductDetailComponent } from './product-detail/product-detail.component';
 import { SizeGuideComponent } from './size-guide/size-guide.component';
+import { PHOTO_SIZES, photoSrcset } from '../../core/photos';
 
 /**
  * Catálogo de 3 niveles: categorías → tipos → detalle con variantes.
@@ -38,6 +39,8 @@ import { SizeGuideComponent } from './size-guide/size-guide.component';
   styleUrl: './catalog.component.scss',
 })
 export class CatalogComponent {
+  readonly photoSrcset = photoSrcset;
+  readonly photoSizes = PHOTO_SIZES;
   private readonly catalogService = inject(CatalogService);
   private readonly analytics = inject(AnalyticsService);
   private readonly title = inject(Title);

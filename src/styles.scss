@@ -9,6 +9,11 @@
 
 html {
   scroll-behavior: smooth;
+  // Safari iOS agranda el texto al girar a horizontal si no se lo pide así; el zoom del usuario sigue.
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  // Sólo hay paleta clara (ver index.html): controles y barras del navegador también en claro.
+  color-scheme: only light;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -77,6 +82,42 @@ body {
   font-size: 1rem;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
+  // Una palabra larga (un mail, un número de cuenta) corta antes que ensanchar la página con texto grande.
+  overflow-wrap: break-word;
+}
+
+// Mails y links largos: pueden partirse en cualquier punto para no fijar el ancho mínimo de su columna.
+a[href^="mailto:"] {
+  overflow-wrap: anywhere;
+}
+
+// Campos de 16 px como mínimo: con menos, Safari iOS acerca la página al enfocarlos.
+:is(input:not([type="radio"]):not([type="checkbox"]), select, textarea) {
+  font-size: max(1rem, 16px);
+}
+
+// Safari dibuja el <select> nativo con 25 px de alto e ignora el padding: sin la apariencia nativa
+// toma el alto de los demás campos. La flecha son dos gradientes del color del texto.
+select:not([multiple]):not([size]) {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.15rem) 50%,
+    calc(100% - 0.8rem) 50%;
+  background-size: 0.35rem 0.35rem;
+  background-repeat: no-repeat;
+  padding-right: 2.25rem;
+}
+
+// Con un campo de texto enfocado (teclado abierto en el teléfono) lo que flota abajo se retira: con el
+// teclado arriba, el botón de WhatsApp y el rótulo de prueba tapaban el campo y el botón de seguir.
+@media (max-width: 767.98px) {
+  body:has(:is(input:not([type="radio"]):not([type="checkbox"]), select, textarea):focus)
+    :is(.whatsapp-fab, .preview-label) {
+    visibility: hidden;
+  }
 }
 
 h1,
@@ -118,6 +159,12 @@ img {
   outline: 2px solid var(--color-primary);
   outline-offset: 3px;
   border-radius: var(--radius-sm);
+}
+
+// Un fieldset mide por defecto lo que su contenido más ancho (min-width: min-content): con letra
+// grande ensanchaba la página.
+fieldset {
+  min-width: 0;
 }
 
 // Leyendas de los grupos de opciones (entrega, pago, zonas): alineadas con las etiquetas.
@@ -163,6 +210,8 @@ legend {
   gap: 0.5rem;
   // Mismo alto para <button> y <a>: sin line-height propio el enlace heredaba el del body.
   min-height: 44px;
+  // Un texto largo con letra grande se parte dentro del botón en vez de salirse de la pantalla.
+  max-width: 100%;
   padding: 0.8rem 1.6rem;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -227,6 +276,8 @@ legend {
   align-items: center;
   justify-content: center;
   min-height: 44px;
+  // Mínimo de 44 px también de ancho: "Quitar" o "Editar" quedaban en 39.
+  min-width: 44px;
   padding: 0.4rem 0;
 }
 .text-button:disabled {

@@ -36,6 +36,8 @@ h1 {
 form,
 .stack {
   display: grid;
+  // minmax(0, …): ningún campo ensancha la tarjeta más que la pantalla (T78).
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.25rem;
 }
 
