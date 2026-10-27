@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reel · Próximamente nueva web</title>
+<link rel="stylesheet" href="campana.css">
+<style>
+  .capa { position: absolute; inset: 0; opacity: 0; background: var(--blanco); }
+  .capa.beige { background: var(--beige); }
+  .foto img { will-change: transform; transform-origin: 50% 50%; }
+  .texto { position: absolute; will-change: transform, opacity; }
+
+  /* 1 · Apertura */
+  #apertura .texto { left: 80px; top: 250px; width: 900px; }
+  #apertura .titular { font-size: 76px; }
+  #apertura .foto { left: 0; top: 500px; width: 1080px; height: 1420px; }
+  #apertura .foto img { object-position: 34% 50%; }
+
+  /* 2 · Universo Piuma: cuatro planos con escalas alternadas */
+  #lino .foto { left: 60px; top: 300px; width: 960px; height: 1200px; border-radius: 20px; }
+  #relieve .foto { left: 160px; top: 400px; width: 760px; height: 950px; border-radius: 20px; }
+  #saten .foto { left: 0; top: 260px; width: 1080px; height: 1350px; }
+  #desayuno .foto { left: 60px; top: 300px; width: 960px; height: 1200px; border-radius: 20px; }
+
+  /* 3 · Revelación: captura real de la web en un teléfono */
+  #revelacion .texto { left: 80px; top: 230px; width: 920px; text-align: center; }
+  #revelacion .volanta { font-size: 26px; margin-bottom: 20px; }
+  #revelacion .titular { font-size: 80px; }
+  #revelacion .telefono { left: 160px; top: 484px; width: 760px; height: 1600px; }
+
+  /* 4 · Cierre */
+  #cierre .texto { left: 80px; width: 920px; text-align: center; }
+  #cierre .marca { top: 600px; }
+  #cierre .marca .logo { width: 440px; margin: 0 auto; }
+  #cierre .frase { top: 940px; }
+  #cierre .titular { font-size: 88px; }
+  #cierre .titular em { display: block; }
+  #cierre .filete { margin: 52px auto 40px; }
+  #cierre .usuario { font-size: 42px; }
+</style>
+</head>
+<body>
+<main class="lienzo vertical">
+  <section class="capa" id="apertura">
+    <div class="foto"><img src="../../../../src/assets/images/hero-piuma.webp" alt=""></div>
+    <div class="texto"><h1 class="titular">Algo nuevo<br><em>se está tendiendo.</em></h1></div>
+  </section>
+
+  <section class="capa beige" id="lino">
+    <div class="foto"><img src="../../../../src/assets/images/productos/producto-funda-nordica-lino-3.webp" alt=""></div>
+  </section>
+  <section class="capa beige" id="relieve">
+    <div class="foto"><img src="../../../../src/assets/images/productos/producto-cubrecama-chiara-3.webp" alt=""></div>
+  </section>
+  <section class="capa" id="saten">
+    <div class="foto"><img src="../../../../src/assets/images/productos/producto-funda-nordica-saten-beige-3.webp" alt=""></div>
+  </section>
+  <section class="capa beige" id="desayuno">
+    <div class="foto"><img src="../../../../src/assets/images/productos/producto-cubrecama-charo.webp" alt=""></div>
+  </section>
+
+  <section class="capa beige" id="revelacion">
+    <div class="texto">
+      <p class="volanta">Próximamente</p>
+      <h2 class="titular">Nuestra nueva web</h2>
+    </div>
+    <div class="telefono"><div class="pantalla"><img src="capturas/web-inicio-catalogo.png" alt=""></div></div>
+  </section>
+
+  <section class="capa" id="cierre">
+    <div class="texto marca"><img class="logo" src="../../../../src/assets/images/logo/logo-piuma-terracota.webp" alt="Piuma · Ropa de cama"></div>
+    <div class="texto frase">
+      <p class="titular">Muy pronto,<em>nuestra nueva web.</em></p>
+      <span class="filete"></span>
+      <p class="usuario">@piuma_uy</p>
+    </div>
+  </section>
+</main>
+
+<script>
+  // Línea de tiempo determinista: render(t) deja el lienzo exacto del segundo t.
+  // produccion/render-reel.cjs la llama fotograma a fotograma (30 fps) y pasa las capturas a FFmpeg.
+  const DURACION = 21;
+  const FUNDIDO = 0.5;
+  const clamp = (x) => Math.min(1, Math.max(0, x));
+  const suave = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+  const tramo = (t, a, b) => suave((t - a) / (b - a));
+  const $ = (s) => document.querySelector(s);
+
+  // [id, entra, sale, movimiento(p, t) sobre la foto]
+  const CAPAS = [
+    ['apertura', 0, 3.7, (p) => `scale(${1 + 0.05 * p})`],
+    ['lino', 3.2, 4.9, (p) => `scale(1.06) translateY(${18 - 36 * p}px)`],
+    ['relieve', 4.4, 6.1, (p) => `scale(${1.1 - 0.08 * p})`],
+    ['saten', 5.6, 7.3, (p) => `scale(1.08) translateX(${26 - 52 * p}px)`],
+    ['desayuno', 6.8, 8.8, (p) => `scale(${1 + 0.06 * p})`],
+    ['revelacion', 8.3, 15.4, null],
+    ['cierre', 14.9, DURACION + 1, null],
+  ];
+
+  // Desplazamiento de la captura (px CSS de la página real, viewport 390): inicio bajo el encabezado → catálogo.
+  // Nunca se pasa de 1050 para no mostrar el rótulo «Tienda de prueba», fijo al pie de la captura.
+  function scrollWeb(t) {
+    const a = 69, b = 835, c = 1000;
+    if (t < 10.2) return a;
+    if (t < 12.7) return a + (b - a) * tramo(t, 10.2, 12.7);
+    return b + (c - b) * tramo(t, 13.4, 15.4);
+  }
+
+  window.render = function (t) {
+    for (const [id, entra, sale, mov] of CAPAS) {
+      const capa = $('#' + id);
+      const vis = (entra === 0 ? 1 : tramo(t, entra, entra + FUNDIDO)) * (1 - tramo(t, sale - FUNDIDO, sale));
+      capa.style.opacity = vis;
+      capa.style.visibility = vis > 0 ? 'visible' : 'hidden';
+      if (mov) capa.querySelector('.foto img').style.transform = mov(clamp((t - entra) / (sale - entra)));
+    }
+    // Textos: entran suave después de su capa (la apertura ya está desde el primer fotograma)
+    const entrada = (sel, a) => {
+      const p = tramo(t, a, a + 0.6);
+      const el = $(sel);
+      el.style.opacity = p;
+      el.style.transform = `translateY(${(1 - p) * 16}px)`;
+    };
+    entrada('#revelacion .texto', 8.7);
+    entrada('#cierre .marca', 15.2);
+    entrada('#cierre .frase', 15.6);
+
+    const pantalla = $('#revelacion .pantalla');
+    const k = pantalla.clientWidth / 390;
+    pantalla.querySelector('img').style.transform = `translateY(${-scrollWeb(t) * k}px)`;
+  };
+  window.DURACION = DURACION;
+  render(0);
+</script>
+</body>
+</html>

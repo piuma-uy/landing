@@ -1,0 +1,53 @@
+/* Campaña «Próximamente nueva web» — estilos compartidos por las tres piezas.
+   Colores y tipografías tomados de src/styles/_tokens.scss (identidad real del sitio). */
+
+@font-face { font-family: 'Playfair Display'; font-weight: 500; font-style: normal; src: url('fonts/playfair-display-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Playfair Display'; font-weight: 600; font-style: normal; src: url('fonts/playfair-display-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Playfair Display'; font-weight: 700; font-style: normal; src: url('fonts/playfair-display-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Playfair Display'; font-weight: 500; font-style: italic; src: url('fonts/playfair-display-latin-500-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 400; src: url('fonts/inter-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 500; src: url('fonts/inter-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 600; src: url('fonts/inter-latin-600-normal.woff2') format('woff2'); }
+
+:root {
+  --terracota: #b07a5c;
+  --terracota-osc: #8c5e44;
+  --terracota-claro: #c9a68c;
+  --beige: #efe6da;
+  --blanco: #fbf8f4;
+  --texto: #2f2c29;
+  --texto-suave: #6e6862;
+  --borde: #e5dcd2;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--blanco); color: var(--texto); -webkit-font-smoothing: antialiased; }
+body { font-family: 'Inter', sans-serif; overflow: hidden; }
+
+.lienzo { position: relative; overflow: hidden; background: var(--blanco); }
+.post { width: 1080px; height: 1350px; }
+.vertical { width: 1080px; height: 1920px; }
+
+/* Tipografía */
+.volanta {
+  font-family: 'Inter', sans-serif; font-weight: 500; text-transform: uppercase;
+  letter-spacing: 0.3em; color: var(--terracota-osc);
+}
+.titular { font-family: 'Playfair Display', serif; font-weight: 500; letter-spacing: -0.01em; line-height: 1.08; color: var(--texto); }
+.titular em { font-style: italic; color: var(--terracota-osc); }
+.bajada { font-family: 'Inter', sans-serif; font-weight: 400; line-height: 1.45; color: var(--texto-suave); }
+.filete { display: block; width: 64px; height: 2px; background: var(--terracota); }
+.usuario { font-family: 'Inter', sans-serif; font-weight: 500; letter-spacing: 0.04em; color: var(--texto); }
+
+/* Fotos: siempre cubren su marco, sin filtros ni sombras */
+.foto { position: absolute; overflow: hidden; }
+.foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Teléfono: contorno mínimo, sin brillos ni sombras; dentro va la captura real */
+.telefono {
+  position: absolute; background: var(--texto); border-radius: 64px; padding: 14px;
+}
+.telefono .pantalla { position: relative; width: 100%; height: 100%; border-radius: 50px; overflow: hidden; background: var(--blanco); }
+.telefono .pantalla img { position: absolute; left: 0; top: 0; width: 100%; height: auto; display: block; }
+
+.logo { display: block; height: auto; }

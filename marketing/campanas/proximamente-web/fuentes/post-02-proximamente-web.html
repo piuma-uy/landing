@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Post 02 · Próximamente nueva web</title>
+<link rel="stylesheet" href="campana.css">
+<style>
+  .lienzo { background: var(--beige); }
+  .cabeza { position: absolute; left: 72px; top: 84px; width: 936px; }
+  .cabeza .volanta { font-size: 22px; margin-bottom: 22px; }
+  .cabeza .titular { font-size: 64px; }
+  .detalle { left: 72px; top: 352px; width: 432px; height: 470px; border-radius: 20px; }
+  .detalle img { object-position: 50% 45%; }
+  .razon { position: absolute; left: 72px; top: 860px; width: 432px; }
+  .razon.bajada { font-size: 32px; color: var(--texto); }
+  .cierre { position: absolute; left: 72px; top: 1040px; width: 440px; }
+  .cierre .filete { margin-bottom: 22px; }
+  .cierre .titular { font-size: 46px; font-style: italic; color: var(--terracota-osc); }
+  .logo { position: absolute; left: 72px; top: 1218px; width: 176px; }
+  /* Captura real de la web en preparación: sección «Nuestra colección» (sin encabezado, precios ni rótulos de prueba) */
+  .telefono { left: 556px; top: 352px; width: 452px; height: 1100px; }
+  .telefono .pantalla img { top: calc(-818px * var(--k)); }
+  .telefono .pantalla { --k: calc(424 / 390); }
+</style>
+</head>
+<body>
+<main class="lienzo post">
+  <header class="cabeza">
+    <p class="volanta">Próximamente</p>
+    <h1 class="titular">Estamos preparando un nuevo espacio para Piuma.</h1>
+  </header>
+  <div class="foto detalle">
+    <img src="../../../../src/assets/images/productos/producto-funda-nordica-lino-3.webp" alt="Manos cerrando el botón de madera de la funda nórdica de lino y algodón blanca">
+  </div>
+  <p class="razon bajada">Toda nuestra colección en un solo lugar, con sus medidas y colores.</p>
+  <div class="cierre">
+    <span class="filete"></span>
+    <p class="titular">Muy pronto, nuestra nueva web.</p>
+  </div>
+  <img class="logo" src="../../../../src/assets/images/logo/logo-piuma-terracota.webp" alt="Piuma · Ropa de cama">
+  <div class="telefono">
+    <div class="pantalla">
+      <img src="capturas/web-inicio-catalogo.png" alt="Vista real de la nueva web de Piuma en un teléfono: sección Nuestra colección con las categorías">
+    </div>
+  </div>
+</main>
+</body>
+</html>
