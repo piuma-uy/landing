@@ -11,6 +11,11 @@ export interface ShippingZone {
   pricing?: ZonePricing;
   /** Shown to the buyer and kept on the order (up to 300 characters). */
   note?: string;
+  /** Where the zone delivers (T73): null is the rest of the country. Absent in zones saved
+   * before T73 (the API fills it in; zoneArea reads it from the name otherwise). */
+  department?: string | null;
+  /** Barrios or localities of that department; empty covers all of it. */
+  places?: string[];
 }
 export interface ShippingSettings {
   pickup: { enabled: boolean; details: string };
@@ -24,8 +29,10 @@ export interface ShippingSettings {
 export interface ShippingOptions extends ShippingSettings {
   currency: string;
 }
+/** city is the Montevideo barrio or the city/locality; unit the apartment or floor (T73). */
 export interface Address {
   street: string;
+  unit?: string;
   city: string;
   department: string;
   notes?: string;
@@ -81,7 +88,7 @@ export function pickupLabel(details: string | undefined) {
   return details?.trim() || PICKUP_FALLBACK;
 }
 export function emptyAddress(): Address {
-  return { street: "", city: "", department: "Montevideo", notes: "" };
+  return { street: "", unit: "", city: "", department: "", notes: "" };
 }
 /** Every choice the buyer can make, pickup first. */
 export function choices(options: ShippingOptions | null): Fulfillment[] {
@@ -124,22 +131,29 @@ export function quoteBody(items: Line[], choice: Fulfillment | null) {
     ? { items, fulfillment: "delivery", zoneId: choice.zoneId }
     : { items, fulfillment: "pickup" };
 }
-/** fulfillment and delivery fields of POST /orders; blank notes are left out. */
+/** fulfillment and delivery fields of POST /orders; blank unit and notes are left out. */
 export function orderFulfillment(choice: Fulfillment, address: Address) {
   if (choice.method === "pickup") return { fulfillment: "pickup" as const };
   const notes = address.notes?.trim();
+  const unit = address.unit?.trim();
   return {
     fulfillment: "delivery" as const,
     delivery: {
       zoneId: choice.zoneId,
       address: {
         street: address.street.trim(),
+        ...(unit ? { unit } : {}),
         city: address.city.trim(),
         department: address.department.trim(),
         ...(notes ? { notes } : {}),
       },
     },
   };
+}
+/** Street, number and, if given, apartment or floor. */
+export function streetLine(a: Pick<Address, "street" | "unit">) {
+  const unit = a.unit?.trim();
+  return unit ? `${a.street}, ${unit}` : a.street;
 }
 /**
  * One line describing how an order is delivered, from its stored snapshot. Orders from
@@ -157,7 +171,7 @@ export function shippingSummary(
   return (
     "Envío a " +
     shipping.zoneName +
-    (a ? ` · ${a.street}, ${a.city}, ${a.department}` : "") +
+    (a ? ` · ${streetLine(a)}, ${a.city}, ${a.department}` : "") +
     (withNotes && a?.notes ? ` (${a.notes})` : "") +
     (shipping.leadTime ? ` · ${shipping.leadTime}` : "")
   );
@@ -167,89 +181,178 @@ export function isCoordinate(zone: Pick<ShippingZone, "pricing">) {
 }
 export type DestinationGroup = "free" | "paid" | "coordinate";
 /**
- * One entry of the checkout's "¿Adónde querés que te lo llevemos?" select: a zone, or one of the
- * two halves of the shop's single catch-all coordinate zone ("Otra zona / interior"), which the
- * buyer reads as "Otra zona de Montevideo" and "Interior del país" (same zoneId). city and
- * department prefill the address.
+ * One entry of the checkout's "¿Adónde querés que te lo llevemos?" select (T68, T73): a zone,
+ * or one of the two halves of a zone for the rest of the country ("Otra zona de Montevideo"
+ * and "Interior del país", same zoneId). The place decides the address: a fixed department
+ * (shown as text) or a choice among `departments`; a fixed barrio, a barrio of `places`
+ * (plus "Otro") or, with neither, a city or locality typed by the buyer.
  */
 export interface Destination {
   key: string;
   zoneId: string;
   label: string;
   group: DestinationGroup;
-  city: string;
-  department: string;
+  /** Fixed department, or null when the buyer picks one of `departments`. */
+  department: string | null;
+  departments: string[];
+  /** Fixed barrio or locality, or null. */
+  place: string | null;
+  /** Barrios to choose from (Montevideo); empty with no fixed place: typed locality. */
+  places: string[];
 }
 const GROUP_LABELS: Record<DestinationGroup, string> = {
   free: "Envío gratis",
   paid: "Con costo de envío",
   coordinate: "A coordinar por WhatsApp",
 };
-const fold = (text: string) =>
+export const MONTEVIDEO = "Montevideo";
+/** The 62 barrios of Montevideo as the INE lists them (same list as the API), A to Z. */
+export const MONTEVIDEO_NEIGHBORHOODS = [
+  "Ciudad Vieja",
+  "Centro",
+  "Barrio Sur",
+  "Cordón",
+  "Palermo",
+  "Parque Rodó",
+  "Punta Carretas",
+  "Pocitos",
+  "Buceo",
+  "Parque Batlle, Villa Dolores",
+  "Malvín",
+  "Malvín Norte",
+  "Punta Gorda",
+  "Carrasco",
+  "Carrasco Norte",
+  "Bañados de Carrasco",
+  "Maroñas, Parque Guaraní",
+  "Flor de Maroñas",
+  "Las Canteras",
+  "Punta de Rieles, Bella Italia",
+  "Jardines del Hipódromo",
+  "Ituzaingó",
+  "Unión",
+  "Villa Española",
+  "Mercado Modelo, Bolívar",
+  "Castro, Pérez Castellanos",
+  "Cerrito",
+  "Las Acacias",
+  "Aires Puros",
+  "Casavalle",
+  "Piedras Blancas",
+  "Manga, Toledo Chico",
+  "Paso de las Duranas",
+  "Peñarol, Lavalleja",
+  "Cerro",
+  "Casabó, Pajas Blancas",
+  "La Paloma, Tomkinson",
+  "La Teja",
+  "Prado, Nueva Savona",
+  "Capurro, Bella Vista",
+  "Aguada",
+  "Reducto",
+  "Atahualpa",
+  "Jacinto Vera",
+  "La Figurita",
+  "Larrañaga",
+  "La Blanqueada",
+  "Villa Muñoz, Retiro",
+  "La Comercial",
+  "Tres Cruces",
+  "Brazo Oriental",
+  "Sayago",
+  "Conciliación",
+  "Belvedere",
+  "Nuevo París",
+  "Tres Ombúes, Pueblo Victoria",
+  "Paso de la Arena",
+  "Colón Sureste, Abayubá",
+  "Colón Centro y Noroeste",
+  "Lezica, Melilla",
+  "Villa García, Manga Rural",
+  "Manga",
+].sort((a, b) => a.localeCompare(b, "es"));
+/** The barrio select's way out: the buyer types it. */
+export const OTHER_PLACE = "__otro__";
+export const fold = (text: string) =>
   text
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
+    .replace(/\s+/g, " ")
     .trim();
-/** Places near Montevideo that belong to another department, for the address prefill. */
-const LOCALITIES: Record<string, string> = {
-  "ciudad de la costa": "Canelones",
-  "las piedras": "Canelones",
-  "la paz": "Canelones",
-  pando: "Canelones",
-  solymar: "Canelones",
-  lagomar: "Canelones",
-  "el pinar": "Canelones",
-  atlantida: "Canelones",
-  "punta del este": "Maldonado",
-  piriapolis: "Maldonado",
-};
 /** Zone name as the buyer reads it: without the panel's "(a coordinar)" tag. */
 export function zoneLabel(name: string) {
   return name.replace(/\s*\(a coordinar\)\s*$/i, "").trim() || name.trim();
 }
-/** Address a zone suggests: a neighbourhood is the city; "interior" leaves the department open. */
-function zonePlace(name: string) {
-  const n = fold(zoneLabel(name));
-  if (/interior/.test(n)) return { city: "", department: "" };
+/** Where a zone delivers: declared (T73) or, for an API from before, read from the name as
+ * the API does (a barrio, Ciudad de la Costa, a department, "... Montevideo", else anywhere). */
+export function zoneArea(zone: Pick<ShippingZone, "name" | "department" | "places">): {
+  department: string | null;
+  places: string[];
+} {
+  if (zone.department !== undefined)
+    return { department: zone.department, places: zone.department ? (zone.places ?? []) : [] };
+  const label = zoneLabel(zone.name);
+  const n = fold(label);
+  const barrio = MONTEVIDEO_NEIGHBORHOODS.find((b) => fold(b) === n);
+  if (barrio) return { department: MONTEVIDEO, places: [barrio] };
+  if (n === "ciudad de la costa") return { department: "Canelones", places: [label] };
   const department = DEPARTMENTS.find((d) => fold(d) === n);
-  if (department) return { city: "", department };
-  if (/montevideo|otra|resto/.test(n))
-    return { city: "", department: "Montevideo" };
-  return { city: zoneLabel(name), department: LOCALITIES[n] ?? "Montevideo" };
+  if (department) return { department, places: [] };
+  if (/montevideo/.test(n) && !/interior/.test(n)) return { department: MONTEVIDEO, places: [] };
+  return { department: null, places: [] };
 }
+const groupOf = (z: ShippingZone): DestinationGroup =>
+  isCoordinate(z) ? "coordinate" : z.priceMinor ? "paid" : "free";
 export function destinations(options: ShippingOptions | null): Destination[] {
   if (!options?.delivery.enabled) return [];
-  const zones = options.delivery.zones;
-  const catchAll = zones.filter(isCoordinate).length === 1;
-  return zones.flatMap((z): Destination[] => {
-    const group: DestinationGroup = isCoordinate(z)
-      ? "coordinate"
-      : z.priceMinor
-        ? "paid"
-        : "free";
-    if (group === "coordinate" && catchAll && /otra|resto|interior/.test(fold(z.name)))
+  const zones = options.delivery.zones.map((z) => ({ zone: z, ...zoneArea(z) }));
+  // Barrios and whole departments with a zone of their own are not offered elsewhere.
+  const taken = new Set(
+    zones.filter((z) => z.department === MONTEVIDEO).flatMap((z) => z.places.map(fold)),
+  );
+  const whole = new Set(zones.filter((z) => z.department && !z.places.length).map((z) => z.department));
+  const barrios = MONTEVIDEO_NEIGHBORHOODS.filter((b) => !taken.has(fold(b)));
+  const rest = zones.filter((z) => !z.department).length;
+  return zones.flatMap(({ zone, department, places }): Destination[] => {
+    const base = { zoneId: zone.id, label: zoneLabel(zone.name), group: groupOf(zone), departments: [] as string[] };
+    if (department)
       return [
         {
-          key: z.id + "#montevideo",
-          zoneId: z.id,
-          label: "Otra zona de Montevideo",
-          group,
-          city: "",
-          department: "Montevideo",
-        },
-        {
-          key: z.id + "#interior",
-          zoneId: z.id,
-          label: "Interior del país",
-          group,
-          city: "",
-          department: "",
+          ...base,
+          key: zone.id,
+          department,
+          place: places.length === 1 ? places[0]! : null,
+          places:
+            places.length > 1
+              ? [...places].sort((a, b) => a.localeCompare(b, "es"))
+              : !places.length && department === MONTEVIDEO
+                ? barrios
+                : [],
         },
       ];
-    return [
-      { key: z.id, zoneId: z.id, label: zoneLabel(z.name), group, ...zonePlace(z.name) },
-    ];
+    // Split in two only while Montevideo has no zone of its own; one half keeps the zone name.
+    const split = !whole.has(MONTEVIDEO);
+    const halves: Destination[] = [];
+    if (split)
+      halves.push({
+        ...base,
+        key: zone.id + "#montevideo",
+        label: rest === 1 ? "Otra zona de Montevideo" : `${base.label} · Montevideo`,
+        department: MONTEVIDEO,
+        place: null,
+        places: barrios,
+      });
+    halves.push({
+      ...base,
+      key: zone.id + "#interior",
+      label: !split ? base.label : rest === 1 ? "Interior del país" : `${base.label} · interior`,
+      department: null,
+      departments: DEPARTMENTS.filter((d) => d !== MONTEVIDEO && !whole.has(d)),
+      place: null,
+      places: [],
+    });
+    return halves;
   });
 }
 /** Destinations in <optgroup>s: free first, then priced, then arranged over WhatsApp. */
@@ -263,24 +366,52 @@ export function destinationGroups(list: Destination[]) {
     .filter((g) => g.items.length);
 }
 /**
- * The address with the new destination's city and department, except what the buyer typed
- * (anything that is not the previous destination's prefill, or the form's default).
+ * The address for a newly chosen place: its fixed department and barrio; a department the
+ * buyer picked while still offered; the barrio or locality typed while the department and
+ * the kind of field stay the same. Street, unit and notes are kept.
  */
-export function prefillAddress(
-  address: Address,
-  to: Pick<Destination, "city" | "department">,
-  from: Pick<Destination, "city" | "department"> | null,
-): Address {
-  const was = from ?? { city: "", department: emptyAddress().department };
-  const typed = (value: string, prefilled: string) =>
-    !!value.trim() && value !== prefilled;
-  return {
-    ...address,
-    city: typed(address.city, was.city) ? address.city : to.city,
-    department: typed(address.department, was.department)
-      ? address.department
-      : to.department,
-  };
+export function addressFor(address: Address, to: Destination, from: Destination | null): Address {
+  const department =
+    to.department ?? (to.departments.includes(address.department) ? address.department : "");
+  const keep =
+    !!from &&
+    !from.place &&
+    !to.place &&
+    department === address.department &&
+    (to.places.length ? to.places.includes(address.city) : !from.places.length);
+  return { ...address, department, city: to.place ?? (keep ? address.city : "") };
+}
+/**
+ * What the API answers with 409 ADDRESS_ZONE_MISMATCH, checked before sending: the address
+ * must be in the zone (department, one of its places) and not in a place or department with
+ * a zone of its own. "" when coherent or still incomplete.
+ */
+export function addressMismatch(
+  options: ShippingOptions | null,
+  zoneId: string,
+  address: Pick<Address, "city" | "department">,
+): string {
+  const zones = (options?.delivery.zones ?? []).map((z) => ({ zone: z, ...zoneArea(z) }));
+  const chosen = zones.find((z) => z.zone.id === zoneId);
+  const city = fold(address.city);
+  if (!chosen || !address.department || !city) return "";
+  const label = zoneLabel(chosen.zone.name);
+  if (chosen.department && address.department !== chosen.department)
+    return `${label} queda en ${chosen.department}: corregí el departamento o elegí otra zona.`;
+  if (chosen.places.length)
+    return chosen.places.some((p) => fold(p) === city)
+      ? ""
+      : `Con ${label} el envío es a ${chosen.places.join(", ")}: corregí el barrio o elegí otra zona.`;
+  const own = zones.find(
+    (o) =>
+      o !== chosen &&
+      o.department === address.department &&
+      (o.places.length ? o.places.some((p) => fold(p) === city) : !chosen.department),
+  );
+  if (!own) return "";
+  const where = own.places.length ? address.city.trim() : address.department;
+  const free = !isCoordinate(own.zone) && !own.zone.priceMinor ? " con envío gratis" : "";
+  return `${where} tiene su propia zona${free}: elegí ${zoneLabel(own.zone.name)} en «¿Adónde querés que te lo llevemos?».`;
 }
 /**
  * The one line under the select once a zone is chosen: free (or free by the threshold the API
@@ -371,6 +502,7 @@ export function shippingInput(s: ShippingSettings): ShippingSettings {
         if (!z.id) taken.push(id);
         const pricing = z.pricing ?? "fixed";
         const note = z.note?.trim();
+        const department = z.department === undefined ? undefined : z.department || null;
         return {
           id,
           name,
@@ -378,6 +510,15 @@ export function shippingInput(s: ShippingSettings): ShippingSettings {
           leadTime: z.leadTime.trim(),
           pricing,
           ...(note ? { note } : {}),
+          // Sent as declared; a panel from before T73 leaves it out and the API reads the name.
+          ...(department !== undefined
+            ? {
+                department,
+                places: department
+                  ? (z.places ?? []).map((p) => p.trim()).filter(Boolean)
+                  : [],
+              }
+            : {}),
         };
       }),
       freeFromMinor: s.delivery.freeFromMinor || null,

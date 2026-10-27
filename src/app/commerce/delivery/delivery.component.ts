@@ -4,21 +4,25 @@ import {
   computed,
   inject,
   input,
+  signal,
 } from "@angular/core";
 import { ControlContainer, FormsModule, NgForm } from "@angular/forms";
 import { CommerceService } from "../commerce.service";
 import {
   Address,
-  DEPARTMENTS,
+  addressFor,
+  addressMismatch,
   deliveryResult,
   destinationGroups,
+  OTHER_PLACE,
   pickupLabel,
-  prefillAddress,
 } from "../shipping";
 
 /**
  * Checkout "Entrega" (T68): Envío or Retiro, "¿Adónde querés que te lo llevemos?" as one
- * select, one result line and, once a place is chosen, the address. Its fields belong to the
+ * select, one result line and, once a place is chosen, the address. The place decides
+ * department and barrio (T73): fixed ones are shown as text, Montevideo barrios are a select
+ * with "Otro", the interior a department select and a locality. Its fields belong to the
  * checkout form, so they count for its validity.
  */
 @Component({
@@ -34,8 +38,20 @@ export class DeliveryComponent {
   readonly shop = inject(CommerceService);
   /** The checkout's address object, prefilled here when a place is chosen. */
   readonly address = input.required<Address>();
-  readonly departments = DEPARTMENTS;
   readonly pickupLabel = pickupLabel;
+  readonly other = OTHER_PLACE;
+  /** "Otro" chosen in the barrio select: the buyer types the barrio. */
+  readonly otherPlace = signal(false);
+  /** Edits to the address object (not a signal) re-run the coherence check. */
+  private readonly edits = signal(0);
+  /** Same check as the API (409 ADDRESS_ZONE_MISMATCH), as the buyer types. */
+  readonly mismatch = computed(() => {
+    this.edits();
+    const to = this.shop.destination();
+    return to
+      ? addressMismatch(this.shop.shippingOptions(), to.zoneId, this.address())
+      : "";
+  });
   readonly destinationGroups = computed(() =>
     destinationGroups(this.shop.destinations()),
   );
@@ -64,8 +80,24 @@ export class DeliveryComponent {
     if (!to) return;
     Object.assign(
       this.address(),
-      prefillAddress(this.address(), to, this.shop.destination()),
+      addressFor(this.address(), to, this.shop.destination()),
     );
+    this.otherPlace.set(false);
+    this.edited();
     this.shop.chooseDestination(key);
+  }
+
+  /** Barrio select: a listed barrio, or "Otro" to type it. */
+  choosePlace(value: string) {
+    this.otherPlace.set(value === OTHER_PLACE);
+    this.address().city = value === OTHER_PLACE ? "" : value;
+    this.edited();
+  }
+
+  edited() {
+    const before = this.mismatch();
+    this.edits.update((n) => n + 1);
+    // The checkout's error was this mismatch: it goes once the address changes.
+    if (before && this.shop.error() === before) this.shop.error.set("");
   }
 }

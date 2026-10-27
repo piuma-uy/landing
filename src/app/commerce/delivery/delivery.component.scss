@@ -15,6 +15,8 @@ textarea {
   border-radius: var(--radius-sm);
   padding: 0.8rem;
   font: inherit;
+  // 16px: phones zoom into smaller inputs (the label around them is 0.9rem).
+  font-size: 1rem;
   color: var(--color-text);
   background: var(--color-bg);
 }
@@ -137,9 +139,53 @@ textarea {
   font-weight: 600;
   margin-bottom: 0.6rem;
 }
-// Side by side on a phone; stacked in the narrow desktop summary.
-.address__row {
+// Department and barrio fixed by the place (T73): read-only text, side by side when they fit.
+.field {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-  gap: 0.75rem;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.field label {
+  margin: 0;
+}
+.address__where {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+.address__where dt {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+.address__where dd {
+  margin: 0;
+  font-weight: 600;
+}
+.optional {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+// Notes stay optional and short: two rows, the base size (no zoom on phones).
+.address__notes textarea {
+  min-height: 0;
+  resize: vertical;
+}
+input[aria-invalid="true"],
+select[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+.field-error {
+  margin: -0.6rem 0 1rem;
+  font-size: 0.85rem;
+  color: var(--color-error);
+}
+// The live region stays in place (empty) to announce a mismatch when it appears.
+.field-error--empty {
+  margin: 0;
 }

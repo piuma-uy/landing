@@ -17,6 +17,7 @@ import {
   CURRENCIES,
   RECOMMENDED,
   SECTIONS,
+  areaForm,
   emptyZone,
   firstIncomplete,
   hoursLabel,
@@ -36,6 +37,7 @@ import {
   type ZoneForm,
 } from "./settings-form";
 import { historyItem } from "./settings-history";
+import { DEPARTMENTS } from "./shipping";
 import type { Settings } from "./transfer";
 
 /** Zones a store keeps; the API accepts up to 30. */
@@ -65,6 +67,7 @@ export class AdminSettingsComponent {
   readonly banks = BANKS;
   readonly currencies = CURRENCIES;
   readonly maxZones = MAX_ZONES;
+  readonly departments = DEPARTMENTS;
   readonly costs: { value: ZoneCost; label: string }[] = [
     { value: "free", label: "Gratis" },
     { value: "paid", label: "Precio fijo" },
@@ -292,6 +295,11 @@ export class AdminSettingsComponent {
     this.touch("contact", "whatsapp", f.whatsapp);
   }
 
+  /** A new zone named after a barrio, Ciudad de la Costa or a department gets that area. */
+  guessArea(z: ZoneForm) {
+    if (!z.id && !z.department && !z.places.trim())
+      Object.assign(z, areaForm({ name: z.name }));
+  }
   zoneSummary(z: ZoneForm) {
     return zoneSummary(z, (minor) => this.shop.money(minor));
   }

@@ -97,10 +97,10 @@ export function shippingMessage(
   brand: string,
   reference: string,
   zone: string,
-  address?: { street: string; city: string; department: string },
+  address?: { street: string; unit?: string; city: string; department: string },
 ) {
   const where = address
-    ? `, a ${[address.street, address.city, address.department].filter(Boolean).join(", ")}`
+    ? `, a ${[address.street, address.unit, address.city, address.department].filter((p) => p?.trim()).join(", ")}`
     : "";
   return `¡Hola ${brand}! Quiero coordinar el envío del pedido ${reference} (zona ${zone}${where}).`;
 }
