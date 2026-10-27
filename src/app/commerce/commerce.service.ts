@@ -1,5 +1,14 @@
-import { Injectable, computed, inject, isDevMode, signal } from "@angular/core";
+import {
+  Injectable,
+  Injector,
+  afterNextRender,
+  computed,
+  inject,
+  isDevMode,
+  signal,
+} from "@angular/core";
 import { RUNTIME_CONFIG } from "./config";
+import { focusTitle, scrollBehavior } from "./screen";
 import { CognitoAuth, decodeJwt } from "./cognito";
 import { AnalyticsService } from "../services/analytics.service";
 import {
@@ -200,6 +209,7 @@ export class CommerceService {
   readonly config = inject(RUNTIME_CONFIG);
   readonly enabled = this.config.commerceEnabled;
   private readonly analytics = inject(AnalyticsService);
+  private readonly injector = inject(Injector);
   // AWS mode (Cognito hosted UI + bearer token); null keeps the local cookie session.
   readonly cognito =
     this.config.auth === "cognito" && this.config.cognito
@@ -298,6 +308,8 @@ export class CommerceService {
   readonly morePaid = computed(() => !!this.paidCursor());
   readonly quote = signal<Quote | null>(null);
   readonly completed = signal<Order | null>(null);
+  /** Card order created, its tab on the way to Mercado Pago: only "Te llevamos…" shows (T72c). */
+  readonly leaving = signal<Order | null>(null);
   readonly error = signal("");
   /** API code of the last error, for errors that offer a way out (TOO_MANY_OPEN_ORDERS). */
   readonly errorCode = signal("");
@@ -474,6 +486,12 @@ export class CommerceService {
     await this.run(fn);
   }
   constructor() {
+    // "Atrás" from Mercado Pago can restore this page as it was left (bfcache): show the
+    // receipt with its button instead of "Te llevamos a Mercado Pago…" forever.
+    addEventListener("pageshow", (event) => {
+      const order = this.leaving();
+      if (event.persisted && order) this.stay(order);
+    });
     // Back and forward between /envios/ and the page it was opened from.
     addEventListener("popstate", () => {
       const shipping = isShippingPath(location.pathname);
@@ -553,6 +571,7 @@ export class CommerceService {
     if (!orderId) return;
     this.paymentReturn.set({ orderId, order: null, checking: false });
     this.view.set("payment");
+    this.toTop();
     if (this.user()) {
       sessionStorage.removeItem("piuma-payment-return");
       void this.followPayment();
@@ -616,7 +635,7 @@ export class CommerceService {
       this.paymentReturn.set(null);
       this.completed.set(updated);
       this.view.set("cart");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      this.toTop();
     });
     if (stale) {
       this.paymentMethods.set(null);
@@ -671,7 +690,7 @@ export class CommerceService {
     this.view.set(view);
     this.error.set("");
     this.notice.set("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    this.toTop();
     if (view === "orders" && this.user())
       void this.load(async () =>
         this.orders.set(await this.pages<Order>("/orders")),
@@ -753,6 +772,7 @@ export class CommerceService {
       this.totp.set(null);
       this.paymentMethods.set(null);
       this.completed.set(null);
+      this.leaving.set(null);
       this.paymentReturn.set(null);
       this.quote.set(null);
       this.view.set("shop");
@@ -764,6 +784,7 @@ export class CommerceService {
     this.cart.set(items);
     this.quote.set(null);
     this.completed.set(null);
+    this.leaving.set(null);
     this.attempts.end();
   }
   async add(sku: string) {
@@ -903,7 +924,13 @@ export class CommerceService {
       }
       // Created: a later purchase of the same cart is a new order, never a replay of this one.
       this.attempts.end();
-      this.completed.set(order);
+      // A card order goes straight to Mercado Pago from the button the buyer pressed: no
+      // receipt asking to pay shows in between (it showed, then the tab left by itself).
+      const card =
+        order.paymentMethod === "card" && order.status === "pending_payment";
+      if (card) this.leaving.set(order);
+      else this.completed.set(order);
+      this.toTop();
       this.quote.set(null);
       this.cart.set([]);
       try {
@@ -924,9 +951,28 @@ export class CommerceService {
         }
       await this.reloadProducts();
       // The order (and its reservation) exists: from here on only its own checkout is paid.
-      if (order.paymentMethod === "card" && order.status === "pending_payment")
-        await this.goToCheckout(order);
+      if (card)
+        try {
+          await this.goToCheckout(order);
+        } catch (e) {
+          // No checkout to go to: the receipt waits for "Pagar con Mercado Pago", never redirects.
+          // Its button is the retry; "Reintentar" would run this whole checkout again.
+          if (!(e instanceof ApiError)) devLog(e);
+          this.stay(order);
+          this.error.set(shownMessage(e));
+        }
     });
+  }
+  /** Back on the shop before Mercado Pago opened (or from it, restored by the browser). */
+  private stay(order: Order) {
+    this.leaving.set(null);
+    this.completed.set(order);
+    this.toTop();
+  }
+  /** Top of the new screen, its title focused once it rendered. */
+  toTop() {
+    window.scrollTo({ top: 0, behavior: scrollBehavior() });
+    afterNextRender(focusTitle, { injector: this.injector });
   }
   async payment(order: Order) {
     if (order.paymentMethod === "card") return this.payWithCard(order);

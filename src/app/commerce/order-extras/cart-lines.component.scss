@@ -1,5 +1,9 @@
+@use "variables" as v;
+@use "mixins" as *;
+
 // Líneas del resumen del checkout (T72): foto chica, producto y precio en una fila; debajo la
-// cantidad con − y + y "Quitar". Una línea separa cada producto.
+// cantidad con − y + y "Quitar". Una línea separa cada producto. En desktop (T72c) es una lista
+// densa: foto de 48 px y controles más chicos, para que la columna no crezca a lo alto.
 :host {
   display: block;
 }
@@ -90,4 +94,30 @@ output {
   min-height: 44px;
   padding: 0;
   font-size: 0.85rem;
+}
+
+@include from(v.$bp-lg) {
+  .line {
+    grid-template-columns: 48px 1fr auto;
+    column-gap: 0.75rem;
+    padding: 0.65rem 0;
+  }
+  img {
+    width: 48px;
+    height: 60px;
+  }
+  h3 {
+    font-size: 0.9rem;
+  }
+  .quantity {
+    margin-top: 0.35rem;
+  }
+  .stepper button {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+  .text-button {
+    min-height: 32px;
+  }
 }

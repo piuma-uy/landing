@@ -256,13 +256,7 @@
         >
           @switch (step()) {
             @case ("pago") {
-              {{
-                shop.busy()
-                  ? "Guardando…"
-                  : canPay()
-                    ? "Confirmar y pagar " + total()
-                    : "Confirmar pedido"
-              }}
+              {{ payLabel() }}
             }
             @default {
               {{

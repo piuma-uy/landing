@@ -432,3 +432,37 @@ details p {
 .ship-whatsapp {
   margin: 0 0 1rem;
 }
+// Card checkout on its way to Mercado Pago (T72c): one short state, no button, no question.
+.leaving {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  text-align: center;
+
+  h2,
+  p {
+    margin: 0;
+  }
+}
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--color-secondary);
+  border-top-color: var(--color-primary-dark);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+// The screen's title takes the focus on a new screen (T72c); a ring there would read as a field.
+h1[tabindex="-1"]:focus {
+  outline: none;
+}
