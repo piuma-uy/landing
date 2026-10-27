@@ -5,6 +5,7 @@ import {
   CLOCK_TOLERANCE_MS,
   CognitoAuth,
   base64Url,
+  callbackErrorMessage,
   challengeFor,
   decodeJwt,
 } from "../src/app/commerce/cognito.ts";
@@ -214,13 +215,37 @@ test("admins group from the id_token shows the admin menu", async () => {
 
 test("OAuth error response is reported", async () => {
   const s = setup();
-  const state = new URL(await s.auth.authorizeUrl()).searchParams.get("state");
+  const state = new URL(await s.auth.authorizeUrl({ provider: "Google" }))
+    .searchParams.get("state");
   await assert.rejects(
     s.auth.handleCallback(
       new URL(`${ORIGIN}/?error=access_denied&state=${state}`),
     ),
+    { message: /Cancelaste el ingreso con Google/ },
   );
   assert.equal(s.calls.length, 0);
+  // The attempt is used up: the same callback again is not valid.
+  assert.equal(s.store.has("piuma-oauth"), false);
+});
+
+test("hosted UI errors are shown in Spanish, never Cognito's description (T77)", async () => {
+  assert.match(callbackErrorMessage("access_denied"), /^Cancelaste/);
+  for (const error of ["invalid_request", "server_error", "", null])
+    assert.equal(
+      callbackErrorMessage(error),
+      "No se pudo completar el ingreso. Probá de nuevo.",
+    );
+  const s = setup();
+  const state = new URL(await s.auth.authorizeUrl()).searchParams.get("state");
+  const description = encodeURIComponent("Llamá al 099 000 000 para recuperar tu cuenta");
+  await assert.rejects(
+    s.auth.handleCallback(
+      new URL(
+        `${ORIGIN}/?error=invalid_request&error_description=${description}&state=${state}`,
+      ),
+    ),
+    (e: Error) => !e.message.includes("099"),
+  );
 });
 
 test("access token is renewed before expiry with the refresh token", async () => {

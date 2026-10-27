@@ -53,6 +53,25 @@ form .btn {
   width: 100%;
 }
 
+// T77: Google's guidelines ask for the standard "G" on white with a neutral outline; the shop's
+// surface, text and muted tokens give exactly that, in the same pill as the other buttons.
+.btn--google {
+  min-height: 48px;
+  gap: 0.75rem;
+  background-color: var(--color-surface);
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+
+  svg {
+    flex: none;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-bg);
+    border-color: var(--color-text);
+  }
+}
+
 .field {
   display: grid;
   gap: 0.4rem;
