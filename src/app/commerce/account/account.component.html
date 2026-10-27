@@ -228,7 +228,7 @@
         name="password"
         [type]="showPassword() ? 'text' : 'password'"
         [ngModel]="password()"
-        (ngModelChange)="password.set($event)"
+        (ngModelChange)="typePassword($event)"
         maxlength="128"
         [autocomplete]="autocomplete"
         autocapitalize="none"

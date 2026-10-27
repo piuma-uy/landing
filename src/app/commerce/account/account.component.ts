@@ -122,6 +122,14 @@ export class AccountComponent implements OnDestroy {
     requestAnimationFrame(() => this.heading()?.nativeElement.focus());
   }
 
+  /** A field error about the length goes away as soon as the password meets the rules. */
+  typePassword(value: string) {
+    this.password.set(value);
+    const { password, ...rest } = this.invalid();
+    if (password && value && !(this.newPassword() && passwordProblem(this.rules, value)))
+      this.invalid.set(rest);
+  }
+
   /** Field errors the server never needs to see; true when the form can go. */
   private check(fields: Field[]) {
     const problems: Partial<Record<Field, string>> = {};
