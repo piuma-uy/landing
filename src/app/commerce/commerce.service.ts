@@ -117,6 +117,9 @@ export interface User {
   name: string;
   admin: boolean;
 }
+export interface Profile {
+  phone: string | null;
+}
 export interface Product {
   sku: string;
   productId: string;
@@ -224,6 +227,8 @@ export class CommerceService {
     shippingPolicy(this.shippingOptions() ?? this.publicShipping()),
   );
   readonly user = signal<User | null>(null);
+  /** GET /profile (T71): the buyer's saved celular (E.164) that the checkout starts with. */
+  readonly profile = signal<Profile | null>(null);
   readonly products = signal<Product[] | null>(null);
   readonly cart = signal<Line[]>([]);
   readonly orders = signal<Order[]>([]);
@@ -361,6 +366,7 @@ export class CommerceService {
       if (response.status === 401) {
         this.cognito?.clear();
         this.user.set(null);
+        this.profile.set(null);
         this.clearAdmin();
       }
       const code = data.error?.code;
@@ -502,6 +508,7 @@ export class CommerceService {
       await this.reloadProducts();
       const r = await this.request<{ user: User | null }>("/auth/me");
       this.user.set(r.user);
+      if (r.user && !r.user.admin) void this.loadProfile();
       if (r.user)
         this.cart.set((await this.request<{ items: Line[] }>("/cart")).items);
       else this.cart.set(this.readGuest());
@@ -673,6 +680,7 @@ export class CommerceService {
   // session (reload) stays on the page the buyer was looking at.
   private async signedIn(user: User, options: { restored?: boolean } = {}) {
     this.user.set(user);
+    if (!user.admin) void this.loadProfile();
     const remote = (await this.request<{ items: Line[] }>("/cart")).items;
     const merged = mergeGuest(remote, this.readGuest());
     if (!merged) {
@@ -689,6 +697,23 @@ export class CommerceService {
     if (user.admin) await this.loadAdmin();
     if (sessionStorage.getItem("piuma-payment-return")) this.resumeReturn();
   }
+  /** Only fills the checkout: without it the buyer types the number, nothing else changes. */
+  private async loadProfile() {
+    try {
+      this.profile.set(await this.request<Profile>("/profile"));
+    } catch (e) {
+      devLog("Perfil", e);
+    }
+  }
+  /** "Tu celular" of the account (T71): PUT /profile with the E.164 number. */
+  async savePhone(phone: string) {
+    await this.run(async () => {
+      this.profile.set(
+        await this.request<Profile>("/profile", "PUT", { phone }),
+      );
+      this.notice.set("Guardamos tu celular para tus próximas compras.");
+    });
+  }
   async logout() {
     await this.run(async () => {
       // Checkout attempt, switch keys, payment return and OAuth attempt (FE-06).
@@ -699,6 +724,7 @@ export class CommerceService {
         if (url) location.assign(url);
       } else await this.request("/auth/logout", "POST", {});
       this.user.set(null);
+      this.profile.set(null);
       this.cart.set([]);
       this.clearAdmin();
       this.mfaRequired.set(false);
@@ -865,6 +891,15 @@ export class CommerceService {
           "Pedido creado. No se pudo vaciar el carrito guardado; revisalo antes de otra compra.",
         );
       }
+      // The next checkout starts with this number; a failure only means typing it again.
+      if (phone !== this.profile()?.phone)
+        try {
+          this.profile.set(
+            await this.request<Profile>("/profile", "PUT", { phone }),
+          );
+        } catch (e) {
+          devLog("Perfil", e);
+        }
       await this.reloadProducts();
       // The order (and its reservation) exists: from here on only its own checkout is paid.
       if (order.paymentMethod === "card" && order.status === "pending_payment")

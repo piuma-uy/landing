@@ -3,6 +3,28 @@
   @if (shop.user(); as user) {
     <h1>Hola, {{ user.name }}</h1>
     <p class="lead">{{ user.email }}</p>
+    @if (!user.admin) {
+      <!-- T71: the celular the checkout starts with. -->
+      <form class="account-phone" (ngSubmit)="phone() && shop.savePhone(phone()!)">
+        @defer (on immediate) {
+          <app-phone-field
+            [initial]="shop.profile()?.phone ?? null"
+            [disabled]="shop.busy()"
+            (phoneChange)="phone.set($event)"
+          />
+        } @placeholder (minimum 0ms) {
+          <div class="phone-placeholder" aria-hidden="true"></div>
+        }
+        <button
+          class="btn btn--outline"
+          [disabled]="
+            shop.busy() || !phone() || phone() === shop.profile()?.phone
+          "
+        >
+          Guardar celular
+        </button>
+      </form>
+    }
     <div class="stack">
       @if (user.admin) {
         <button class="btn btn--primary" (click)="shop.open('admin')">

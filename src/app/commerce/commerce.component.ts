@@ -34,6 +34,7 @@ import {
   shippingSummary,
 } from "./shipping";
 import { DeliveryComponent } from "./delivery/delivery.component";
+import { PhoneFieldComponent } from "./phone-field/phone-field.component";
 @Component({
   selector: "app-commerce",
   standalone: true,
@@ -43,6 +44,7 @@ import { DeliveryComponent } from "./delivery/delivery.component";
     AdminComponent,
     AccountComponent,
     DeliveryComponent,
+    PhoneFieldComponent,
     CheckoutStepsComponent,
     CartLinesComponent,
     EmptyStateComponent,
@@ -106,7 +108,8 @@ export class CommerceComponent {
       (minor) => this.shop.money(minor, q?.currency),
     );
   });
-  contactPhone = "";
+  /** The buyer's celular in E.164 (T71); null while the field has no valid number. */
+  readonly contactPhone = signal<string | null>(null);
   /** Code Piuma knows the order by; since T70 the transfer reference is the buyer's phone. */
   orderRef(order: Order) {
     return orderCode(order);

@@ -293,7 +293,10 @@
             <strong class="reference">{{ order.transfer?.reference }}</strong>
             · Pedido {{ orderCode(order) }}
           </p>
-          <p>{{ order.contact?.phone }} · {{ order.contact?.email }}</p>
+          <p>
+            {{ phoneDisplay(order.contact?.phone) }} ·
+            {{ order.contact?.email }}
+          </p>
           @if (samePhone(order) > 1) {
             <p class="small same-phone">
               Este teléfono tiene {{ samePhone(order) }}
@@ -413,7 +416,7 @@
               </div>
               <div>
                 <dt>Teléfono</dt>
-                <dd>{{ order.contact?.phone }}</dd>
+                <dd>{{ phoneDisplay(order.contact?.phone) }}</dd>
               </div>
               <div>
                 <dt>Zona</dt>

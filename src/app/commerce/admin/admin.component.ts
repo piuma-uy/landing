@@ -13,7 +13,13 @@ import { FormsModule } from "@angular/forms";
 import { DomSanitizer } from "@angular/platform-browser";
 import { CommerceService, Order, Product } from "../commerce.service";
 import { dateTime } from "../orders";
-import { orderCode, orderZone, phoneCounts, phoneKey } from "../transfer";
+import {
+  orderCode,
+  orderZone,
+  phoneCounts,
+  phoneDisplay,
+  phoneKey,
+} from "../transfer";
 import { groupSecret } from "../mfa";
 import { qrPath } from "../qr";
 import { AdminSettingsComponent } from "../admin-settings.component";
@@ -71,6 +77,7 @@ export class AdminComponent {
   readonly dateTime = dateTime;
   readonly orderCode = orderCode;
   readonly orderZone = orderZone;
+  readonly phoneDisplay = phoneDisplay;
   readonly shippingSummary = shippingSummary;
   readonly sales = computed(() =>
     this.shop.metrics().reduce((s, m) => s + m.grossSalesMinor, 0),

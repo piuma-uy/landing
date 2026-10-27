@@ -1,0 +1,109 @@
+// "Tu celular" (T71): country and number as one field. Same base as the checkout's fields
+// (commerce.component.scss), which do not reach a child component.
+.phone {
+  margin-bottom: 1rem;
+}
+.phone__label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.phone__hint {
+  margin: 0.15rem 0 0.4rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.phone__row {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  // The site's focus ring (styles.scss), on the whole field: the select inside is invisible.
+  &:focus-within {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+  }
+}
+.phone__row--invalid {
+  border-color: var(--color-error);
+}
+.phone__country {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  min-width: 44px;
+  padding: 0 1.6rem 0 0.8rem;
+  border-right: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  // Chevron of the select, drawn with borders: no icon, no new color.
+  &::after {
+    content: "";
+    position: absolute;
+    right: 0.7rem;
+    top: 50%;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-right: 1.5px solid var(--color-text-muted);
+    border-bottom: 1.5px solid var(--color-text-muted);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+  select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    font: inherit;
+    font-size: 16px;
+    cursor: pointer;
+    &:focus-visible {
+      outline: none;
+    }
+  }
+}
+input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0.8rem;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  // 16px keeps iOS from zooming into the field.
+  font-size: max(1rem, 16px);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  &:focus-visible {
+    outline: none;
+  }
+  &::placeholder {
+    color: var(--color-text-muted);
+    opacity: 0.7;
+  }
+}
+.phone__error {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-error);
+  &::before {
+    content: "!";
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: 0.1rem;
+    border-radius: 50%;
+    background: var(--color-error);
+    color: var(--color-surface);
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+}

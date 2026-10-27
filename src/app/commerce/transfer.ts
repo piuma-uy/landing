@@ -140,6 +140,11 @@ export function transferSearch(input: string): TransferSearch | null {
 /** Last 8 digits: the same phone typed with 0, +598 or spaces gives the same key. */
 export const phoneKey = (phone: string | undefined) =>
   (phone ?? "").replace(/\D/g, "").slice(-8);
+/** The buyer's phone in the panel: Uruguayan mobiles saved as E.164 (T71) read 091 813 234. */
+export function phoneDisplay(phone: string | undefined) {
+  const uy = /^\+598(9\d)(\d{3})(\d{3})$/.exec(phone ?? "");
+  return uy ? `0${uy[1]} ${uy[2]} ${uy[3]}` : (phone ?? "");
+}
 /** How many of these orders share each phone, by phoneKey. */
 export function phoneCounts(orders: { contact?: { phone: string } }[]) {
   const counts = new Map<string, number>();

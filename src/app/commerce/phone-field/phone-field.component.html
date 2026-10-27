@@ -1,0 +1,45 @@
+<div class="phone">
+  <label class="phone__label" for="contact-phone">Tu celular</label>
+  <p class="phone__hint" id="contact-phone-hint">
+    Te escribimos por WhatsApp para coordinar la entrega.
+  </p>
+  <div class="phone__row" [class.phone__row--invalid]="!!problem()">
+    <!-- The real select covers the short "UY +598": tap, keyboard and screen reader use it. -->
+    <div class="phone__country">
+      <span class="phone__code" aria-hidden="true"
+        >{{ country() }} +{{ dial() }}</span
+      >
+      <select
+        aria-label="País del celular"
+        name="contactPhoneCountry"
+        [disabled]="disabled()"
+        (change)="chose($any($event.target).value)"
+      >
+        @for (c of countries; track c.code) {
+          <option [value]="c.code" [selected]="c.code === country()">
+            {{ c.name }} (+{{ c.dial }})
+          </option>
+        }
+      </select>
+    </div>
+    <input
+      id="contact-phone"
+      name="contactPhone"
+      type="tel"
+      inputmode="tel"
+      autocomplete="tel"
+      [placeholder]="placeholder()"
+      [value]="text()"
+      [disabled]="disabled()"
+      [attr.aria-invalid]="!!problem()"
+      [attr.aria-describedby]="
+        problem() ? 'contact-phone-hint contact-phone-error' : 'contact-phone-hint'
+      "
+      (input)="typed($any($event.target))"
+      (blur)="left()"
+    />
+  </div>
+  @if (problem(); as p) {
+    <p class="phone__error" id="contact-phone-error" aria-live="polite">{{ p }}</p>
+  }
+</div>

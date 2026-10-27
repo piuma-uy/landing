@@ -486,3 +486,7 @@ details p {
 .ship-whatsapp {
   margin: 0 0 1rem;
 }
+// Room for "Tu celular" while its lazy chunk loads, so the summary does not jump.
+.phone-placeholder {
+  min-height: 7.25rem;
+}
