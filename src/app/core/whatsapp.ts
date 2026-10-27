@@ -81,12 +81,16 @@ export function productMessage(
   );
 }
 
+/** The order code tells apart several orders paid with the same phone as reference (T70). */
 export function receiptMessage(
   brand: string,
+  order: string,
   reference: string,
   amount: string,
 ) {
-  return `¡Hola ${brand}! Te envío el comprobante de la transferencia del pedido ${reference} por ${amount}.`;
+  return order === reference
+    ? `¡Hola ${brand}! Te envío el comprobante de la transferencia del pedido ${order} por ${amount}.`
+    : `¡Hola ${brand}! Te envío el comprobante de la transferencia de ${amount} del pedido ${order}, con la referencia ${reference}.`;
 }
 
 export function shippingMessage(

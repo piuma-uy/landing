@@ -2,8 +2,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   ApiError,
+  CONFIRMATION_PROMISE,
   EXPIRY_PRINCIPAL,
   TransferApi,
+  orderCode,
+  phoneCounts,
+  phoneKey,
+  phoneReference,
+  reservationText,
+  transferSearch,
   settingsInput,
   statusLabel,
   transferOffered,
@@ -247,4 +254,68 @@ test("unit limits go in the settings body only when the API sent them", () => {
     maxOpenPerUser: 3,
     pendingHoldHours: 48,
   });
+});
+
+test("pending transfers carry the search by phone or name to every page (T70)", async () => {
+  const { client, calls } = api(
+    { items: [order], nextCursor: "c/1" },
+    { items: [] },
+    { items: [order] },
+  );
+  await client.pending({ phone: "+598 91 813 234" });
+  await client.pending({ name: "José Pérez" });
+  assert.deepEqual(
+    calls.map((c) => c.path),
+    [
+      "/admin/orders?status=pending_transfer&phone=%2B598%2091%20813%20234",
+      "/admin/orders?status=pending_transfer&phone=%2B598%2091%20813%20234&cursor=c%2F1",
+      "/admin/orders?status=pending_transfer&name=Jos%C3%A9%20P%C3%A9rez",
+    ],
+  );
+});
+
+test("the search box: digits search by phone, words by name, too short is null", () => {
+  assert.deepEqual(transferSearch(" 091 813 234 "), { phone: "091 813 234" });
+  assert.deepEqual(transferSearch("+598 91813234"), { phone: "+598 91813234" });
+  assert.deepEqual(transferSearch("3234"), { phone: "3234" });
+  assert.deepEqual(transferSearch("Ana"), { name: "Ana" });
+  assert.deepEqual(transferSearch("ana 099"), { name: "ana 099" });
+  assert.equal(transferSearch("091"), null);
+  assert.equal(transferSearch("a"), null);
+  assert.equal(transferSearch("   "), null);
+});
+
+test("several pending orders of one phone are counted whatever its prefix", () => {
+  const counts = phoneCounts([
+    { contact: { phone: "091 813 234" } },
+    { contact: { phone: "+598 91 813 234" } },
+    { contact: { phone: "91813234" } },
+    { contact: { phone: "099 000 111" } },
+    {},
+  ]);
+  assert.equal(counts.get(phoneKey("091813234")), 3);
+  assert.equal(counts.get(phoneKey("099000111")), 1);
+  assert.equal(counts.size, 2);
+});
+
+test("transfer screen texts: hours, Uruguay time, phone reference and the promise", () => {
+  const t = { ...transfer, expiresAt: "2026-10-28T21:58:00.000Z" };
+  assert.equal(
+    reservationText({ ...t, holdHours: 48 }),
+    "Te reservamos los productos por 48 horas, hasta el miércoles 28/10 a las 18:58 (hora de Uruguay).",
+  );
+  assert.equal(
+    reservationText({ ...t, holdHours: 1 }),
+    "Te reservamos los productos por 1 hora, hasta el miércoles 28/10 a las 18:58 (hora de Uruguay).",
+  );
+  // Orders from before T70 do not say how many hours.
+  assert.equal(
+    reservationText(t),
+    "Te reservamos los productos hasta el miércoles 28/10 a las 18:58 (hora de Uruguay).",
+  );
+  assert.equal(phoneReference({ referenceType: "phone" }), true);
+  assert.equal(phoneReference({ referenceType: "order" }), false);
+  assert.equal(phoneReference({}), false);
+  assert.equal(orderCode({ id: "abcd1234ffff" }), "ABCD1234");
+  assert.match(CONFIRMATION_PROMISE, /por mail y por teléfono/);
 });

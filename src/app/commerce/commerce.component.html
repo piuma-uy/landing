@@ -63,10 +63,9 @@
               <div class="panel receipt transfer">
                 <span class="status">Pendiente de transferencia</span>
                 <h2>Transferí para confirmar tu pedido</h2>
-                <p>
-                  Reservamos tus productos hasta el
-                  <strong>{{ dateTime(t.expiresAt, true) }}</strong
-                  >. Si la transferencia no llega antes, el pedido se cancela.
+                <p class="reservation">
+                  <strong>{{ reservationText(t) }}</strong> Si la transferencia
+                  no llega antes, el pedido se cancela.
                 </p>
                 <p class="small shipping-line">
                   {{ shippingSummary(order.shipping) }}
@@ -89,7 +88,9 @@
                 <div class="transfer-amount">
                   <span class="muted small">Monto exacto</span>
                   <strong>{{ shop.money(t.amountMinor, t.currency) }}</strong>
-                  <span class="muted small">Referencia</span>
+                  <span class="muted small">{{
+                    phoneReference(t) ? "Referencia: tu teléfono" : "Referencia"
+                  }}</span>
                   <strong class="reference">{{ t.reference }}</strong>
                 </div>
                 <dl class="bank-details">
@@ -117,9 +118,15 @@
                 @if (t.instructions.note) {
                   <p class="muted small">{{ t.instructions.note }}</p>
                 }
-                <p class="small">
-                  Indicá la referencia <strong>{{ t.reference }}</strong> en la
-                  transferencia y mandanos el comprobante.
+                <p class="small reference-hint">
+                  @if (phoneReference(t)) {
+                    Poné tu teléfono <strong>{{ t.reference }}</strong> en el
+                    concepto o referencia de la transferencia y mandanos el
+                    comprobante.
+                  } @else {
+                    Indicá la referencia <strong>{{ t.reference }}</strong> en
+                    la transferencia y mandanos el comprobante.
+                  }
                 </p>
                 <div class="actions">
                   @if (receiptLink(order); as wa) {
@@ -141,8 +148,8 @@
                     </button>
                   }
                 </div>
-                <p class="payment-note" role="status">
-                  Te avisamos por mail cuando confirmemos el pago.
+                <p class="payment-note confirmation-promise" role="status">
+                  {{ confirmationPromise }}
                 </p>
               </div>
             } @else if (order.paymentMethod === "card") {
@@ -602,9 +609,16 @@
                       {{ t.instructions.accountType }}
                       {{ t.instructions.accountNumber }} ({{
                         t.instructions.holder
-                      }}), con la referencia <strong>{{ t.reference }}</strong
-                      >, antes del {{ dateTime(t.expiresAt, true) }}.
+                      }}), con
+                      {{
+                        phoneReference(t)
+                          ? "tu teléfono como referencia:"
+                          : "la referencia"
+                      }}
+                      <strong>{{ t.reference }}</strong
+                      >.
                     </p>
+                    <p class="small reservation">{{ reservationText(t) }}</p>
                     @if (receiptLink(order); as wa) {
                       <a
                         class="btn btn--outline"
@@ -614,8 +628,8 @@
                         ><app-whatsapp-icon />Enviar comprobante por WhatsApp</a
                       >
                     }
-                    <p class="small">
-                      Te avisamos por mail cuando confirmemos el pago.
+                    <p class="small confirmation-promise">
+                      {{ confirmationPromise }}
                     </p>
                   </div>
                 }
@@ -1050,13 +1064,57 @@
                   antes. Confirmá sólo después de ver el dinero acreditado en el
                   banco: una captura del cliente no alcanza.
                 </p>
-                @for (order of shop.pendingTransfers(); track order.id) {
+                <form
+                  class="transfer-search"
+                  role="search"
+                  (ngSubmit)="searchTransfers()"
+                >
+                  <label for="transfer-search"
+                    >Buscar por teléfono o nombre del cliente</label
+                  >
+                  <div class="search-row">
+                    <input
+                      id="transfer-search"
+                      name="transferQuery"
+                      type="search"
+                      [(ngModel)]="transferQuery"
+                      placeholder="091 813 234 o Ana Pérez"
+                      maxlength="100"
+                      autocomplete="off"
+                      enterkeyhint="search"
+                    />
+                    <button class="btn btn--primary" [disabled]="shop.busy()">
+                      Buscar
+                    </button>
+                    @if (shop.transferSearch()) {
+                      <button
+                        type="button"
+                        class="btn btn--outline"
+                        (click)="clearTransferSearch()"
+                      >
+                        Ver todas
+                      </button>
+                    }
+                  </div>
+                  <p class="muted small">
+                    El cliente pone su teléfono en el concepto. Da igual con 0
+                    o +598.
+                  </p>
+                </form>
+                @if (shop.transferSearch(); as found) {
+                  <p class="small search-summary" role="status">
+                    Pendientes para «{{ found.query }}»:
+                    {{ found.items.length }}
+                  </p>
+                }
+                @for (order of transferRows(); track order.id) {
                   <article
                     class="panel transfer-row"
                     [attr.data-reference]="order.transfer?.reference"
+                    [attr.data-order]="orderCode(order)"
                   >
                     <header>
-                      <h2>{{ order.transfer?.reference }}</h2>
+                      <h2>{{ order.contact?.name }}</h2>
                       <strong>{{
                         shop.money(
                           order.transfer?.amountMinor ?? order.totalMinor,
@@ -1065,9 +1123,22 @@
                       }}</strong>
                     </header>
                     <p>
-                      {{ order.contact?.name }} · {{ order.contact?.email }} ·
-                      {{ order.contact?.phone }}
+                      Referencia
+                      <strong class="reference">{{
+                        order.transfer?.reference
+                      }}</strong>
+                      · Pedido {{ orderCode(order) }}
                     </p>
+                    <p>
+                      {{ order.contact?.phone }} · {{ order.contact?.email }}
+                    </p>
+                    @if (samePhone(order) > 1) {
+                      <p class="small same-phone">
+                        Este teléfono tiene {{ samePhone(order) }}
+                        transferencias pendientes: confirmá la que coincide con
+                        el monto y la fecha del comprobante.
+                      </p>
+                    }
                     <p class="small shipping-line">
                       {{ shippingSummary(order.shipping, true) }}
                       @if ($any(order.shipping)?.coordinate) {
@@ -1075,10 +1146,10 @@
                       }
                     </p>
                     <p class="muted small">
-                      Vence el
-                      {{ dateTime(order.transfer?.expiresAt, true) }}
-                      · Pedido del
+                      Pedido del
                       {{ dateTime(order.createdAt) }}
+                      · Vence el
+                      {{ dateTime(order.transfer?.expiresAt, true) }}
                     </p>
                     @if (reviewing()?.id === order.id) {
                       @if (reviewing()?.action === "confirm") {
@@ -1096,8 +1167,9 @@
                               )
                             }}</strong>
                             con la referencia
-                            <strong>{{ order.transfer?.reference }}</strong
-                            >? El pedido pasa a pagado y no se puede deshacer.
+                            <strong>{{ order.transfer?.reference }}</strong>
+                            (pedido {{ orderCode(order) }})? El pedido pasa a
+                            pagado y no se puede deshacer.
                           </p>
                           <label
                             >Referencia del movimiento en el banco<input
@@ -1177,9 +1249,24 @@
                     }
                   </article>
                 } @empty {
-                  <p class="panel empty">
-                    No hay transferencias por confirmar.
-                  </p>
+                  @if (shop.transferSearch(); as found) {
+                    <div class="panel empty" role="status">
+                      <p>
+                        No hay transferencias por confirmar para «{{
+                          found.query
+                        }}».
+                      </p>
+                      <p class="small">
+                        Revisá el número (alcanza con los últimos 8 dígitos) o
+                        buscá por el nombre del cliente. Si ya la confirmaste o
+                        venció, no aparece acá.
+                      </p>
+                    </div>
+                  } @else {
+                    <p class="panel empty">
+                      No hay transferencias por confirmar.
+                    </p>
+                  }
                 }
               }
               @case ("settings") {

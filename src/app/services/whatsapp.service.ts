@@ -50,13 +50,17 @@ export class WhatsappService {
   }
 
   /** Comprobante de transferencia: el link del servidor, o uno con referencia y monto. */
-  receiptLink(transfer: OrderTransfer | undefined, amount: string): string | null {
+  receiptLink(
+    order: string,
+    transfer: OrderTransfer | undefined,
+    amount: string,
+  ): string | null {
     if (!transfer) return null;
     return (
       preferServer(
         transfer.whatsappUrl,
         this.number(),
-        receiptMessage(SITE_CONFIG.brandName, transfer.reference, amount),
+        receiptMessage(SITE_CONFIG.brandName, order, transfer.reference, amount),
       ) || null
     );
   }

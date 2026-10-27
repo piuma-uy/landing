@@ -12,6 +12,14 @@ import { WhatsappService } from "../services/whatsapp.service";
 import { WhatsappIconComponent } from "../shared/whatsapp-icon/whatsapp-icon.component";
 import { AccountComponent } from "./account/account.component";
 import { buyerCancellable, dateTime, reservedUntil } from "./orders";
+import {
+  CONFIRMATION_PROMISE,
+  orderCode,
+  phoneCounts,
+  phoneKey,
+  phoneReference,
+  reservationText,
+} from "./transfer";
 import { MAX_UNITS } from "./cart";
 import { groupSecret } from "./mfa";
 import { qrPath } from "./qr";
@@ -35,7 +43,11 @@ import { DeliveryComponent } from "./delivery/delivery.component";
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./commerce.component.html",
-  styleUrls: ["./commerce.component.scss", "./admin-security.component.scss"],
+  styleUrls: [
+    "./commerce.component.scss",
+    "./admin-security.component.scss",
+    "./transfers.component.scss",
+  ],
 })
 export class CommerceComponent {
   readonly shop = inject(CommerceService);
@@ -70,6 +82,10 @@ export class CommerceComponent {
   readonly whatsapp = inject(WhatsappService);
   readonly dateTime = dateTime;
   readonly reservedUntil = reservedUntil;
+  readonly orderCode = orderCode;
+  readonly phoneReference = phoneReference;
+  readonly reservationText = reservationText;
+  readonly confirmationPromise = CONFIRMATION_PROMISE;
   readonly buyerCancellable = buyerCancellable;
   readonly maxUnits = MAX_UNITS;
   readonly shippingSummary = shippingSummary;
@@ -165,16 +181,41 @@ export class CommerceComponent {
     };
     requestAnimationFrame(scroll);
   }
-  /** Reference Piuma knows the order by: the transfer one, or the short id. */
+  /** Code Piuma knows the order by; since T70 the transfer reference is the buyer's phone. */
   orderRef(order: Order) {
-    return order.transfer?.reference ?? "#" + order.id.slice(0, 8);
+    return orderCode(order);
   }
   receiptLink(order: Order) {
     const t = order.transfer;
     return (
       t &&
-      this.whatsapp.receiptLink(t, this.shop.money(t.amountMinor, t.currency))
+      this.whatsapp.receiptLink(
+        orderCode(order),
+        t,
+        this.shop.money(t.amountMinor, t.currency),
+      )
     );
+  }
+  /** "Transferencias por confirmar": the search result while there is one, else every row. */
+  readonly transferRows = computed(
+    () => this.shop.transferSearch()?.items ?? this.shop.pendingTransfers(),
+  );
+  /** Pending transfers per phone (all of them, not only the search result). */
+  private readonly phoneCounts = computed(() =>
+    phoneCounts(this.shop.pendingTransfers()),
+  );
+  samePhone(order: Order) {
+    return this.phoneCounts().get(phoneKey(order.contact?.phone)) ?? 1;
+  }
+  transferQuery = "";
+  async searchTransfers() {
+    this.reviewing.set(null);
+    await this.shop.searchTransfers(this.transferQuery);
+  }
+  clearTransferSearch() {
+    this.transferQuery = "";
+    this.reviewing.set(null);
+    this.shop.clearTransferSearch();
   }
   review(order: Order, action: "confirm" | "cancel") {
     this.reviewing.set({ id: order.id, action });

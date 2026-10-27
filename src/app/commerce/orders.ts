@@ -63,6 +63,26 @@ export function dateTime(iso: string | null | undefined, at = false) {
   return `${p["day"]}/${p["month"]}/${p["year"]}${at ? " a las " : " "}${p["hour"]}:${p["minute"]}`;
 }
 
+const DEADLINE = new Intl.DateTimeFormat("es-UY", {
+  timeZone: "America/Montevideo",
+  weekday: "long",
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** "martes 28/10 a las 18:58", in Montevideo time. Empty for a missing or bad date. */
+export function deadline(iso: string | null | undefined) {
+  const date = new Date(iso ?? "");
+  if (Number.isNaN(date.getTime())) return "";
+  const p = Object.fromEntries(
+    DEADLINE.formatToParts(date).map((part) => [part.type, part.value]),
+  );
+  return `${p["weekday"]} ${p["day"]}/${p["month"]} a las ${p["hour"]}:${p["minute"]}`;
+}
+
 /**
  * When the stock of an unpaid order is released if nobody pays: the transfer deadline, the
  * card hold or the hold of an order without payment method. Null once paid or cancelled, and
