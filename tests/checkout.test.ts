@@ -8,7 +8,44 @@ import {
   fingerprintHash,
   defaultPayWith,
   paymentMethodFor,
+  deliveryLine,
+  stepAfterReview,
+  unitsLabel,
 } from "../src/app/commerce/checkout.ts";
+
+test("after the review, Entrega opens only when there is something to choose (T72)", () => {
+  assert.equal(stepAfterReview({ delivery: { enabled: true } }), "entrega");
+  assert.equal(stepAfterReview({ delivery: { enabled: false } }), "pago");
+  assert.equal(stepAfterReview(null), "pago");
+});
+
+test("the order summary counts units in Spanish (T72)", () => {
+  assert.equal(unitsLabel(1), "1 producto");
+  assert.equal(unitsLabel(3), "3 productos");
+});
+
+test("a finished Entrega reads as one line (T72)", () => {
+  assert.equal(
+    deliveryLine(
+      "Pocitos",
+      { street: "Av. Brasil 2550", unit: "Apto 502" },
+      "",
+    ),
+    "Envío a Pocitos · Av. Brasil 2550, Apto 502",
+  );
+  assert.equal(
+    deliveryLine("Carrasco", { street: "", unit: "" }, ""),
+    "Envío a Carrasco",
+  );
+  assert.equal(
+    deliveryLine(null, { street: "x", unit: "" }, "Showroom en Pocitos"),
+    "Retiro sin costo · Showroom en Pocitos",
+  );
+  assert.equal(
+    deliveryLine(null, { street: "", unit: "" }, " "),
+    "Retiro sin costo · Retiro a coordinar",
+  );
+});
 
 test("transfer is the default when on, then card, else the unpaid reservation", () => {
   assert.equal(defaultPayWith(true, true), "transfer");

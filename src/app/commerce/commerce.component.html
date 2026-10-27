@@ -56,17 +56,17 @@
           }
         }
         @case ("cart") {
-          <span class="eyebrow">Elegido para tu descanso</span>
-          <h1>Tu carrito</h1>
-          @if (shop.completed() || shop.cart().length) {
-            <!-- Dónde está la compra: carrito → entrega y pago → confirmación. -->
+          @if (shop.completed() || !shop.cart().length) {
+            <span class="eyebrow">Elegido para tu descanso</span>
+          }
+          <h1 [class.checkout-title]="!shop.completed() && shop.cart().length">
+            Tu carrito
+          </h1>
+          @if (shop.completed(); as order) {
             <!-- Con el pedido hecho, el gracias va arriba y "qué pasa ahora" abajo, fuera de los
                  paneles de pago (el de transferencia es de T70). -->
             @defer (on immediate) {
-              <app-checkout-steps [step]="checkoutStep()" />
-              @if (shop.completed(); as order) {
-                <app-receipt-thanks [order]="order" />
-              }
+              <app-receipt-thanks [order]="order" />
             }
           }
           @if (shop.completed(); as order) {
@@ -299,162 +299,12 @@
               }
             </div>
           } @else {
-            <div class="cart-layout">
-              @defer (on immediate) {
-                <app-cart-lines />
-              }
-              <aside class="panel summary">
-                <form
-                  #checkoutForm="ngForm"
-                  (ngSubmit)="contactPhone() && shop.checkout(contactPhone()!, address)"
-                >
-                  <span class="eyebrow">Resumen</span>
-                  <h2>
-                    {{
-                      shop.money(shop.quote()?.totalMinor ?? shop.subtotal())
-                    }}
-                  </h2>
-                  <p class="muted small">
-                    @if (!shop.quote()) {
-                      Elegís retiro o envío y la forma de pago al revisar el
-                      pedido.
-                    } @else if (
-                      !shop.transferEnabled() && !shop.cardEnabled()
-                    ) {
-                      El pago aún no está habilitado.
-                    }
-                  </p>
-                  @if (shop.user(); as user) {
-                    <p class="small">{{ user.name }} · {{ user.email }}</p>
-                    <!-- Lazy chunk with libphonenumber-js: only a checkout or the account needs it. -->
-                    @defer (on immediate) {
-                      <app-phone-field
-                        [initial]="shop.profile()?.phone ?? null"
-                        [disabled]="shop.busy()"
-                        (phoneChange)="contactPhone.set($event)"
-                      />
-                    } @placeholder (minimum 0ms) {
-                      <div class="phone-placeholder" aria-hidden="true"></div>
-                    }
-                  }
-                  @if (!shop.user()) {
-                    <p>Ingresá para guardar tu pedido.</p>
-                    <button
-                      type="button"
-                      class="btn btn--primary wide"
-                      (click)="shop.open('account')"
-                    >
-                      Ingresar o crear cuenta
-                    </button>
-                  } @else if (!shop.quote()) {
-                    <button
-                      type="button"
-                      class="btn btn--primary wide"
-                      [disabled]="
-                        shop.busy() || !checkoutForm.valid || !contactPhone()
-                      "
-                      (click)="shop.review()"
-                    >
-                      {{ shop.busy() ? "Revisando…" : "Revisar pedido" }}
-                    </button>
-                  } @else {
-                    <!-- Lazy chunk, like the account forms: only a checkout needs it. -->
-                    @defer (on immediate) {
-                      <app-delivery [address]="address" />
-                    } @placeholder (minimum 0ms) {
-                      <p class="muted small" role="status">Cargando entrega…</p>
-                    }
-                    @if (shop.quote(); as q) {
-                      <dl class="totals" aria-label="Detalle del total">
-                        <div>
-                          <dt>Productos</dt>
-                          <dd>{{ shop.money(q.subtotalMinor, q.currency) }}</dd>
-                        </div>
-                        @if (q.shipping || shop.delivering()) {
-                          <div>
-                            <dt>
-                              {{ shop.delivering() ? "Envío" : "Retiro" }}
-                            </dt>
-                            <dd class="shipping-cost">{{ shippingCost() }}</dd>
-                          </div>
-                        }
-                        <div class="total">
-                          <dt>Total</dt>
-                          <dd>{{ shop.money(q.totalMinor, q.currency) }}</dd>
-                        </div>
-                      </dl>
-                    }
-                    <p class="small">
-                      Precios, envío y disponibilidad verificados. Al confirmar
-                      reservamos los productos.
-                    </p>
-                    @if (shop.transferEnabled() || shop.cardEnabled()) {
-                      <fieldset class="pay-options">
-                        <legend>Forma de pago</legend>
-                        @if (shop.cardEnabled()) {
-                          <label class="pay-option"
-                            ><input
-                              type="radio"
-                              name="payWith"
-                              value="card"
-                              [checked]="shop.payWith() === 'card'"
-                              (change)="shop.payWith.set('card')"
-                            />
-                            <span
-                              >Tarjeta con Mercado Pago<small
-                                >Débito, crédito o saldo en Mercado Pago. Te
-                                llevamos a su sitio seguro para pagar.</small
-                              ></span
-                            ></label
-                          >
-                        }
-                        @if (shop.transferEnabled()) {
-                          <label class="pay-option"
-                            ><input
-                              type="radio"
-                              name="payWith"
-                              value="transfer"
-                              [checked]="shop.payWith() === 'transfer'"
-                              (change)="shop.payWith.set('transfer')"
-                            />
-                            <span
-                              >Transferencia bancaria<small
-                                >Te mostramos los datos al confirmar. Reservamos
-                                tu pedido por
-                                {{ shop.paymentMethods()?.transfer?.holdHours }}
-                                horas.</small
-                              ></span
-                            ></label
-                          >
-                        }
-                      </fieldset>
-                    }
-                    <button
-                      class="btn btn--primary wide"
-                      [disabled]="
-                        shop.busy() ||
-                        !checkoutForm.valid ||
-                        !contactPhone() ||
-                        (shop.delivering() && !shop.destination())
-                      "
-                    >
-                      {{ shop.busy() ? "Guardando…" : "Confirmar pedido" }}
-                    </button>
-                    <p class="muted small">
-                      @if (shop.payWith() === "transfer") {
-                        Pagás por transferencia; no se cobra nada en este paso.
-                      } @else if (shop.payWith() === "card") {
-                        Al confirmar reservamos los productos y te llevamos a
-                        Mercado Pago. Tus datos de tarjeta nunca pasan por
-                        Piuma.
-                      } @else {
-                        Este paso no realiza ningún cobro.
-                      }
-                    </p>
-                  }
-                </form>
-              </aside>
-            </div>
+            <!-- Lazy chunk: the checkout (steps, summary, bar) loads with a cart to pay (T72). -->
+            @defer (on immediate) {
+              <app-checkout [address]="address" [(phone)]="contactPhone" />
+            } @placeholder (minimum 0ms) {
+              <p class="muted" role="status">Cargando…</p>
+            }
           }
         }
         @case ("orders") {

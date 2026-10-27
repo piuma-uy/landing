@@ -44,6 +44,26 @@ body:has(.buy-bar--shown) {
   }
 }
 
+// Barra fija del checkout (T72, teléfono y tablet): lo que flota abajo sube su alto y el final de
+// la página (footer) queda por encima de ella.
+body:has(.checkout-bar) {
+  --buy-bar-offset: 4.75rem;
+  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+
+  @media (min-width: 1024px) {
+    --buy-bar-offset: 0px;
+    padding-bottom: 0;
+  }
+}
+// Un campo enfocado con Tab no queda tapado por la barra (WCAG 2.4.11).
+html:has(.checkout-bar) {
+  scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+
+  @media (min-width: 1024px) {
+    scroll-padding-bottom: 0;
+  }
+}
+
 // Radios y checkboxes con el tono de la marca en vez del azul del navegador.
 :root {
   accent-color: var(--color-primary-dark);

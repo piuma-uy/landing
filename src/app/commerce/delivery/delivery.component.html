@@ -1,6 +1,6 @@
 @if (shop.shippingOptions(); as opts) {
-  <section class="delivery" aria-labelledby="delivery-title">
-    <h3 id="delivery-title" class="delivery__title">Entrega</h3>
+  <!-- Its title is the checkout step's ("Entrega", T72). -->
+  <section class="delivery">
     @if (opts.pickup.enabled && opts.delivery.enabled) {
       <fieldset class="segmented">
         <legend class="sr-only">¿Cómo querés recibirlo?</legend>

@@ -1,0 +1,277 @@
+<form class="checkout" novalidate (ngSubmit)="primary()">
+  <div class="checkout__steps">
+    <!-- 1. Tus datos -->
+    <section
+      id="step-datos"
+      class="step"
+      [class.step--open]="step() === 'datos'"
+      [class.step--done]="done('datos')"
+      aria-labelledby="step-datos-title"
+    >
+      <div class="step__head">
+        <span class="step__num" aria-hidden="true">{{
+          done("datos") ? "✓" : 1
+        }}</span>
+        <h2 id="step-datos-title" class="step__title" tabindex="-1">
+          Tus datos
+        </h2>
+        @if (done("datos")) {
+          <button
+            type="button"
+            class="step__edit"
+            aria-label="Editar tus datos"
+            (click)="edit('datos')"
+          >
+            Editar
+          </button>
+        }
+      </div>
+      @if (done("datos")) {
+        @if (shop.user(); as user) {
+          <p class="step__line">{{ user.name }} · {{ phoneLine() }}</p>
+        }
+      }
+      <div class="step__body" [hidden]="step() !== 'datos'">
+        @if (shop.user(); as user) {
+          <p class="step__hint">{{ user.name }} · {{ user.email }}</p>
+          <!-- Lazy chunk with libphonenumber-js (T71), starting from the account's number. -->
+          @defer (on immediate) {
+            <app-phone-field
+              [initial]="shop.profile()?.phone ?? null"
+              [disabled]="shop.busy()"
+              (phoneChange)="phone.set($event)"
+            />
+          } @placeholder (minimum 0ms) {
+            <div class="phone-placeholder" aria-hidden="true"></div>
+          }
+        } @else {
+          <p class="step__hint">
+            Ingresá para guardar tu pedido y seguir su estado.
+          </p>
+        }
+      </div>
+    </section>
+
+    <!-- 2. Entrega -->
+    <section
+      id="step-entrega"
+      class="step"
+      [class.step--open]="step() === 'entrega'"
+      [class.step--done]="done('entrega')"
+      aria-labelledby="step-entrega-title"
+    >
+      <div class="step__head">
+        <span class="step__num" aria-hidden="true">{{
+          done("entrega") ? "✓" : 2
+        }}</span>
+        <h2 id="step-entrega-title" class="step__title" tabindex="-1">
+          Entrega
+        </h2>
+        @if (done("entrega") && shop.shippingOptions()?.delivery?.enabled) {
+          <button
+            type="button"
+            class="step__edit"
+            aria-label="Editar entrega"
+            (click)="edit('entrega')"
+          >
+            Editar
+          </button>
+        }
+      </div>
+      @if (done("entrega")) {
+        <p class="step__line" [title]="entregaLine()">{{ entregaLine() }}</p>
+      }
+      @if (shop.quote()) {
+        <div class="step__body" [hidden]="step() !== 'entrega'">
+          <app-delivery [address]="address()" />
+          @if (placeError()) {
+            <p class="field-error" role="alert">{{ placeError() }}</p>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- 3. Pago -->
+    <section
+      id="step-pago"
+      class="step"
+      [class.step--open]="step() === 'pago'"
+      aria-labelledby="step-pago-title"
+    >
+      <div class="step__head">
+        <span class="step__num" aria-hidden="true">3</span>
+        <h2 id="step-pago-title" class="step__title" tabindex="-1">Pago</h2>
+      </div>
+      @if (shop.quote()) {
+        <div class="step__body" [hidden]="step() !== 'pago'">
+          @if (canPay()) {
+            <fieldset class="pay-options">
+              <legend class="sr-only">Forma de pago</legend>
+              @if (shop.cardEnabled()) {
+                <label class="pay-option"
+                  ><input
+                    type="radio"
+                    name="payWith"
+                    value="card"
+                    [checked]="shop.payWith() === 'card'"
+                    (change)="shop.payWith.set('card')"
+                  />
+                  <span
+                    >Tarjeta con Mercado Pago<small
+                      >Débito, crédito o saldo. Pagás en el sitio seguro de
+                      Mercado Pago.</small
+                    ></span
+                  ></label
+                >
+              }
+              @if (shop.transferEnabled()) {
+                <label class="pay-option"
+                  ><input
+                    type="radio"
+                    name="payWith"
+                    value="transfer"
+                    [checked]="shop.payWith() === 'transfer'"
+                    (change)="shop.payWith.set('transfer')"
+                  />
+                  <span
+                    >Transferencia bancaria<small
+                      >Te damos los datos al confirmar. Reservamos tu pedido por
+                      {{ shop.paymentMethods()?.transfer?.holdHours }}
+                      horas.</small
+                    ></span
+                  ></label
+                >
+              }
+            </fieldset>
+            <p class="step__hint">
+              Al confirmar reservamos tus productos.
+              @if (shop.payWith() === "card") {
+                Tus datos de tarjeta nunca pasan por Piuma.
+              }
+            </p>
+          } @else {
+            <p class="step__hint">
+              El pago online todavía no está habilitado: reservamos tus
+              productos sin cobrar nada.
+            </p>
+          }
+        </div>
+      }
+    </section>
+  </div>
+
+  <div class="checkout__side">
+    <section class="order-summary" aria-labelledby="order-summary-title">
+      <h2 id="order-summary-title" class="sr-only">Tu pedido</h2>
+      <button
+        type="button"
+        class="order-summary__toggle"
+        aria-controls="order-summary-body"
+        [attr.aria-expanded]="summaryOpen()"
+        [attr.aria-label]="
+          (summaryOpen() ? 'Ocultar' : 'Ver') +
+          ' resumen · ' +
+          units() +
+          ' · ' +
+          total()
+        "
+        (click)="summaryOpen.set(!summaryOpen())"
+      >
+        <span class="thumbs" aria-hidden="true">
+          @for (src of thumbs(); track $index) {
+            <img [src]="src" alt="" width="36" height="44" />
+          }
+        </span>
+        <span class="order-summary__label"
+          >{{ summaryOpen() ? "Ocultar" : "Ver resumen" }}
+          <small>{{ units() }}</small></span
+        >
+        <strong class="order-summary__amount">{{ total() }}</strong>
+        <svg
+          class="chevron"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <div
+        id="order-summary-body"
+        class="order-summary__body"
+        [class.order-summary__body--open]="summaryOpen()"
+      >
+        <p class="order-summary__heading" aria-hidden="true">
+          Tu pedido <span>· {{ units() }}</span>
+        </p>
+        <app-cart-lines />
+        <dl class="totals" aria-label="Detalle del total">
+          @if (shop.quote(); as q) {
+            <div>
+              <dt>Productos</dt>
+              <dd>{{ shop.money(q.subtotalMinor, q.currency) }}</dd>
+            </div>
+            @if (q.shipping || shop.delivering()) {
+              <div>
+                <dt>{{ shop.delivering() ? "Envío" : "Retiro" }}</dt>
+                <dd class="shipping-cost">{{ shippingCost() }}</dd>
+              </div>
+            }
+            <div class="total">
+              <dt>Total</dt>
+              <dd>{{ shop.money(q.totalMinor, q.currency) }}</dd>
+            </div>
+          } @else {
+            <div class="total">
+              <dt>Subtotal</dt>
+              <dd>{{ total() }}</dd>
+            </div>
+            <p class="totals__note">El envío o retiro se elige en Entrega.</p>
+          }
+        </dl>
+      </div>
+    </section>
+
+    <!-- Phone: fixed at the bottom (above the home bar, hidden while typing). Desktop: under the summary. -->
+    <div class="checkout-bar" [class.checkout-bar--away]="keyboard()">
+      @if (step() !== "pago" || !canPay()) {
+        <p class="checkout-bar__total">
+          <span>{{ shop.quote() ? "Total" : "Subtotal" }}</span>
+          <strong>{{ total() }}</strong>
+        </p>
+      }
+      @if (!shop.user()) {
+        <button
+          type="button"
+          class="btn btn--primary checkout-bar__cta"
+          (click)="shop.open('account')"
+        >
+          Ingresar o crear cuenta
+        </button>
+      } @else {
+        <button
+          type="submit"
+          class="btn btn--primary checkout-bar__cta"
+          [disabled]="shop.busy() || (step() === 'datos' && !phone())"
+        >
+          @switch (step()) {
+            @case ("pago") {
+              {{
+                shop.busy()
+                  ? "Guardando…"
+                  : canPay()
+                    ? "Confirmar y pagar " + total()
+                    : "Confirmar pedido"
+              }}
+            }
+            @default {
+              {{
+                shop.busy() && step() === "datos" ? "Revisando…" : "Continuar"
+              }}
+            }
+          }
+        </button>
+      }
+    </div>
+  </div>
+</form>
