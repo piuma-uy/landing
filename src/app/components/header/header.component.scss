@@ -184,16 +184,86 @@
 .header--commerce .nav__list {
   gap: 1.5rem;
 }
-.header--commerce .nav__list li:first-child {
-  margin-right: 2rem;
+.header--commerce .nav {
+  margin-left: auto;
 }
-.header--commerce .nav__list li:nth-child(2) {
-  order: 5;
-}
-.header--commerce .nav__list li:nth-child(2) button {
+
+// --- Carrito del encabezado ---------------------------------------
+// Siempre a la vista (también en el teléfono, al lado del menú) con la cantidad en un círculo.
+.cart-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.7rem;
   border: 1px solid var(--color-border);
-  border-radius: 30px;
-  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color var(--transition);
+
+  svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  &:hover,
+  &--active {
+    border-color: var(--color-primary);
+  }
+
+  // Con el menú plegado va a la derecha, antes de la hamburguesa (que en el DOM va primero,
+  // así el foco sigue pasando por el menú abierto en orden).
+  @media (max-width: 1050px) {
+    order: 1;
+    margin-left: auto;
+  }
+}
+@media (max-width: 1050px) {
+  .header--commerce .header__toggle {
+    order: 2;
+  }
+}
+
+.cart-button__label {
+  display: none;
+
+  @include from(v.$bp-md) {
+    display: inline;
+  }
+}
+
+.cart-button__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  // Texto chico en blanco: el terracota oscuro llega a AA, el claro no.
+  background: var(--color-primary-dark);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: count-bump 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+@keyframes count-bump {
+  0% {
+    transform: scale(0.5);
+  }
+  55% {
+    transform: scale(1.18);
+  }
 }
 .header--commerce .nav__social {
   display: none;

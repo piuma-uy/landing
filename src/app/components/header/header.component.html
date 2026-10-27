@@ -49,14 +49,6 @@
           <li>
             <button
               class="nav__link nav__button"
-              (click)="closeMenu(); shop.open('cart')"
-            >
-              Carrito ({{ shop.cartCount() }})
-            </button>
-          </li>
-          <li>
-            <button
-              class="nav__link nav__button"
               (click)="closeMenu(); shop.open('account')"
             >
               {{ shop.user() ? "Mi cuenta" : "Ingresar" }}
@@ -79,5 +71,33 @@
         [networks]="['instagram', 'whatsapp']"
       />
     </nav>
+
+    @if (shop.enabled) {
+      <!-- Fuera del menú: en el teléfono el carrito se ve siempre, con su cantidad. -->
+      <button
+        type="button"
+        class="cart-button"
+        [class.cart-button--active]="shop.view() === 'cart'"
+        [attr.aria-label]="'Carrito (' + shop.cartCount() + ')'"
+        (click)="closeMenu(); shop.open('cart')"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M6 7h12l-1 13H7L6 7Zm3 0V6a3 3 0 0 1 6 0v1"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span class="cart-button__label">Carrito</span>
+        <!-- Se dibuja de nuevo con cada cambio de cantidad: el rebote acompaña al agregado. -->
+        @for (n of [shop.cartCount()]; track n) {
+          @if (n) {
+            <span class="cart-button__count" aria-hidden="true">{{ n }}</span>
+          }
+        }
+      </button>
+    }
   </div>
 </header>

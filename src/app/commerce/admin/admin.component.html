@@ -1,0 +1,561 @@
+@if (!shop.user()?.admin) {
+  <p>No tenés permisos para acceder a esta sección.</p>
+} @else if (shop.mfaRequired()) {
+  <section class="panel second-factor" aria-labelledby="second-factor-title">
+    <h2 id="second-factor-title">Activá el segundo factor</h2>
+    <p>
+      Para entrar al panel, además de tu contraseña, necesitás un código de una
+      app autenticadora (Google Authenticator, Microsoft Authenticator,
+      1Password u otra). Así nadie puede cambiar los datos bancarios de la
+      tienda aunque sepa tu contraseña.
+    </p>
+    @if (!shop.cognito) {
+      <p class="muted small">
+        En el entorno local no hay segundo factor. La API está simulando un
+        administrador sin él (<code>LOCAL_ADMIN_MFA=missing</code>): levantala
+        sin esa variable y reintentá.
+      </p>
+      <div class="actions">
+        <button
+          class="btn btn--outline"
+          [disabled]="shop.busy()"
+          (click)="shop.open('admin')"
+        >
+          Reintentar
+        </button>
+      </div>
+    } @else if (shop.totp()) {
+      <ol class="steps">
+        <li>
+          <strong>Agregá Piuma a la app.</strong> Escaneá el código con la app
+          o, si estás en el teléfono, abrila con el botón.
+          @if (totpQr(); as q) {
+            <svg
+              class="qr"
+              [attr.viewBox]="'0 0 ' + q.size + ' ' + q.size"
+              role="img"
+              aria-label="Código QR para la app autenticadora"
+              shape-rendering="crispEdges"
+            >
+              <rect width="100%" height="100%" fill="#fff" />
+              <path [attr.d]="q.d" fill="#000" />
+            </svg>
+          }
+          <a class="btn btn--outline" [href]="totpLink()"
+            >Abrir en la app autenticadora</a
+          >
+          <p class="muted small">
+            ¿No podés escanearlo? Cargá esta clave a mano:
+            <code class="secret">{{ totpSecret() }}</code>
+          </p>
+        </li>
+        <li>
+          <strong>Confirmá con el primer código.</strong>
+          <form class="totp-form" #totpForm="ngForm" (ngSubmit)="confirmTotp()">
+            <label
+              >Código de 6 números<input
+                name="totpCode"
+                [(ngModel)]="totpInput"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                pattern="[0-9 ]{6,7}"
+                maxlength="7"
+                required
+            /></label>
+            <button
+              class="btn btn--primary"
+              [disabled]="shop.busy() || !totpForm.valid"
+            >
+              Activar segundo factor
+            </button>
+          </form>
+        </li>
+      </ol>
+    } @else {
+      <div class="actions">
+        <button
+          class="btn btn--primary"
+          [disabled]="shop.busy()"
+          (click)="shop.startTotp()"
+        >
+          Generar código QR
+        </button>
+      </div>
+    }
+    @if (shop.needsRelogin()) {
+      <div class="actions">
+        <button
+          class="btn btn--outline"
+          [disabled]="shop.busy()"
+          (click)="shop.redirectToLogin()"
+        >
+          Volver a ingresar
+        </button>
+      </div>
+    }
+  </section>
+} @else {
+  @if (shop.bankAlert(); as alert) {
+    <aside class="security-alert" aria-label="Aviso de seguridad">
+      <p>
+        Los datos bancarios cambiaron el
+        {{ dateTime(alert.changedAt, true) }} por {{ alert.by }}. Si no fuiste
+        vos, avisá enseguida.
+      </p>
+      <button type="button" class="text-button" (click)="showHistory()">
+        Ver historial de cambios
+      </button>
+    </aside>
+  }
+  <nav class="admin-tabs" aria-label="Secciones de administración">
+    <button
+      [class.active]="adminTab() === 'overview'"
+      (click)="openTab('overview')"
+    >
+      Resumen</button
+    ><button
+      [class.active]="adminTab() === 'products'"
+      (click)="openTab('products')"
+    >
+      Productos y stock</button
+    ><button
+      [class.active]="adminTab() === 'transfers'"
+      (click)="openTab('transfers')"
+    >
+      Transferencias por confirmar
+      @if (shop.pendingTransfers().length) {
+        ({{ shop.pendingTransfers().length }})
+      }</button
+    ><button
+      [class.active]="adminTab() === 'settings'"
+      (click)="openTab('settings')"
+    >
+      Configuración
+    </button>
+  </nav>
+  @if (shop.busy()) {
+    <p role="status">Actualizando…</p>
+  }
+  @switch (adminTab()) {
+    @case ("overview") {
+      <div class="metrics">
+        <article class="panel">
+          <span class="muted">Ventas cobradas</span
+          ><strong>{{ shop.money(sales()) }}</strong>
+        </article>
+        <article class="panel">
+          <span class="muted">Pedidos pagados</span
+          ><strong>{{ paidCount() }}</strong>
+        </article>
+        <article class="panel">
+          <span class="muted">Productos</span
+          ><strong>{{ productGroups().length }}</strong>
+        </article>
+        <article class="panel">
+          <span class="muted">Variantes activas</span
+          ><strong>{{ activeCount() }}</strong>
+        </article>
+      </div>
+      <div class="payment-note">
+        @if (shop.settings()?.transfer?.enabled) {
+          <strong>Transferencia bancaria habilitada.</strong>
+          <p>
+            Un pedido cuenta como venta cobrada cuando confirmás su acreditación
+            en "Transferencias por confirmar".
+          </p>
+        } @else {
+          <strong>Los pagos todavía no están habilitados.</strong>
+          <p>
+            Los pedidos pendientes no se cuentan como ventas cobradas. Podés
+            habilitar la transferencia en Configuración.
+          </p>
+        }
+      </div>
+    }
+    @case ("transfers") {
+      <p class="muted">
+        Pedidos que esperan la transferencia, primero los que vencen antes.
+        Confirmá sólo después de ver el dinero acreditado en el banco: una
+        captura del cliente no alcanza.
+      </p>
+      <form
+        class="transfer-search"
+        role="search"
+        (ngSubmit)="searchTransfers()"
+      >
+        <label for="transfer-search"
+          >Buscar por teléfono o nombre del cliente</label
+        >
+        <div class="search-row">
+          <input
+            id="transfer-search"
+            name="transferQuery"
+            type="search"
+            [(ngModel)]="transferQuery"
+            placeholder="091 813 234 o Ana Pérez"
+            maxlength="100"
+            autocomplete="off"
+            enterkeyhint="search"
+          />
+          <button class="btn btn--primary" [disabled]="shop.busy()">
+            Buscar
+          </button>
+          @if (shop.transferSearch()) {
+            <button
+              type="button"
+              class="btn btn--outline"
+              (click)="clearTransferSearch()"
+            >
+              Ver todas
+            </button>
+          }
+        </div>
+        <p class="muted small">
+          El cliente pone su teléfono en el concepto. Da igual con 0 o +598.
+        </p>
+      </form>
+      @if (shop.transferSearch(); as found) {
+        <p class="small search-summary" role="status">
+          Pendientes para «{{ found.query }}»:
+          {{ found.items.length }}
+        </p>
+      }
+      @for (order of transferRows(); track order.id) {
+        <article
+          class="panel transfer-row"
+          [attr.data-reference]="order.transfer?.reference"
+          [attr.data-order]="orderCode(order)"
+        >
+          <header>
+            <h2>{{ order.contact?.name }}</h2>
+            <strong>{{
+              shop.money(
+                order.transfer?.amountMinor ?? order.totalMinor,
+                order.transfer?.currency ?? order.currency
+              )
+            }}</strong>
+          </header>
+          <p>
+            Referencia
+            <strong class="reference">{{ order.transfer?.reference }}</strong>
+            · Pedido {{ orderCode(order) }}
+          </p>
+          <p>{{ order.contact?.phone }} · {{ order.contact?.email }}</p>
+          @if (samePhone(order) > 1) {
+            <p class="small same-phone">
+              Este teléfono tiene {{ samePhone(order) }}
+              transferencias pendientes: confirmá la que coincide con el monto y
+              la fecha del comprobante.
+            </p>
+          }
+          <p class="small shipping-line">
+            {{ shippingSummary(order.shipping, true) }}
+            @if ($any(order.shipping)?.coordinate) {
+              · <strong>envío a coordinar por WhatsApp</strong>
+            }
+          </p>
+          <p class="muted small">
+            Pedido del
+            {{ dateTime(order.createdAt) }}
+            · Vence el
+            {{ dateTime(order.transfer?.expiresAt, true) }}
+          </p>
+          @if (reviewing()?.id === order.id) {
+            @if (reviewing()?.action === "confirm") {
+              <form
+                class="confirm-step"
+                #confirmForm="ngForm"
+                (ngSubmit)="confirmTransfer(order)"
+              >
+                <p>
+                  ¿Ya viste acreditados
+                  <strong>{{
+                    shop.money(
+                      order.transfer?.amountMinor ?? order.totalMinor,
+                      order.transfer?.currency ?? order.currency
+                    )
+                  }}</strong>
+                  con la referencia
+                  <strong>{{ order.transfer?.reference }}</strong>
+                  (pedido {{ orderCode(order) }})? El pedido pasa a pagado y no
+                  se puede deshacer.
+                </p>
+                <label
+                  >Referencia del movimiento en el banco<input
+                    name="bankReference"
+                    [(ngModel)]="bankReference"
+                    required
+                    minlength="3"
+                    maxlength="120"
+                    pattern="[A-Za-z0-9._\/\-]+"
+                    autocomplete="off"
+                /></label>
+                <div class="actions">
+                  <button
+                    class="btn btn--primary"
+                    [disabled]="shop.busy() || !confirmForm.valid"
+                  >
+                    Sí, confirmar acreditación</button
+                  ><button
+                    type="button"
+                    class="btn btn--outline"
+                    (click)="reviewing.set(null)"
+                  >
+                    Volver
+                  </button>
+                </div>
+              </form>
+            } @else {
+              <form
+                class="confirm-step"
+                #cancelForm="ngForm"
+                (ngSubmit)="cancelTransfer(order)"
+              >
+                <p>
+                  El pedido se cancela y el stock vuelve a estar disponible.
+                </p>
+                <label
+                  >Motivo de cancelación<input
+                    name="cancelReason"
+                    [(ngModel)]="cancelReason"
+                    required
+                    minlength="3"
+                    maxlength="500"
+                /></label>
+                <div class="actions">
+                  <button
+                    class="btn btn--primary"
+                    [disabled]="shop.busy() || !cancelForm.valid"
+                  >
+                    Sí, cancelar pedido</button
+                  ><button
+                    type="button"
+                    class="btn btn--outline"
+                    (click)="reviewing.set(null)"
+                  >
+                    Volver
+                  </button>
+                </div>
+              </form>
+            }
+          } @else {
+            <div class="actions">
+              <button
+                class="btn btn--primary"
+                [disabled]="shop.busy()"
+                (click)="review(order, 'confirm')"
+              >
+                Confirmar acreditación</button
+              ><button
+                class="btn btn--outline"
+                [disabled]="shop.busy()"
+                (click)="review(order, 'cancel')"
+              >
+                Cancelar
+              </button>
+            </div>
+          }
+        </article>
+      } @empty {
+        @if (shop.transferSearch(); as found) {
+          <div class="panel empty" role="status">
+            <p>No hay transferencias por confirmar para «{{ found.query }}».</p>
+            <p class="small">
+              Revisá el número (alcanza con los últimos 8 dígitos) o buscá por
+              el nombre del cliente. Si ya la confirmaste o venció, no aparece
+              acá.
+            </p>
+          </div>
+        } @else {
+          <p class="panel empty">No hay transferencias por confirmar.</p>
+        }
+      }
+    }
+    @case ("settings") {
+      <!-- Its own chunk: only administrators download it. -->
+      @defer (on immediate) {
+        <app-admin-settings />
+      } @placeholder {
+        <p role="status">Cargando configuración…</p>
+      }
+    }
+    @case ("products") {
+      <div class="toolbar">
+        <label
+          >Buscar producto<input
+            [(ngModel)]="search"
+            placeholder="Nombre, medida, color o SKU" /></label
+        ><button
+          class="btn btn--primary"
+          [disabled]="shop.busy()"
+          (click)="createProduct()"
+        >
+          Nuevo producto
+        </button>
+      </div>
+      @if (editing; as p) {
+        <form
+          class="panel product-form"
+          (ngSubmit)="save()"
+          #productForm="ngForm"
+        >
+          <h2>
+            {{ p.version ? "Editar producto" : "Nuevo producto" }}
+          </h2>
+          <div class="form-grid">
+            <label
+              >SKU<input
+                name="sku"
+                [(ngModel)]="p.sku"
+                [readonly]="p.version > 0"
+                required
+                pattern="[A-Za-z0-9_-]{1,100}" /></label
+            ><label
+              >Nombre<input
+                name="name"
+                [(ngModel)]="p.name"
+                required
+                maxlength="200" /></label
+            ><label
+              >ID de producto<input
+                name="productId"
+                [(ngModel)]="p.productId"
+                required
+                pattern="[A-Za-z0-9_-]{1,100}" /></label
+            ><label
+              >Categoría<input
+                name="categoryId"
+                [(ngModel)]="p.categoryId"
+                required
+                pattern="[A-Za-z0-9_-]{1,100}" /></label
+            ><label
+              >Medida<input
+                name="size"
+                [(ngModel)]="p.size"
+                required
+                maxlength="100" /></label
+            ><label
+              >Color<input
+                name="color"
+                [(ngModel)]="p.color"
+                required
+                maxlength="100" /></label
+            ><label
+              >Precio UYU<input
+                name="price"
+                type="number"
+                [(ngModel)]="price"
+                required
+                min="0.01"
+                max="1000000"
+                step="0.01" /></label
+            ><label
+              >Stock disponible<input
+                name="stock"
+                type="number"
+                [(ngModel)]="p.stock"
+                required
+                min="0"
+                max="1000000"
+                step="1"
+            /></label>
+          </div>
+          <label
+            >Descripción<textarea
+              name="description"
+              [(ngModel)]="p.description"
+              maxlength="4000"
+              rows="3"
+            ></textarea></label
+          ><label
+            >Imagen (ruta assets/ o URL HTTPS)<input
+              name="image"
+              [(ngModel)]="p.image"
+              required
+              maxlength="500" /></label
+          ><label class="checkbox"
+            ><input name="active" type="checkbox" [(ngModel)]="p.active" />
+            Visible en el catálogo</label
+          >
+          <p class="muted small">
+            El stock disponible excluye unidades reservadas en pedidos. Para
+            retirar un producto, desactivá su visibilidad.
+          </p>
+          <div class="actions">
+            <button
+              class="btn btn--primary"
+              [disabled]="shop.busy() || !productForm.valid"
+            >
+              Guardar producto</button
+            ><button
+              type="button"
+              class="btn btn--outline"
+              [disabled]="shop.busy()"
+              (click)="editing = null"
+            >
+              Cerrar edición
+            </button>
+          </div>
+        </form>
+      }
+      @for (group of productGroups(); track group.id) {
+        @if (group.variants.some(matchesSearch)) {
+          <details
+            class="panel product-group"
+            [open]="!!search"
+            [attr.data-product-id]="group.id"
+          >
+            <summary>
+              <strong>{{ group.name }}</strong>
+              <span
+                >{{ group.variants.length }} variantes ·
+                {{ group.stock }} unidades disponibles</span
+              >
+            </summary>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Medida y color</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Estado</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of group.variants; track p.sku) {
+                    @if (matches(p)) {
+                      <tr>
+                        <td>
+                          {{ p.size }} · {{ p.color }}<small>{{ p.sku }}</small>
+                        </td>
+                        <td>
+                          {{ shop.money(p.priceMinor, p.currency) }}
+                        </td>
+                        <td>{{ p.stock }}</td>
+                        <td>{{ p.active ? "Visible" : "Oculto" }}</td>
+                        <td>
+                          <button
+                            class="text-button"
+                            [disabled]="shop.busy()"
+                            (click)="edit(p)"
+                          >
+                            Editar
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          </details>
+        }
+      }
+      @if (!productGroups().some(groupMatches)) {
+        <p class="panel empty">No encontramos productos con esa búsqueda.</p>
+      }
+    }
+  }
+}
