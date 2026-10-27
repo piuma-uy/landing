@@ -16,6 +16,11 @@
 .commerce h2 {
   font-size: 1.4rem;
 }
+// Checkout (T72): a smaller title, the steps right below it on the phone.
+.commerce h1.checkout-title {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  margin: 0.25rem 0 1rem;
+}
 .panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -80,19 +85,6 @@ input:read-only {
   display: flex;
   flex-wrap: wrap;
   gap: 0.7rem;
-}
-.cart-layout {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 1.5rem;
-}
-.summary {
-  height: fit-content;
-  position: sticky;
-  top: 90px;
-}
-.summary .btn {
-  margin-bottom: 1rem;
 }
 .empty {
   text-align: center;
@@ -300,54 +292,7 @@ summary {
 details p {
   overflow-wrap: anywhere;
 }
-.pay-options {
-  border: 0;
-  padding: 0;
-  margin: 0 0 1rem;
-}
-.pay-option {
-  display: flex;
-  align-items: start;
-  gap: 0.7rem;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  padding: 0.9rem;
-  margin: 0;
-  cursor: pointer;
-}
-.pay-option input {
-  width: 18px;
-  height: 18px;
-  margin-top: 0.15rem;
-}
-.pay-option small {
-  display: block;
-  color: var(--color-text-muted);
-  font-weight: 400;
-  margin-top: 0.2rem;
-}
-.totals {
-  margin: 0 0 1rem;
-  border-top: 1px solid var(--color-border);
-  padding-top: 0.8rem;
-}
-.totals div {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.3rem;
-}
-.totals dd {
-  margin: 0;
-}
-.totals .total {
-  font-weight: 600;
-  border-top: 1px solid var(--color-border);
-  padding-top: 0.5rem;
-  margin-top: 0.5rem;
-}
-.shipping-line,
-.pay-option small {
+.shipping-line {
   overflow-wrap: anywhere;
 }
 .transfer-amount {
@@ -410,12 +355,6 @@ details p {
   margin-top: 1rem;
 }
 @media (max-width: 800px) {
-  .cart-layout {
-    grid-template-columns: 1fr;
-  }
-  .summary {
-    position: static;
-  }
   .metrics {
     grid-template-columns: 1fr 1fr;
   }
@@ -428,7 +367,9 @@ details p {
   // On a phone the message spans the width: at the top it covered "Seguir explorando".
   .feedback {
     top: auto;
-    bottom: calc(1rem + env(safe-area-inset-bottom));
+    bottom: calc(
+      1rem + env(safe-area-inset-bottom) + var(--buy-bar-offset, 0px)
+    );
     width: calc(100vw - 2rem);
   }
 }
@@ -464,7 +405,10 @@ details p {
 // max(48px, 3rem) cubre el alto del botón aunque se agrande la letra (T63b).
 .preview-label {
   position: fixed;
-  bottom: calc(var(--space-sm) + max(48px, 3rem) + var(--space-xs) + env(safe-area-inset-bottom, 0px) + var(--buy-bar-offset, 0px));
+  bottom: calc(
+    var(--space-sm) + max(48px, 3rem) + var(--space-xs) +
+      env(safe-area-inset-bottom, 0px) + var(--buy-bar-offset, 0px)
+  );
   transition: bottom 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
   right: var(--space-sm);
   z-index: 100;
@@ -479,14 +423,12 @@ details p {
 
   // Desde tablet el botón flotante no existe: el rótulo vuelve al rincón.
   @include from(v.$bp-md) {
-    bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(
+      0.5rem + env(safe-area-inset-bottom, 0px) + var(--buy-bar-offset, 0px)
+    );
     right: 0.5rem;
   }
 }
 .ship-whatsapp {
   margin: 0 0 1rem;
-}
-// Room for "Tu celular" while its lazy chunk loads, so the summary does not jump.
-.phone-placeholder {
-  min-height: 7.25rem;
 }

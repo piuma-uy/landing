@@ -1,0 +1,435 @@
+@use "variables" as v;
+@use "mixins" as *;
+
+// Checkout (T72). Phone first: summary folded on top, the steps, the action fixed at the bottom.
+// Desktop (lg): steps on the left, summary and action in a sticky column on the right.
+:host {
+  display: block;
+}
+.checkout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 640px;
+  margin-inline: auto;
+
+  @include from(v.$bp-lg) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    align-items: start;
+    gap: var(--space-lg);
+    max-width: none;
+  }
+}
+.checkout__steps {
+  display: grid;
+  // minmax(0, …): a long folded line ends in "…" instead of widening the page.
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  min-width: 0;
+}
+// Phone: the side's parts join the column, the summary first.
+.checkout__side {
+  display: contents;
+
+  @include from(v.$bp-lg) {
+    position: sticky;
+    top: calc(var(--header-height) + 1rem);
+    display: block;
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+  }
+}
+.order-summary {
+  order: -1;
+}
+
+// --- Steps ------------------------------------------------------
+.step {
+  scroll-margin-top: calc(var(--header-height) + 0.75rem);
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+
+  @include from(v.$bp-sm) {
+    padding: 1.25rem 1.5rem;
+  }
+}
+// Not reached yet: just its number and name, quiet.
+.step:not(.step--open):not(.step--done) {
+  background: transparent;
+  color: var(--color-text-muted);
+}
+.step__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 44px;
+}
+.step__num {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.step--open .step__num {
+  border-color: var(--color-primary-dark);
+  background: var(--color-primary-dark);
+  color: #fff;
+}
+.step--done .step__num {
+  border-color: var(--color-primary);
+  background: var(--color-secondary);
+  color: var(--color-primary-dark);
+}
+.step__title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.2rem;
+}
+.step__title:focus {
+  outline: none;
+}
+.step__edit {
+  min-height: 44px;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+// The folded step in one line, under its title.
+.step__line {
+  margin: 0 0 0 2.5rem;
+  overflow: hidden;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.step__body {
+  margin-top: 1rem;
+}
+.step__hint {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.step__body > .step__hint:last-child {
+  margin-bottom: 0;
+}
+
+// --- Fields (component styles do not reach app-delivery; it has its own) ---
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+input:not([type="radio"]) {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem;
+  font: inherit;
+  // 16px: phones zoom into smaller inputs.
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+input.ng-invalid.ng-touched {
+  border-color: var(--color-error);
+}
+.field-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-error);
+}
+.pay-options {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+}
+.pay-option {
+  display: flex;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    border-color var(--transition),
+    background-color var(--transition);
+}
+.pay-option:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-bg);
+}
+.pay-option input {
+  width: 20px;
+  height: 20px;
+  margin: 0.1rem 0 0;
+  flex-shrink: 0;
+}
+.pay-option span {
+  font-weight: 600;
+}
+.pay-option small {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+// --- Order summary ------------------------------------------------
+.order-summary__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  @include from(v.$bp-lg) {
+    display: none;
+  }
+}
+.thumbs {
+  display: flex;
+  flex-shrink: 0;
+
+  img {
+    width: 36px;
+    height: 44px;
+    object-fit: cover;
+    border: 2px solid var(--color-surface);
+    border-radius: var(--radius-sm);
+    background: var(--color-secondary);
+  }
+  img + img {
+    margin-left: -14px;
+  }
+}
+.order-summary__label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-primary-dark);
+
+  small {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+}
+.order-summary__amount {
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.chevron {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: transform var(--transition);
+}
+[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+.order-summary__body {
+  display: none;
+  margin-top: 0.5rem;
+  padding: 0.25rem 1rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+
+  @include from(v.$bp-lg) {
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+}
+.order-summary__body--open {
+  display: block;
+}
+.order-summary__heading {
+  display: none;
+  margin: 0 0 0.5rem;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 600;
+
+  span {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  @include from(v.$bp-lg) {
+    display: block;
+  }
+}
+.totals {
+  margin: 0;
+  padding-top: 0.75rem;
+  font-size: 0.9rem;
+
+  // Subtotal alone (before the review): no rule above it, the lines end with one.
+  .total:first-child {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.3rem;
+  }
+  dd {
+    margin: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .total {
+    margin: 0.5rem 0 0;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--color-border);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+.totals__note {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+// --- Action bar ---------------------------------------------------
+.checkout-bar {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  // Tablet: the bar's content as wide as the checkout column (640px), centered.
+  padding: 0.75rem
+    max(
+      var(--space-sm),
+      env(safe-area-inset-right, 0px),
+      calc((100% - 640px) / 2)
+    )
+    calc(0.75rem + env(safe-area-inset-bottom, 0px))
+    max(
+      var(--space-sm),
+      env(safe-area-inset-left, 0px),
+      calc((100% - 640px) / 2)
+    );
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: 0 -8px 24px rgba(47, 44, 41, 0.08);
+  transition: transform 200ms ease;
+
+  @include from(v.$bp-lg) {
+    position: static;
+    display: block;
+    margin-top: var(--space-md);
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+}
+// Keyboard open on a phone: the field gets the screen; the bar comes back when it closes.
+.checkout-bar--away {
+  transform: translateY(110%);
+
+  @include from(v.$bp-lg) {
+    transform: none;
+  }
+}
+.checkout-bar__total {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  margin: 0;
+  line-height: 1.2;
+
+  span {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+  strong {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    white-space: nowrap;
+  }
+
+  @include from(v.$bp-lg) {
+    display: none;
+  }
+}
+.checkout-bar__cta {
+  flex: 1;
+  min-height: 48px;
+  font-size: 1rem;
+  font-weight: 600;
+
+  @include from(v.$bp-lg) {
+    width: 100%;
+  }
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .checkout-bar,
+  .chevron {
+    transition: none;
+  }
+}
+// Room for "Tu celular" while its lazy chunk loads, so the step does not jump.
+.phone-placeholder {
+  min-height: 7.25rem;
+}

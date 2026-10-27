@@ -13,39 +13,9 @@ import { WhatsappService } from "../../services/whatsapp.service";
 import { WhatsappIconComponent } from "../../shared/whatsapp-icon/whatsapp-icon.component";
 import { orderProgress } from "../order-progress";
 
-/** Dónde está la compra: carrito → entrega y pago → confirmación (T69). Se carga diferido. */
-@Component({
-  selector: "app-checkout-steps",
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <ol class="steps" aria-label="Pasos de la compra">
-      @for (label of labels; track label; let i = $index) {
-        <li
-          class="steps__item"
-          [class.steps__item--done]="i < step()"
-          [class.steps__item--current]="i === step()"
-          [attr.aria-current]="i === step() ? 'step' : null"
-        >
-          <span class="steps__dot" aria-hidden="true">{{
-            i < step() ? "✓" : i + 1
-          }}</span>
-          {{ label }}
-        </li>
-      }
-    </ol>
-  `,
-  styleUrl: "./checkout-steps.component.scss",
-})
-export class CheckoutStepsComponent {
-  /** 0 carrito, 1 revisado (entrega y pago a la vista), 2 pedido creado. */
-  readonly step = input.required<number>();
-  readonly labels = ["Carrito", "Entrega y pago", "Confirmación"];
-}
-
 /**
- * Líneas del carrito (T69): foto, producto y la cantidad con − y +, su total y "Quitar". Diferidas:
- * el resumen y el checkout no las esperan.
+ * Líneas del carrito (T69) en el resumen del checkout (T72): foto, producto y su total; debajo la
+ * cantidad con − y + y "Quitar". Diferidas con el checkout.
  */
 @Component({
   selector: "app-cart-lines",
@@ -55,17 +25,21 @@ export class CheckoutStepsComponent {
     @for (line of shop.cartRows(); track line.sku) {
       <article class="line">
         @if (line.product; as p) {
-          <img [src]="p.image" [alt]="p.name" />
+          <img [src]="p.image" alt="" width="56" height="70" />
           <div>
             <h3>{{ p.name }}</h3>
             <p class="muted">{{ p.size }} · {{ p.color }}</p>
-            <p class="small">
-              {{ shop.money(p.priceMinor, p.currency) }} c/u ·
-              <span class="muted">{{ p.stock }} disponibles</span>
-            </p>
+            @if (line.quantity > 1) {
+              <p class="muted small">
+                {{ shop.money(p.priceMinor, p.currency) }} c/u
+              </p>
+            }
           </div>
+          <strong class="total">{{
+            shop.money(p.priceMinor * line.quantity, p.currency)
+          }}</strong>
         } @else {
-          <div>
+          <div class="gone">
             <h3>Producto no disponible</h3>
             <p class="muted">Retiralo del carrito para continuar.</p>
           </div>
@@ -95,11 +69,6 @@ export class CheckoutStepsComponent {
               +
             </button>
           </div>
-          @if (line.product; as p) {
-            <strong class="total">{{
-              shop.money(p.priceMinor * line.quantity, p.currency)
-            }}</strong>
-          }
           <button
             type="button"
             class="text-button"

@@ -1,6 +1,37 @@
 // Checkout decisions that do not need Angular: which payment method to send and the
 // lifecycle of the Idempotency-Key a confirmation reuses. Unit tested with `node --test` (tests/checkout.test.ts).
 import type { PayWith } from "./commerce.service";
+import { pickupLabel, streetLine, type Address } from "./shipping";
+
+/** The checkout's steps on the phone and the desktop (T72): each one opens when it is the buyer's turn. */
+export type CheckoutStep = "datos" | "entrega" | "pago";
+export const CHECKOUT_STEPS: CheckoutStep[] = ["datos", "entrega", "pago"];
+
+/** After the review: Entrega when there is something to choose, straight to Pago with pickup only. */
+export function stepAfterReview(
+  options: { delivery: { enabled: boolean } } | null,
+): CheckoutStep {
+  return options?.delivery.enabled ? "entrega" : "pago";
+}
+
+/** "1 producto", "3 productos": units, as the header's cart counts them. */
+export function unitsLabel(units: number) {
+  return units === 1 ? "1 producto" : `${units} productos`;
+}
+
+/**
+ * The one line a finished "Entrega" keeps: "Envío a Pocitos · Av. Brasil 2550, Apto 502" or
+ * "Retiro sin costo · Showroom en Pocitos". `place` is null for pickup.
+ */
+export function deliveryLine(
+  place: string | null,
+  address: Pick<Address, "street" | "unit">,
+  pickupDetails: string | undefined,
+) {
+  if (place === null) return "Retiro sin costo · " + pickupLabel(pickupDetails);
+  const street = streetLine(address).trim();
+  return `Envío a ${place}` + (street ? ` · ${street}` : "");
+}
 
 /** Transfer first when the shop has it on, then card; otherwise the unpaid reservation. */
 export function defaultPayWith(transfer: boolean, card: boolean): PayWith {
