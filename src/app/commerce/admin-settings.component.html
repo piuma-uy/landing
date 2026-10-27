@@ -427,7 +427,8 @@
                             'shipping',
                             'zone' + i + '.name',
                             $any($event.target).value
-                          )
+                          );
+                          guessArea(z)
                         "
                         [attr.aria-invalid]="
                           !!problem('shipping', 'zone' + i + '.name')
@@ -447,6 +448,83 @@
                         </p>
                       }
                     </div>
+                    <div class="field">
+                      <label
+                        [for]="fieldId('shipping', 'zone' + i + '.department')"
+                        >Departamento</label
+                      >
+                      <select
+                        [name]="'zoneDepartment' + i"
+                        [id]="fieldId('shipping', 'zone' + i + '.department')"
+                        [(ngModel)]="z.department"
+                        [attr.aria-describedby]="
+                          fieldId('shipping', 'zone' + i + '.department') +
+                          '-help'
+                        "
+                      >
+                        <option value="">
+                          Resto del país (otros barrios de Montevideo e
+                          interior)
+                        </option>
+                        @for (d of departments; track d) {
+                          <option [value]="d">{{ d }}</option>
+                        }
+                      </select>
+                      <p
+                        class="hint"
+                        [id]="
+                          fieldId('shipping', 'zone' + i + '.department') +
+                          '-help'
+                        "
+                      >
+                        La tienda sólo acepta direcciones de este departamento
+                        en esta zona.
+                      </p>
+                    </div>
+                    @if (z.department) {
+                      <div class="field">
+                        <label
+                          [for]="fieldId('shipping', 'zone' + i + '.places')"
+                          >Barrios o localidades (opcional, uno por
+                          línea)</label
+                        >
+                        <textarea
+                          rows="2"
+                          maxlength="3000"
+                          placeholder="Vacío: todo el departamento"
+                          [name]="'zonePlaces' + i"
+                          [id]="fieldId('shipping', 'zone' + i + '.places')"
+                          [(ngModel)]="z.places"
+                          (blur)="
+                            touch(
+                              'shipping',
+                              'zone' + i + '.places',
+                              $any($event.target).value
+                            )
+                          "
+                          [attr.aria-invalid]="
+                            !!problem('shipping', 'zone' + i + '.places')
+                          "
+                          [attr.aria-describedby]="
+                            describedBy('shipping', 'zone' + i + '.places')
+                          "
+                        ></textarea>
+                        @if (
+                          problem("shipping", "zone" + i + ".places");
+                          as m
+                        ) {
+                          <p
+                            class="field-error"
+                            [id]="
+                              fieldId('shipping', 'zone' + i + '.places') +
+                              '-error'
+                            "
+                          >
+                            {{ m }}
+                          </p>
+                        }
+                      </div>
+                    }
                     <fieldset class="choice">
                       <legend>Costo del envío</legend>
                       @for (c of costs; track c.value) {
@@ -560,7 +638,8 @@
                   </div>
                 } @else if (
                   problem("shipping", "zone" + i + ".name") ||
-                  problem("shipping", "zone" + i + ".price")
+                  problem("shipping", "zone" + i + ".price") ||
+                  problem("shipping", "zone" + i + ".places")
                 ) {
                   <p class="field-error">Revisá esta zona.</p>
                 }

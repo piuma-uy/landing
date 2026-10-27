@@ -15,6 +15,7 @@ import {
 } from "./transfer";
 import {
   Address,
+  addressMismatch,
   Fulfillment,
   SHIPPING_CHANGED,
   ShippingOptions,
@@ -804,6 +805,11 @@ export class CommerceService {
         throw new Error("Revisá el pedido antes de confirmarlo");
       const shipTo = this.shipTo();
       if (!shipTo) throw new Error("Elegí retiro o adónde te lo llevamos");
+      // Same check as the API (409 ADDRESS_ZONE_MISMATCH), before reserving anything.
+      const mismatch =
+        shipTo.method === "delivery" &&
+        addressMismatch(this.shippingOptions(), shipTo.zoneId, address);
+      if (mismatch) throw new Error(mismatch);
       const payload = {
         items: this.cart(),
         paymentMethod: paymentMethodFor(

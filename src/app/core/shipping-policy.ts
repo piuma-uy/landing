@@ -4,13 +4,15 @@
  * política guardada usan FALLBACK_POLICY, que es la que pasó Piuma (T29). Sin Angular: lo importa
  * scripts/seo.ts.
  */
-import type { ShippingOptions } from "../commerce/shipping";
+import type { ShippingOptions, ShippingZone } from "../commerce/shipping";
 
 export const SHIPPING_PATH = "/envios/";
 
 export interface ShippingPolicy {
   leadTime: string;
   freeZones: string[];
+  /** Las zonas gratis por departamento (T73): "Montevideo: Carrasco, Pocitos y Ciudad Vieja". */
+  freeAreas: string[];
   /** Zonas con costo fijo, con el precio ya formateado. */
   paidZones: { name: string; price: string }[];
   /** Hay zonas que se coordinan por WhatsApp (resto de Montevideo e interior). */
@@ -24,6 +26,7 @@ export interface ShippingPolicy {
 export const FALLBACK_POLICY: ShippingPolicy = {
   leadTime: "24 a 72 h",
   freeZones: ["Carrasco", "Pocitos", "Punta Carretas", "Ciudad Vieja", "Ciudad de la Costa"],
+  freeAreas: ["Montevideo: Carrasco, Pocitos, Punta Carretas y Ciudad Vieja", "Canelones: Ciudad de la Costa"],
   paidZones: [],
   coordinate: true,
   pickup: null,
@@ -37,7 +40,28 @@ const money = (minor: number, currency: string) =>
     minor / 100,
   );
 
-const label = (name: string) => name.replace(/\s*\(a coordinar\)\s*$/i, "").trim();
+const list = (items: string[]) =>
+  items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} y ${items.at(-1)}`;
+
+const zoneLabel = (name: string) => name.replace(/\s*\(a coordinar\)\s*$/i, "").trim();
+
+/**
+ * Zonas agrupadas por departamento, en el orden en que la tienda las cargó. El API declara el
+ * departamento y los barrios de cada zona (T73); sin ellos, la zona va por su nombre.
+ */
+function byDepartment(zones: ShippingZone[]) {
+  const groups = new Map<string, string[]>();
+  for (const z of zones) {
+    const department = z.department ?? null;
+    const places = (department && z.places) || [];
+    const key = department ?? "";
+    const names = places.length ? places : [zoneLabel(z.name)];
+    groups.set(key, [...(groups.get(key) ?? []), ...(department && !places.length ? [] : names)]);
+  }
+  return [...groups].map(([department, names]) =>
+    !department ? list(names) : names.length ? `${department}: ${list(names)}` : `Todo ${department}`,
+  );
+}
 
 /** La política a partir de lo que ofrece el API; sin política guardada, la de Piuma. */
 export function shippingPolicy(options: ShippingOptions | null): ShippingPolicy {
@@ -52,10 +76,16 @@ export function shippingPolicy(options: ShippingOptions | null): ShippingPolicy 
     "";
   return {
     leadTime,
-    freeZones: fixed.filter((z) => !z.priceMinor).map((z) => label(z.name)),
-    paidZones: fixed
-      .filter((z) => z.priceMinor)
-      .map((z) => ({ name: label(z.name), price: money(z.priceMinor, options.currency) })),
+    freeZones: fixed.filter((z) => !z.priceMinor).map((z) => zoneLabel(z.name)),
+    freeAreas: byDepartment(fixed.filter((z) => !z.priceMinor)),
+    paidZones: fixed.filter((z) => z.priceMinor).map((z) => {
+      const name = zoneLabel(z.name);
+      const department = z.department;
+      return {
+        name: department && department !== name ? `${name} (${department})` : name,
+        price: money(z.priceMinor, options.currency),
+      };
+    }),
     coordinate: zones.some((z) => z.pricing === "coordinate"),
     pickup: options.pickup.enabled ? options.pickup.details.trim() || "Retiro a coordinar" : null,
     freeFrom:
@@ -72,9 +102,6 @@ export function policyTeaser(policy: ShippingPolicy): string {
   if (!b) return `Envío gratis en ${a}`;
   return rest.length ? `Envío gratis en ${a}, ${b} y más` : `Envío gratis en ${a} y ${b}`;
 }
-
-const list = (items: string[]) =>
-  items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} y ${items.at(-1)}`;
 
 export interface PolicySection {
   title: string;
@@ -95,7 +122,7 @@ export function policySections(policy: ShippingPolicy): PolicySection[] {
     sections.push({
       title: "Envío gratis",
       text: "Sin costo de envío en estas zonas:",
-      items: policy.freeZones,
+      items: policy.freeAreas,
     });
   if (policy.paidZones.length)
     sections.push({
@@ -107,8 +134,22 @@ export function policySections(policy: ShippingPolicy): PolicySection[] {
     sections.push({
       title: "Resto de Montevideo e interior",
       text:
-        "Lo coordinamos por WhatsApp: envío propio o por agencia (tipo DAC). El costo se acuerda " +
-        "aparte y no se cobra en la compra.",
+        "Otros barrios de Montevideo y los 18 departamentos del interior. Lo coordinamos por " +
+        "WhatsApp: envío propio o por agencia (tipo DAC). El costo se acuerda aparte y no se " +
+        "cobra en la compra.",
+    });
+  if (policy.freeAreas.length || policy.coordinate)
+    sections.push({
+      title: "Tu dirección",
+      text:
+        "La zona que elegís al comprar define el departamento" +
+        (policy.freeAreas.length ? " y, en las zonas gratis, también el barrio" : "") +
+        ". " +
+        (policy.coordinate
+          ? "Para otro barrio de Montevideo lo elegís de la lista; para el interior, elegís el " +
+            "departamento y escribís tu ciudad o localidad. "
+          : "") +
+        "Después completás calle y número, y si querés el apartamento y alguna indicación.",
     });
   if (policy.freeFrom)
     sections.push({

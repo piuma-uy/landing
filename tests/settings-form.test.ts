@@ -14,6 +14,7 @@ import {
   sectionStatus,
   whatsappNumber,
   zoneSummary,
+  zoneWhere,
 } from "../src/app/commerce/settings-form.ts";
 import { shippingInput } from "../src/app/commerce/shipping.ts";
 import { settingsInput, type Settings } from "../src/app/commerce/transfer.ts";
@@ -51,6 +52,8 @@ const stored = (): Settings => ({
           priceMinor: 0,
           leadTime: "24 a 72 h",
           pricing: "fixed",
+          department: "Montevideo",
+          places: ["Carrasco"],
         },
         {
           id: "centro",
@@ -59,6 +62,8 @@ const stored = (): Settings => ({
           leadTime: "",
           pricing: "fixed",
           note: "Por cadete",
+          department: "Montevideo",
+          places: ["Centro"],
         },
         {
           id: "interior",
@@ -66,6 +71,8 @@ const stored = (): Settings => ({
           priceMinor: 0,
           leadTime: "",
           pricing: "coordinate",
+          department: null,
+          places: [],
         },
       ],
       freeFromMinor: 300000,
@@ -257,9 +264,9 @@ test("dirty check, hours and zone lines", () => {
   assert.equal(hoursLabel(null), "");
   const money = (minor: number) => `$ ${minor / 100}`;
   const [free, paid, coordinate] = sectionForm("shipping", s).zones;
-  assert.equal(zoneSummary(free!, money), "Gratis · 24 a 72 h");
-  assert.equal(zoneSummary(paid!, money), "$ 250");
-  assert.equal(zoneSummary(coordinate!, money), "A coordinar por WhatsApp");
+  assert.equal(zoneSummary(free!, money), "Gratis · Montevideo: Carrasco · 24 a 72 h");
+  assert.equal(zoneSummary(paid!, money), "$ 250 · Montevideo: Centro");
+  assert.equal(zoneSummary(coordinate!, money), "A coordinar por WhatsApp · Resto del país");
 });
 
 test("folded sections say what they have stored, in one line (T66)", () => {
@@ -353,4 +360,59 @@ test("only the first section with incomplete data opens alone (T66)", () => {
   limits.orders.maxOpenPerUser = 50;
   assert.equal(firstIncomplete(limits), "limits");
   assert.ok(!isRecommended(sectionForm("limits", limits)));
+});
+
+test("each zone declares its department and places; one owner per place (T73)", () => {
+  const s = stored();
+  const shipping = sectionForm("shipping", s);
+  assert.deepEqual(
+    shipping.zones.map((z) => [z.department, z.places]),
+    [
+      ["Montevideo", "Carrasco"],
+      ["Montevideo", "Centro"],
+      ["", ""],
+    ],
+  );
+  // An API from before T73 sends no area: it is read from the zone name.
+  const legacy = structuredClone(s);
+  for (const z of legacy.shipping.delivery.zones) {
+    delete z.department;
+    delete z.places;
+  }
+  assert.deepEqual(sectionForm("shipping", legacy).zones.map((z) => z.department), [
+    "Montevideo",
+    "Montevideo",
+    "",
+  ]);
+  shipping.zones[2]!.department = "Montevideo";
+  shipping.zones[2]!.places = " Carrasco \n\nCordón";
+  assert.deepEqual(sectionProblems("shipping", shipping, s), {
+    "zone2.places": "Carrasco ya está en la zona Carrasco.",
+  });
+  shipping.zones[2]!.places = "Cordón\ncordon";
+  assert.deepEqual(sectionProblems("shipping", shipping, s), {
+    "zone2.places": "cordon está repetido.",
+  });
+  shipping.zones[2]!.places = "Cordón\n Parque Batlle, Villa Dolores ";
+  assert.deepEqual(sectionProblems("shipping", shipping, s), {});
+  const zone = applySection("shipping", shipping, s).shipping.delivery.zones[2]!;
+  assert.deepEqual([zone.department, zone.places], [
+    "Montevideo",
+    ["Cordón", "Parque Batlle, Villa Dolores"],
+  ]);
+  assert.deepEqual(shippingInput(applySection("shipping", shipping, s).shipping).delivery.zones[2], {
+    id: "interior",
+    name: "Interior",
+    priceMinor: 0,
+    leadTime: "",
+    pricing: "coordinate",
+    department: "Montevideo",
+    places: ["Cordón", "Parque Batlle, Villa Dolores"],
+  });
+  // Rest of the country: no places go to the API.
+  shipping.zones[2]!.department = "";
+  const rest = applySection("shipping", shipping, s).shipping.delivery.zones[2]!;
+  assert.deepEqual([rest.department, rest.places], [null, []]);
+  assert.equal(zoneWhere(shipping.zones[2]!), "Resto del país");
+  assert.equal(zoneWhere({ department: "Canelones", places: "" }), "Canelones");
 });

@@ -1,7 +1,14 @@
 // Configuración del panel by section (T62): what Piuma edits, in pesos and plain words, and how
 // each section goes back into the full PUT /admin/settings. Framework-free so node --test can load it.
 import { normalizeWhatsapp } from "../core/whatsapp";
-import { isCoordinate, toMinor, type ShippingZone } from "./shipping";
+import {
+  fold,
+  isCoordinate,
+  toMinor,
+  zoneArea,
+  zoneLabel,
+  type ShippingZone,
+} from "./shipping";
 import type { Settings } from "./transfer";
 
 export type SectionId = "pay" | "contact" | "shipping" | "limits";
@@ -33,6 +40,10 @@ export interface ZoneForm {
   price: number | null;
   leadTime: string;
   note: string;
+  /** Where it delivers (T73): a department, or "" for the rest of the country. */
+  department: string;
+  /** Barrios or localities of that department, one per line; blank covers all of it. */
+  places: string;
 }
 export interface ShippingForm {
   pickupEnabled: boolean;
@@ -106,6 +117,17 @@ export function whatsappNumber(typed: string) {
   return /^[2-9]\d{7}$/.test(digits) ? "+598" + digits : null;
 }
 
+/** The places textarea: one barrio or locality per line (names may have commas). */
+export const placeLines = (text: string) =>
+  text
+    .split("\n")
+    .map((p) => p.trim())
+    .filter(Boolean);
+/** The area fields of a zone form: declared, or read from the zone name. */
+export function areaForm(z: Pick<ShippingZone, "name" | "department" | "places">) {
+  const area = zoneArea(z);
+  return { department: area.department ?? "", places: area.places.join("\n") };
+}
 const pesos = (minor: number | null) => (minor === null ? null : minor / 100);
 const cost = (z: Pick<ShippingZone, "pricing" | "priceMinor">): ZoneCost =>
   isCoordinate(z) ? "coordinate" : z.priceMinor ? "paid" : "free";
@@ -144,6 +166,7 @@ export function sectionForm(id: SectionId, s: Settings) {
           price: cost(z) === "paid" ? pesos(z.priceMinor) : null,
           leadTime: z.leadTime,
           note: z.note ?? "",
+          ...areaForm(z),
         })),
         freeFrom: pesos(s.shipping.delivery.freeFromMinor),
       };
@@ -207,6 +230,8 @@ export function applySection<K extends SectionId>(
           priceMinor: z.cost === "paid" ? (toMinor(z.price) ?? 0) : 0,
           leadTime: z.leadTime,
           note: z.note,
+          department: z.department || null,
+          places: z.department ? placeLines(z.places) : [],
         })),
         freeFromMinor: toMinor(f.freeFrom),
       },
@@ -297,6 +322,21 @@ export function sectionProblems<K extends SectionId>(
       if (z.cost === "paid" && !((toMinor(z.price) ?? 0) > 0))
         p[`zone${i}.price`] = "Poné el precio o elegí «Gratis».";
     });
+    // A barrio, locality or whole department belongs to one zone (the API says the same).
+    const owner = new Map<string, number>();
+    f.zones.forEach((z, i) => {
+      if (!z.department) return;
+      const places = placeLines(z.places);
+      for (const place of places.length ? places : [""]) {
+        const key = z.department + "#" + fold(place);
+        const other = owner.get(key);
+        if (other === undefined) owner.set(key, i);
+        else if (other !== i)
+          p[`zone${i}.places`] ??=
+            `${place || z.department} ya está en la zona ${zoneLabel(f.zones[other]!.name) || other + 1}.`;
+        else p[`zone${i}.places`] ??= `${place} está repetido.`;
+      }
+    });
     if (
       f.freeFrom !== null &&
       String(f.freeFrom) !== "" &&
@@ -343,7 +383,14 @@ export function zoneSummary(z: ZoneForm, money: (minor: number) => string) {
         : toMinor(z.price)
           ? money(toMinor(z.price)!)
           : "Sin precio";
-  return [price, z.leadTime.trim()].filter(Boolean).join(" · ");
+  return [price, zoneWhere(z), z.leadTime.trim()].filter(Boolean).join(" · ");
+}
+
+/** "Montevideo: Pocitos", "Canelones", "Todo el país". */
+export function zoneWhere(z: Pick<ZoneForm, "department" | "places">) {
+  if (!z.department) return "Resto del país";
+  const places = placeLines(z.places);
+  return places.length ? `${z.department}: ${places.join(", ")}` : z.department;
 }
 
 export const emptyZone = (): ZoneForm => ({
@@ -353,6 +400,8 @@ export const emptyZone = (): ZoneForm => ({
   price: null,
   leadTime: "",
   note: "",
+  department: "",
+  places: "",
 });
 
 export const SECTION_SAVED: Record<SectionId, string> = {

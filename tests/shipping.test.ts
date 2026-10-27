@@ -14,7 +14,11 @@ import {
   deliveryResult,
   destinationGroups,
   destinations,
-  prefillAddress,
+  addressFor,
+  addressMismatch,
+  emptyAddress,
+  MONTEVIDEO_NEIGHBORHOODS,
+  zoneArea,
   shippingCost,
   zoneId,
   type ShippingOptions,
@@ -319,57 +323,128 @@ test("the checkout select groups places: free, priced, then arranged over WhatsA
       ["A coordinar por WhatsApp", ["Otra zona de Montevideo", "Interior del país"]],
     ],
   );
-  // The catch-all zone splits in two places with the same zone and their own prefill.
-  const [montevideo, interior] = list.filter((d) => d.zoneId === "otra-zona");
+  assert.deepEqual(destinations({ ...piuma, delivery: { ...piuma.delivery, enabled: false } }), []);
+  assert.deepEqual(destinations(null), []);
+});
+
+test("the place decides department and barrio; zones from before T73 by their name (T73)", () => {
+  const list = destinations(piuma);
+  const by = (key: string) => list.find((d) => d.key === key)!;
+  // Free zones: barrio and department fixed.
   assert.deepEqual(
-    [montevideo, interior].map((d) => [d.key, d.department]),
+    ["carrasco", "pocitos", "ciudad-de-la-costa", "centro"].map((k) => [by(k).place, by(k).department]),
     [
-      ["otra-zona#montevideo", "Montevideo"],
-      ["otra-zona#interior", ""],
+      ["Carrasco", "Montevideo"],
+      ["Pocitos", "Montevideo"],
+      ["Ciudad de la Costa", "Canelones"],
+      ["Centro", "Montevideo"],
     ],
   );
-  const pocitos = list.find((d) => d.key === "pocitos")!;
-  assert.deepEqual([pocitos.city, pocitos.department], ["Pocitos", "Montevideo"]);
-  const costa = list.find((d) => d.key === "ciudad-de-la-costa")!;
-  assert.deepEqual([costa.city, costa.department], ["Ciudad de la Costa", "Canelones"]);
-  // Two coordinate zones are shown by name, without the panel's "(a coordinar)".
-  const two = destinations({
+  // Otra zona de Montevideo: Montevideo fixed, barrios from the INE list without the ones
+  // that have their own zone.
+  const montevideo = by("otra-zona#montevideo");
+  assert.equal(montevideo.department, "Montevideo");
+  assert.equal(montevideo.place, null);
+  assert.equal(montevideo.places.length, MONTEVIDEO_NEIGHBORHOODS.length - 3);
+  for (const own of ["Carrasco", "Pocitos", "Centro"]) assert.ok(!montevideo.places.includes(own));
+  assert.ok(montevideo.places.includes("Cordón"));
+  assert.ok(montevideo.places.includes("Punta Carretas"));
+  assert.deepEqual(montevideo.places.slice(0, 3), ["Aguada", "Aires Puros", "Atahualpa"]);
+  // Interior del país: the 18 departments without Montevideo, and a typed locality.
+  const interior = by("otra-zona#interior");
+  assert.equal(interior.department, null);
+  assert.equal(interior.departments.length, 18);
+  assert.ok(!interior.departments.includes("Montevideo"));
+  assert.ok(interior.departments.includes("Canelones"));
+  assert.deepEqual([interior.place, interior.places], [null, []]);
+  // Declared areas (T73) win over names; a zone for a whole department leaves the interior
+  // list, and "Resto de Montevideo" takes the Montevideo half.
+  const declared = destinations({
     ...piuma,
     delivery: {
       ...piuma.delivery,
       zones: [
+        { id: "este", name: "Barrios del este", priceMinor: 0, leadTime: "", department: "Montevideo", places: ["Punta Gorda", "Malvín"] },
+        { id: "maldonado", name: "Maldonado", priceMinor: 30000, leadTime: "" },
         { id: "mvd", name: "Resto de Montevideo (a coordinar)", priceMinor: 0, leadTime: "", pricing: "coordinate" },
         { id: "int", name: "Interior", priceMinor: 0, leadTime: "", pricing: "coordinate" },
       ],
     },
   });
   assert.deepEqual(
-    two.map((d) => [d.key, d.label, d.department]),
+    declared.map((d) => [d.key, d.label, d.department, d.place]),
     [
-      ["mvd", "Resto de Montevideo", "Montevideo"],
-      ["int", "Interior", ""],
+      ["este", "Barrios del este", "Montevideo", null],
+      ["maldonado", "Maldonado", "Maldonado", null],
+      ["mvd", "Resto de Montevideo", "Montevideo", null],
+      ["int#interior", "Interior", null, null],
     ],
   );
-  assert.deepEqual(destinations({ ...piuma, delivery: { ...piuma.delivery, enabled: false } }), []);
-  assert.deepEqual(destinations(null), []);
+  assert.deepEqual(declared[0]!.places, ["Malvín", "Punta Gorda"]);
+  assert.deepEqual(declared[1]!.places, []);
+  assert.ok(!declared[2]!.places.includes("Malvín"));
+  assert.equal(declared[3]!.departments.length, 17);
+  assert.equal(zoneArea({ name: "Pocitos", department: null, places: ["x"] }).places.length, 0);
 });
 
-test("choosing a place prefills city and department, never over what the buyer typed (T68)", () => {
+test("choosing a place sets its department and barrio and keeps what still fits (T73)", () => {
   const list = destinations(piuma);
-  const [pocitos, carrasco, interior] = ["pocitos", "carrasco", "otra-zona#interior"].map(
-    (k) => list.find((d) => d.key === k)!,
+  const [pocitos, costa, montevideo, interior] = [
+    "pocitos",
+    "ciudad-de-la-costa",
+    "otra-zona#montevideo",
+    "otra-zona#interior",
+  ].map((k) => list.find((d) => d.key === k)!);
+  const blank = { ...emptyAddress(), street: "Rambla 1", unit: "Apto 2" };
+  const first = addressFor(blank, pocitos!, null);
+  assert.deepEqual(first, { ...blank, city: "Pocitos", department: "Montevideo" });
+  assert.deepEqual(addressFor(first, costa!, pocitos!), {
+    ...blank,
+    city: "Ciudad de la Costa",
+    department: "Canelones",
+  });
+  // From a fixed barrio to "Otra zona de Montevideo": the barrio is chosen again.
+  const other = addressFor(first, montevideo!, pocitos!);
+  assert.deepEqual([other.city, other.department], ["", "Montevideo"]);
+  // To the interior: a department to pick, nothing typed is kept.
+  const typed = addressFor({ ...other, city: "Cordón" }, interior!, montevideo!);
+  assert.deepEqual([typed.city, typed.department], ["", ""]);
+  // Back and forth inside the interior keeps the department and the locality.
+  const salto = { ...typed, department: "Salto", city: "Salto" };
+  assert.deepEqual(addressFor(salto, interior!, interior!), salto);
+  assert.equal(addressFor({ ...other, city: "Cordón" }, montevideo!, montevideo!).city, "Cordón");
+});
+
+test("addresses that the API would refuse are explained before sending (T73)", () => {
+  const at = (department: string, city: string) => ({ department, city });
+  assert.equal(addressMismatch(piuma, "pocitos", at("Montevideo", "Pocitos")), "");
+  assert.equal(addressMismatch(piuma, "otra-zona", at("Montevideo", "Cordón")), "");
+  assert.equal(addressMismatch(piuma, "otra-zona", at("Salto", "Salto")), "");
+  // Incomplete or unknown: nothing to say yet.
+  assert.equal(addressMismatch(piuma, "otra-zona", at("", "Salto")), "");
+  assert.equal(addressMismatch(piuma, "nada", at("Salto", "Salto")), "");
+  assert.equal(addressMismatch(null, "pocitos", at("Salto", "Salto")), "");
+  assert.equal(
+    addressMismatch(piuma, "carrasco", at("Salto", "Carrasco")),
+    "Carrasco queda en Montevideo: corregí el departamento o elegí otra zona.",
   );
-  const blank = { street: "Rambla 1", city: "", department: "Montevideo", notes: "" };
-  const first = prefillAddress(blank, pocitos, null);
-  assert.deepEqual(first, { ...blank, city: "Pocitos" });
-  // Another neighbourhood replaces the prefill; interior clears it and asks for the department.
-  assert.equal(prefillAddress(first, carrasco, pocitos).city, "Carrasco");
-  assert.deepEqual(
-    [prefillAddress(first, interior, pocitos).city, prefillAddress(first, interior, pocitos).department],
-    ["", ""],
+  assert.equal(
+    addressMismatch(piuma, "carrasco", at("Montevideo", "Pocitos")),
+    "Con Carrasco el envío es a Carrasco: corregí el barrio o elegí otra zona.",
   );
-  const typed = { ...first, city: "Punta Gorda", department: "Canelones" };
-  assert.deepEqual(prefillAddress(typed, carrasco, pocitos), typed);
+  // "Otro barrio" typed as a barrio with a free zone of its own.
+  assert.equal(
+    addressMismatch(piuma, "otra-zona", at("Montevideo", " pocitos ")),
+    "pocitos tiene su propia zona con envío gratis: elegí Pocitos en «¿Adónde querés que te lo llevemos?».",
+  );
+  assert.equal(
+    addressMismatch(piuma, "otra-zona", at("Canelones", "Ciudad de la Costa")),
+    "Ciudad de la Costa tiene su propia zona con envío gratis: elegí Ciudad de la Costa en «¿Adónde querés que te lo llevemos?».",
+  );
+  assert.equal(
+    addressMismatch(piuma, "otra-zona", at("Montevideo", "Centro")),
+    "Centro tiene su propia zona: elegí Centro en «¿Adónde querés que te lo llevemos?».",
+  );
 });
 
 test("one result line per place and the summary amount (T68)", () => {

@@ -1,8 +1,6 @@
 @if (shop.shippingOptions(); as opts) {
   <section class="delivery" aria-labelledby="delivery-title">
-    <h3 id="delivery-title" class="delivery__title">
-      Entrega
-    </h3>
+    <h3 id="delivery-title" class="delivery__title">Entrega</h3>
     @if (opts.pickup.enabled && opts.delivery.enabled) {
       <fieldset class="segmented">
         <legend class="sr-only">¿Cómo querés recibirlo?</legend>
@@ -34,15 +32,9 @@
           required
           aria-describedby="delivery-result"
           [disabled]="shop.busy()"
-          (change)="
-            chooseDestination($any($event.target).value)
-          "
+          (change)="chooseDestination($any($event.target).value)"
         >
-          <option
-            value=""
-            disabled
-            [selected]="!shop.destination()"
-          >
+          <option value="" disabled [selected]="!shop.destination()">
             Elegí tu barrio o zona
           </option>
           @for (g of destinationGroups(); track g.group) {
@@ -70,12 +62,7 @@
       @if (opts.delivery.freeFromMinor) {
         <p class="muted small">
           Envío gratis en compras desde
-          {{
-            shop.money(
-              opts.delivery.freeFromMinor,
-              opts.currency
-            )
-          }}.
+          {{ shop.money(opts.delivery.freeFromMinor, opts.currency) }}.
         </p>
       }
     } @else {
@@ -85,52 +72,160 @@
       </p>
     }
     <p class="delivery__note small">
-      Te escribimos por WhatsApp para coordinar día y
-      horario.
+      Te escribimos por WhatsApp para coordinar día y horario.
       <a href="/envios/" (click)="shop.showShipping($event)"
         >¿Cómo funcionan los envíos?</a
       >
     </p>
   </section>
 }
-@if (shop.delivering() && shop.destination()) {
+@if (shop.delivering() && shop.destination(); as to) {
   <fieldset class="address">
     <legend>Dirección de entrega</legend>
+    @if (to.place || to.department) {
+      <!-- What the place already says: not editable, change it with the select above. -->
+      <dl class="address__where">
+        @if (to.place) {
+          <div>
+            <dt>
+              {{ to.department === "Montevideo" ? "Barrio" : "Localidad" }}
+            </dt>
+            <dd>{{ to.place }}</dd>
+          </div>
+        }
+        @if (to.department) {
+          <div>
+            <dt>Departamento</dt>
+            <dd>{{ to.department }}</dd>
+          </div>
+        }
+      </dl>
+    }
+    @if (!to.department) {
+      <!-- Label apart from the select: wrapped, its name would include the chosen option. -->
+      <div class="field">
+        <label for="address-department">Departamento</label>
+        <select
+          id="address-department"
+          name="department"
+          #department="ngModel"
+          [ngModel]="address().department"
+          (ngModelChange)="address().department = $event; edited()"
+          required
+          autocomplete="address-level1"
+          [attr.aria-invalid]="department.invalid && department.touched"
+          aria-describedby="address-department-error"
+        >
+          <option value="" disabled>Elegí el departamento</option>
+          @for (d of to.departments; track d) {
+            <option [value]="d">{{ d }}</option>
+          }
+        </select>
+      </div>
+      @if (department.invalid && department.touched) {
+        <p id="address-department-error" class="field-error">
+          Elegí el departamento.
+        </p>
+      }
+    }
+    @if (!to.place && to.places.length) {
+      <div class="field">
+        <label for="address-barrio">Barrio</label>
+        <select
+          id="address-barrio"
+          name="barrio"
+          #barrio="ngModel"
+          [ngModel]="otherPlace() ? other : address().city"
+          (ngModelChange)="choosePlace($event)"
+          required
+          autocomplete="address-level3"
+          [attr.aria-invalid]="barrio.invalid && barrio.touched"
+          aria-describedby="address-barrio-error"
+        >
+          <option value="" disabled>Elegí tu barrio</option>
+          @for (b of to.places; track b) {
+            <option [value]="b">{{ b }}</option>
+          }
+          <option [value]="other">Otro barrio</option>
+        </select>
+      </div>
+      @if (barrio.invalid && barrio.touched) {
+        <p id="address-barrio-error" class="field-error">
+          Elegí tu barrio, u «Otro barrio» si no está en la lista.
+        </p>
+      }
+    }
+    @if (!to.place && (!to.places.length || otherPlace())) {
+      <label
+        >{{ to.places.length ? "¿Qué barrio?" : "Ciudad o localidad"
+        }}<input
+          name="city"
+          #city="ngModel"
+          [ngModel]="address().city"
+          (ngModelChange)="address().city = $event; edited()"
+          required
+          maxlength="100"
+          autocapitalize="words"
+          enterkeyhint="next"
+          [attr.autocomplete]="to.places.length ? 'off' : 'address-level2'"
+          [attr.aria-invalid]="(city.invalid && city.touched) || !!mismatch()"
+          aria-describedby="address-city-error address-mismatch"
+      /></label>
+      @if (city.invalid && city.touched) {
+        <p id="address-city-error" class="field-error">
+          {{
+            to.places.length
+              ? "Escribí el nombre de tu barrio."
+              : "Escribí la ciudad o localidad."
+          }}
+        </p>
+      }
+    }
+    <p
+      id="address-mismatch"
+      class="field-error"
+      [class.field-error--empty]="!mismatch()"
+      aria-live="polite"
+    >
+      {{ mismatch() }}
+    </p>
     <label
-      >Calle, número y apartamento<input
+      >Calle y número<input
         name="street"
+        #street="ngModel"
         [(ngModel)]="address().street"
         required
         maxlength="200"
-        autocomplete="street-address" /></label
-    ><div class="address__row">
-      <label
-        >Ciudad o barrio<input
-          name="city"
-          [(ngModel)]="address().city"
-          required
-          maxlength="100"
-          autocomplete="address-level2" /></label
-      ><label
-        >Departamento<select
-          name="department"
-          [(ngModel)]="address().department"
-          required
-          autocomplete="address-level1"
-        >
-          <option value="" disabled>Elegí</option>
-          @for (d of departments; track d) {
-            <option [value]="d">{{ d }}</option>
-          }
-        </select></label
-      >
-    </div>
+        autocomplete="address-line1"
+        autocapitalize="words"
+        enterkeyhint="next"
+        placeholder="Ej.: Av. Brasil 2550"
+        [attr.aria-invalid]="street.invalid && street.touched"
+        aria-describedby="address-street-error"
+    /></label>
+    @if (street.invalid && street.touched) {
+      <p id="address-street-error" class="field-error">
+        Escribí la calle y el número de puerta.
+      </p>
+    }
     <label
-      >Indicaciones para la entrega (opcional)<textarea
+      ><span>Apartamento / piso <span class="optional">(opcional)</span></span
+      ><input
+        name="unit"
+        [(ngModel)]="address().unit"
+        maxlength="60"
+        autocomplete="address-line2"
+        enterkeyhint="next"
+        placeholder="Ej.: Apto 502"
+    /></label>
+    <label class="address__notes"
+      ><span>Indicaciones <span class="optional">(opcional)</span></span
+      ><textarea
         name="notes"
         [(ngModel)]="address().notes"
         maxlength="300"
         rows="2"
+        enterkeyhint="done"
         placeholder="Horario, referencias, portería"
       ></textarea>
     </label>
