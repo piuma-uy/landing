@@ -87,7 +87,7 @@ export class AccountComponent implements OnDestroy {
   readonly step = signal<Step>("signin");
   readonly texts = computed(() => TEXTS[this.step()]);
   readonly pending = signal(false);
-  readonly error = signal("");
+  readonly error = signal(this.shop.takeLoginError());
   readonly notice = signal("");
   readonly invalid = signal<Partial<Record<Field, string>>>({});
   readonly showPassword = signal(false);

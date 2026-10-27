@@ -310,6 +310,13 @@ export class CommerceService {
     () => !!this.error() && ORDERS_LINK_CODES.includes(this.errorCode()),
   );
   readonly notice = signal("");
+  /** Why the way back from the hosted UI failed; the account card shows it once (T77). */
+  private loginError = "";
+  takeLoginError() {
+    const message = this.loginError;
+    this.loginError = "";
+    return message;
+  }
   /** The action that failed for lack of connection or a down API: "Reintentar" runs it again. */
   private readonly retryFn = signal<(() => Promise<void>) | null>(null);
   readonly canRetry = computed(() => !!this.error() && !!this.retryFn());
@@ -486,7 +493,22 @@ export class CommerceService {
           // Remove code/state from the history before anything can fail or log it.
           history.replaceState(history.state, "", url.pathname + url.hash);
           await this.reloadProducts();
-          await this.signedIn(await this.cognito.handleCallback(url));
+          let user: User;
+          try {
+            user = await this.cognito.handleCallback(url);
+          } catch (e) {
+            // A failed or cancelled login (Google) ends on the account card, with the message
+            // inside it next to the buttons to retry (a floating notice would cover them on a
+            // phone), and the guest cart still there.
+            devLog(e);
+            this.cart.set(this.readGuest());
+            // Without the forms (no issuer) the card has no message of its own.
+            if (this.cognito.forms) this.loginError = shownMessage(e);
+            else this.error.set(shownMessage(e));
+            this.view.set("account");
+            return;
+          }
+          await this.signedIn(user);
           return;
         }
         this.noteReturn(url);

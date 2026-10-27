@@ -116,6 +116,17 @@ const EDGES_MESSAGE =
  * with policy: Password not long enough"). The policy only asks for 8 characters (T74, as
  * PASSWORD_MIN_LENGTH in account.ts); the other parts only show up while a pool has the old rules.
  */
+/**
+ * Spanish text for an `error` the hosted UI sends back (T77). Cancelling at Google comes back as
+ * access_denied; error_description is never shown, since it is Cognito's English and anyone can
+ * put text in a link to the shop.
+ */
+export function callbackErrorMessage(error: string | null): string {
+  if (error === "access_denied")
+    return "Cancelaste el ingreso con Google. Podés probar de nuevo o ingresar con tu correo.";
+  return "No se pudo completar el ingreso. Probá de nuevo.";
+}
+
 function passwordMessage(awsMessage: string): string {
   if (/long enough/i.test(awsMessage))
     return "La contraseña es muy corta: tiene que tener 8 caracteres o más.";
@@ -460,7 +471,7 @@ export class CognitoAuth {
     if (!attempt || !state || state !== attempt.state)
       throw new Error("El ingreso expiró o no es válido. Probá de nuevo.");
     if (url.searchParams.has("error"))
-      throw new Error("No se pudo completar el ingreso. Probá de nuevo.");
+      throw new Error(callbackErrorMessage(url.searchParams.get("error")));
     const tokens = await this.token({
       grant_type: "authorization_code",
       client_id: this.config.clientId,
