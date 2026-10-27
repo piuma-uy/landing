@@ -14,6 +14,7 @@ import { groupSecret } from "../mfa";
 import { qrPath } from "../qr";
 import { AdminSettingsComponent } from "../admin-settings.component";
 import { shippingSummary } from "../shipping";
+import { PAID_PREVIEW, paidOrderSummary, unitsSold } from "../paid-orders";
 
 /**
  * The administration panel: second factor, summary, products, transfers and settings.
@@ -72,6 +73,18 @@ export class AdminComponent {
   readonly paidCount = computed(() =>
     this.shop.metrics().reduce((s, m) => s + m.paidOrders, 0),
   );
+  readonly unitsSold = computed(() => unitsSold(this.shop.metrics()));
+  /** "Pedidos pagados" of the Resumen (T76): the API sends the newest payment first. */
+  readonly allPaid = signal(false);
+  readonly visiblePaid = computed(() => {
+    const rows = this.shop.paidOrders() ?? [];
+    return this.allPaid() ? rows : rows.slice(0, PAID_PREVIEW);
+  });
+  async showMorePaid() {
+    if (!this.allPaid()) this.allPaid.set(true);
+    else await this.shop.loadMorePaid();
+  }
+  readonly paidOrderSummary = paidOrderSummary;
   search = "";
   editing: Product | null = null;
   price = 0;
