@@ -83,7 +83,7 @@ export class CommerceComponent {
           ? `Transferí el monto exacto con tu teléfono ${order.transfer.reference} como referencia.`
           : `Transferí el monto exacto con la referencia ${order.transfer.reference}.`,
         "Mandanos el comprobante por WhatsApp.",
-        CONFIRMATION_PROMISE,
+        "Cuando se acreditan los fondos, el pedido pasa a pagado.",
         handover,
       ];
     if (order.paymentMethod === "card")
