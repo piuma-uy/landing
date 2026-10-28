@@ -157,3 +157,38 @@ Todas las piezas se re-exportaron después de los cambios (posts, portada, reel 
 | Regeneración desde cero (B1) | Directorio temporal con `landing/src/assets/images`, `landing/marketing/campanas/proximamente-web` sin PNG/MP4/JPG y `piuma-backend` como hermano; `export PLAYWRIGHT_MODULE="$PWD/../../../../piuma-backend/node_modules/playwright"` y los cuatro comandos del README: los tres PNG, el reel y `preview-campana.jpg` salen **idénticos byte a byte** a los commiteados. La variante relativa (`../../../../piuma-backend/...`) también funciona |
 
 — Guille jugueteando con el chatbot
+
+## Verificación del revisor (T86b)
+
+Revisión independiente del commit `c1f3ef2` (correcciones T85b). Se comprobó cada punto sobre los archivos
+commiteados y regenerando todo desde cero; el revisor no tocó ninguna pieza.
+
+**Método.** Directorio temporal fuera del repo con `landing/src/assets/images`, la carpeta de la campaña **sin** PNG,
+MP4 ni JPG y `piuma-backend/node_modules/playwright` como hermano de `landing`. Desde la carpeta de la campaña,
+exactamente la receta del README: `export PLAYWRIGHT_MODULE="$PWD/../../../../piuma-backend/node_modules/playwright"`,
+`render-imagenes.cjs`, `render-reel.cjs` y `preview.sh` (`capturar-web.cjs` es opcional y no se corrió, para no
+cambiar la captura). Fotogramas cada 0,5 s (40) con las zonas de UI de Instagram marcadas (220 px arriba, 1500–1920
+abajo, 120 px a la derecha) y reducidos a 390 px; posts y portada a 390 px de ancho.
+
+| Punto | Veredicto | Evidencia |
+| --- | --- | --- |
+| **B1** · regeneración | OK | Los tres scripts usan `require(path.resolve(PLAYWRIGHT_MODULE))`. Con la receta del README salen los tres PNG, el reel y `preview-campana.jpg` **idénticos byte a byte** (`cmp`) a los commiteados; reel con PSNR = inf |
+| **ffprobe** del reel | OK | 1080 × 1920, H.264 High, yuv420p, 30/1 fps, 600 fotogramas, 20,000 s, sin pista de audio; `moov` en el byte 36, `mdat` en el 7591 (+faststart) |
+| `blackdetect` / `freezedetect` (1,5 s) / `scene > 0,15` | OK | Sin fotogramas negros, sin planos quietos, sin cortes bruscos |
+| **A1** · volanta «PRÓXIMAMENTE» del reel | OK | 40 px, Inter 600 (≈ 14 px a 390 px); se lee claramente en todos los fotogramas de 9,0 a 14,0 s, fuera de la franja superior |
+| **A2** · tarjetas del catálogo fuera de la zona inferior | OK | Teléfono entero entre y ≈ 420 y ≈ 1500. Desde 12,5 s las cuatro tarjetas (Acolchados, Almohadas, Cubrecamas, Fundas nórdicas) y sus rótulos quedan enteras por encima de y = 1500 (último rótulo ≈ 1440) y fuera de la franja derecha. Asoma el borde de una quinta tarjeta al pie de la pantalla, sin texto: no molesta |
+| **M1** · «Nuestra colección» no cortado | OK | Desde 12,5 s el título queda quieto con aire bajo el borde superior de la pantalla del teléfono hasta que la capa se funde |
+| **M2** · cierre con movimiento | OK | `freezedetect` sin planos quietos; fotogramas a 17,5 s y 19,95 s distintos (PSNR 26 dB) por el acercamiento del 3 %. Reel de 20 s, dentro de 18–22 s |
+| **M3** · apertura distinta del post 1 | OK | Apertura con `producto-funda-nordica-saten-beige.webp` (respaldo tapizado, lámpara negra); post 1 con `hero-piuma.webp` (respaldo de madera tallada). En la grilla no se ven iguales. Nota menor, no bloqueante: la portada (`producto-funda-nordica-lino.webp`) es del mismo cuarto que la apertura, pero es otra foto y otro encuadre |
+| **M4** · volanta del post 2 | OK | 30 px, Inter 600: a 390 px «PRÓXIMAMENTE» se lee bien; «ROPA DE CAMA» del logo de 220 px se distingue |
+| **L1** · doble exposición en fundidos | OK | A 3,4 s el texto de apertura ya no está (sólo se funden las fotos); a 8,6 s se va el Charo sin teléfono; a 8,9 s entra titular sobre beige liso |
+| **L2** · portada ampliada | OK (justificado) | Sin original de mayor resolución en el repo; a 390 px no se nota. Título y logo dentro del recorte 3:4 (y 240–1680) |
+| **L3** · caption del post 2 | OK | «La estamos terminando de coser. Muy pronto, nuestra nueva web.» (`captions.md:28`) |
+| **L4** · comentario de `preview.sh` | OK | Dice «nueve fotogramas» |
+| **L5** · advertencia sobre la captura completa | OK | Advertencia explícita en el README; ningún fotograma muestra el rótulo de prueba, el carrito ni el botón de WhatsApp |
+| **L6** · nota del recorte de la portada | OK | `reel-portada.html:8` y `hoja-de-estilo.md:41` hablan del 3:4 (1080 × 1440) |
+| Título no cortado y tildes | OK | «Nuestra nueva web», «Muy pronto, nuestra nueva web.», «Próximamente», «colección», «nórdicas», «Elegí» completos y bien renderizados en todas las piezas |
+
+**Veredicto:** todas las correcciones verificadas. La campaña queda lista para subir.
+
+— Guille jugueteando con el chatbot
