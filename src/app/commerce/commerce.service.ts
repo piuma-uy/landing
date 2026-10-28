@@ -108,6 +108,12 @@ import {
 const SESSION_EXPIRED =
   "Tu sesión terminó. Ingresá de nuevo para seguir con tu compra.";
 const apiError = (f: Failure) => new ApiError(f.message, f.status, f.code);
+/**
+ * The public catalog goes without a token, also when a sign-in finishes while its pages are
+ * still loading: a public read must never renew or end the session (T79).
+ */
+const isPublicRead = (path: string, method: string) =>
+  method === "GET" && /^\/products(\?|$)/.test(path);
 /** The technical detail of a failure: only in the console of a development build. */
 function devLog(...detail: unknown[]) {
   if (isDevMode()) console.error("[tienda]", ...detail);
@@ -364,7 +370,9 @@ export class CommerceService {
     headers: Record<string, string> = {},
     retried = false,
   ): Promise<T> {
-    const token = await this.cognito?.getAccessToken();
+    const token = isPublicRead(path, method)
+      ? ""
+      : await this.cognito?.getAccessToken();
     const response = await safeFetch(this.base + path, {
       method,
       credentials: this.cognito ? "omit" : "include",

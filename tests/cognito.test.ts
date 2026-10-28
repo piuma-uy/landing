@@ -303,6 +303,16 @@ test("hosted UI: the refresh token alone stays in the tab and renews after a rel
   assert.equal(late.store.has("piuma-session"), false);
 });
 
+test("restore keeps a session signed in while the page was loading, without renewing it (T79)", async () => {
+  const s = setup();
+  await login(s);
+  const calls = s.calls.length;
+  const user = await s.auth.restore();
+  assert.equal(user !== "expired" && user?.email, "ana@example.com");
+  assert.equal(s.calls.length, calls);
+  assert.equal(JSON.parse(s.store.get("piuma-session")!).refreshToken, "refresh-1");
+});
+
 test("logout returns to the bare origin, the sign-out URL the client registers (T61c)", async () => {
   const s = setup();
   await login(s);
