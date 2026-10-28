@@ -123,3 +123,37 @@ README confirma cero servicios pagos; nada en el repo contradice eso (sin claves
 con sus licencias, FFmpeg y Chromium locales, sin música). Coincide con lo que se pudo verificar.
 
 — Guille jugueteando con el chatbot
+
+## Correcciones del autor (T85b)
+
+Todas las piezas se re-exportaron después de los cambios (posts, portada, reel y `preview-campana.jpg`).
+
+| Punto | Estado | Qué se hizo |
+| --- | --- | --- |
+| **B1** · `PLAYWRIGHT_MODULE` relativo falla | Resuelto | Los tres scripts (`capturar-web.cjs`, `render-imagenes.cjs`, `render-reel.cjs`) hacen `require(path.resolve(PLAYWRIGHT_MODULE))`, así que la variable se resuelve desde el directorio de trabajo, relativa o absoluta. El README usa la forma absoluta (`"$PWD/../../../../piuma-backend/node_modules/playwright"`). Verificado regenerando desde cero en un directorio temporal (copia de `src/assets/images` + la campaña sin PNG/MP4/JPG, `piuma-backend` como hermano): con la ruta absoluta del README y con la relativa salen los tres PNG, el reel y la preview; ver § Verificación |
+| **A1** · volanta «PRÓXIMAMENTE» del reel a ≈ 9 px | Resuelto | 26 px → 40 px y Inter 600: ≈ 14,4 px efectivos a 390 px de ancho, mismo terracota oscuro |
+| **A2** · catálogo bajo la UI de Instagram | Resuelto | La revelación se recompuso: teléfono entero de 540 × 1080 entre y = 420 y y = 1500 (antes 760 × 1600, salía por el borde). El desplazamiento termina con «Catálogo · Nuestra colección» y las cuatro primeras tarjetas (Acolchados, Almohadas, Cubrecamas, Fundas nórdicas) enteras, todo por encima de y = 1500 y lejos de la franja derecha |
+| **M1** · «Nuestra colección» cortado contra el marco | Resuelto | Un solo tramo de desplazamiento (69 → 880 px CSS entre 10,0 y 12,4 s) y después quieto: el título queda con aire bajo el borde de la pantalla, sin moverse mientras la capa se funde |
+| **M2** · cierre de 4,8 s quieto | Resuelto | Reel recortado a 20 s (dentro de 18–22 s) y acercamiento muy leve (3 %) de logo y frase durante todo el cierre; el teléfono también tiene un acercamiento de 2 % mientras está quieto |
+| **M3** · `hero-piuma.webp` repetida | Resuelto | La apertura del reel ahora es `producto-funda-nordica-saten-beige.webp` (dormitorio con la funda satén beige), distinta de post 1 y de la portada. La foto hero sigue apareciendo dentro de la captura de la web (es la web real, no se retoca) y como miniatura de «Acolchados»; la satén beige aparece también como miniatura de «Fundas nórdicas» dentro del teléfono, a tamaño chico |
+| **M4** · volanta del post 2 a ≈ 8 px | Resuelto | 22 px → 30 px, Inter 600 (≈ 10,8 px efectivos, en negrita media y mayúsculas espaciadas). El logo pasó de 176 a 220 px de ancho (nativo 600 px, no se amplía) para que «ROPA DE CAMA» se distinga mejor |
+| **L1** · fundidos con doble exposición | Resuelto | El texto de apertura se va entre 2,8 y 3,3 s, antes que su foto; en la revelación primero entra el fondo beige y el titular (8,6 s) y el teléfono recién a 8,9 s, así no se superpone a la cama del Charo |
+| **L2** · portada ampliada 1,35× | Justificado | No hay foto de mayor resolución en el repo y `brand-assets/` no está disponible en esta máquina; a tamaño de teléfono no se nota. Si aparece el original, alcanza con cambiar el `src` de `reel-portada.html` y re-renderizar |
+| **L3** · «las últimas puntadas» | Resuelto | Caption del post 2: «La estamos terminando de coser. Muy pronto, nuestra nueva web.» |
+| **L4** · comentario de `preview.sh` | Resuelto | Dice «nueve fotogramas» |
+| **L5** · captura completa con rótulo de prueba | Resuelto | Se deja la captura completa (la usan los renders y conviene poder re-recortar), con una advertencia explícita en el README: no publicarla entera ni reutilizarla sin recortar |
+| **L6** · nota de la portada (4:5 vs 3:4) | Resuelto | Comentario de `reel-portada.html` y hoja de estilo actualizados al recorte 3:4 (1080 × 1440, y 240–1680), que también se verificó |
+
+### Verificación posterior
+
+| Chequeo | Resultado |
+| --- | --- |
+| `ffprobe` del reel | 1080 × 1920, H.264 High, yuv420p, 30/1 fps, 600 fotogramas, 20,000 s, sin audio; `moov` en el byte 36, antes de `mdat` |
+| `blackdetect d=0.03 pix_th=0.10` | Ningún fotograma negro |
+| `select gt(scene,0.15)` | Ningún corte brusco |
+| `freezedetect n=0.001 d=1.5` | Ningún plano quieto (antes: 8,8–10,2 s y 16,2–21,0 s) |
+| Fotogramas cada 0,5 s con zonas de UI marcadas (220 arriba, 420 abajo, 120 derecha) y a 390 px de ancho | Titulares, volanta, teléfono y las cuatro tarjetas fuera de las zonas tapadas; «Nuestra colección» sin cortes; sin texto fantasma en los fundidos |
+| Post 2 y portada a 390 px | Volanta del post 2 legible (≈ 11 px); portada sin cambios de diseño (título y logo dentro de 3:4 y 4:5) |
+| Regeneración desde cero (B1) | Directorio temporal con `landing/src/assets/images`, `landing/marketing/campanas/proximamente-web` sin PNG/MP4/JPG y `piuma-backend` como hermano; `export PLAYWRIGHT_MODULE="$PWD/../../../../piuma-backend/node_modules/playwright"` y los cuatro comandos del README: los tres PNG, el reel y `preview-campana.jpg` salen **idénticos byte a byte** a los commiteados. La variante relativa (`../../../../piuma-backend/...`) también funciona |
+
+— Guille jugueteando con el chatbot

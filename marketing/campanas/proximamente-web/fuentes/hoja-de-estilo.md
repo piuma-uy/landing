@@ -24,9 +24,9 @@ retoques de color: los productos conservan sus colores, tramas, costuras y boton
 ## Tipografía
 
 - **Playfair Display 500** para titulares; la segunda mitad de la frase en *cursiva* terracota oscuro.
-- **Inter 500** en mayúsculas con 0,3 em de espaciado para volantas («PRÓXIMAMENTE»); Inter 400 para la bajada.
-- Tamaños mínimos pensando en el teléfono (el post se ve a ~390 px de ancho): titulares ≥ 64 px, bajadas ≥ 32 px sobre
-  el lienzo de 1080.
+- **Inter 500–600** en mayúsculas con 0,3 em de espaciado para volantas («PRÓXIMAMENTE»); Inter 400 para la bajada.
+- Tamaños mínimos pensando en el teléfono (el post se ve a ~390 px de ancho): titulares ≥ 64 px, bajadas ≥ 32 px y volantas
+  ≥ 30 px (Inter 600) sobre el lienzo de 1080.
 - Texto siempre sobre fondo liso, nunca encima de la foto.
 
 ## Composición
@@ -36,8 +36,9 @@ retoques de color: los productos conservan sus colores, tramas, costuras y boton
   teléfono de contorno mínimo con la captura real que sale por el borde inferior.
 - Reel: alterna foto a sangre, foto enmarcada con radio de 20 px (el de las tarjetas del sitio) y plano macro chico.
   Fundidos de 0,5 s en todas las transiciones; cada plano tiene un movimiento distinto (acercar, subir, alejar,
-  desplazar lateral). Títulos fuera de las zonas que tapa Instagram (arriba 220 px, abajo ~400 px, derecha ~120 px).
-- Portada: título y logo dentro del recorte central 1080 × 1350 de la grilla.
+  desplazar lateral). Títulos y todo lo que hay que leer o ver (incluido el teléfono entero de la revelación) fuera de las zonas que tapa
+  Instagram (arriba 220 px, abajo ~420 px, derecha ~120 px).
+- Portada: título y logo dentro del recorte 3:4 de la grilla (1080 × 1440) y del 4:5 anterior (1080 × 1350).
 
 ## Logo
 

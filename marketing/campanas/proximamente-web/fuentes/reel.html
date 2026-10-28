@@ -13,8 +13,8 @@
   /* 1 · Apertura */
   #apertura .texto { left: 80px; top: 250px; width: 900px; }
   #apertura .titular { font-size: 76px; }
-  #apertura .foto { left: 0; top: 500px; width: 1080px; height: 1420px; }
-  #apertura .foto img { object-position: 34% 50%; }
+  #apertura .foto { left: 0; top: 540px; width: 1080px; height: 1380px; }
+  #apertura .foto img { object-position: 50% 50%; }
 
   /* 2 · Universo Piuma: cuatro planos con escalas alternadas */
   #lino .foto { left: 60px; top: 300px; width: 960px; height: 1200px; border-radius: 20px; }
@@ -22,14 +22,17 @@
   #saten .foto { left: 0; top: 260px; width: 1080px; height: 1350px; }
   #desayuno .foto { left: 60px; top: 300px; width: 960px; height: 1200px; border-radius: 20px; }
 
-  /* 3 · Revelación: captura real de la web en un teléfono */
-  #revelacion .texto { left: 80px; top: 230px; width: 920px; text-align: center; }
-  #revelacion .volanta { font-size: 26px; margin-bottom: 20px; }
+  /* 3 · Revelación: captura real de la web en un teléfono entero, dentro de la zona segura
+     (debajo de los 220 px de arriba y por encima de los ~420 px de abajo que tapa Instagram) */
+  #revelacion .texto { left: 80px; top: 236px; width: 920px; text-align: center; }
+  #revelacion .volanta { font-size: 40px; font-weight: 600; margin-bottom: 14px; }
   #revelacion .titular { font-size: 80px; }
-  #revelacion .telefono { left: 160px; top: 484px; width: 760px; height: 1600px; }
+  #revelacion .telefono { left: 270px; top: 420px; width: 540px; height: 1080px; border-radius: 56px; }
+  #revelacion .telefono .pantalla { border-radius: 42px; }
 
   /* 4 · Cierre */
   #cierre .texto { left: 80px; width: 920px; text-align: center; }
+  #cierre .conjunto { position: absolute; inset: 0; transform-origin: 50% 50%; will-change: transform; }
   #cierre .marca { top: 600px; }
   #cierre .marca .logo { width: 440px; margin: 0 auto; }
   #cierre .frase { top: 940px; }
@@ -42,7 +45,7 @@
 <body>
 <main class="lienzo vertical">
   <section class="capa" id="apertura">
-    <div class="foto"><img src="../../../../src/assets/images/hero-piuma.webp" alt=""></div>
+    <div class="foto"><img src="../../../../src/assets/images/productos/producto-funda-nordica-saten-beige.webp" alt=""></div>
     <div class="texto"><h1 class="titular">Algo nuevo<br><em>se está tendiendo.</em></h1></div>
   </section>
 
@@ -68,11 +71,13 @@
   </section>
 
   <section class="capa" id="cierre">
+    <div class="conjunto">
     <div class="texto marca"><img class="logo" src="../../../../src/assets/images/logo/logo-piuma-terracota.webp" alt="Piuma · Ropa de cama"></div>
     <div class="texto frase">
       <p class="titular">Muy pronto,<em>nuestra nueva web.</em></p>
       <span class="filete"></span>
       <p class="usuario">@piuma_uy</p>
+    </div>
     </div>
   </section>
 </main>
@@ -80,7 +85,7 @@
 <script>
   // Línea de tiempo determinista: render(t) deja el lienzo exacto del segundo t.
   // produccion/render-reel.cjs la llama fotograma a fotograma (30 fps) y pasa las capturas a FFmpeg.
-  const DURACION = 21;
+  const DURACION = 20;
   const FUNDIDO = 0.5;
   const clamp = (x) => Math.min(1, Math.max(0, x));
   const suave = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
@@ -94,17 +99,16 @@
     ['relieve', 4.4, 6.1, (p) => `scale(${1.1 - 0.08 * p})`],
     ['saten', 5.6, 7.3, (p) => `scale(1.08) translateX(${26 - 52 * p}px)`],
     ['desayuno', 6.8, 8.8, (p) => `scale(${1 + 0.06 * p})`],
-    ['revelacion', 8.3, 15.4, null],
-    ['cierre', 14.9, DURACION + 1, null],
+    ['revelacion', 8.3, 14.6, null],
+    ['cierre', 14.1, DURACION + 1, null],
   ];
 
   // Desplazamiento de la captura (px CSS de la página real, viewport 390): inicio bajo el encabezado → catálogo.
-  // Nunca se pasa de 1050 para no mostrar el rótulo «Tienda de prueba», fijo al pie de la captura.
+  // Termina en 880: «Catálogo · Nuestra colección» con aire arriba y las cuatro primeras categorías enteras.
+  // La pantalla muestra ~810 px de página, así que nunca llega al rótulo «Tienda de prueba» (~1900).
   function scrollWeb(t) {
-    const a = 69, b = 835, c = 1000;
-    if (t < 10.2) return a;
-    if (t < 12.7) return a + (b - a) * tramo(t, 10.2, 12.7);
-    return b + (c - b) * tramo(t, 13.4, 15.4);
+    const a = 69, b = 880;
+    return a + (b - a) * tramo(t, 10.0, 12.4);
   }
 
   window.render = function (t) {
@@ -122,9 +126,15 @@
       el.style.opacity = p;
       el.style.transform = `translateY(${(1 - p) * 16}px)`;
     };
-    entrada('#revelacion .texto', 8.7);
-    entrada('#cierre .marca', 15.2);
-    entrada('#cierre .frase', 15.6);
+    entrada('#revelacion .texto', 8.6);
+    entrada('#revelacion .telefono', 8.9);
+    entrada('#cierre .marca', 14.4);
+    entrada('#cierre .frase', 14.8);
+    // El texto de apertura se va antes que su foto, para que no quede fantasma sobre el plano siguiente
+    $('#apertura .texto').style.opacity = 1 - tramo(t, 2.8, 3.3);
+    // Movimientos lentos para que los planos fijos no queden muertos (el reel se repite en bucle)
+    $('#revelacion .telefono').style.transform += ` scale(${1 + 0.02 * clamp((t - 8.9) / 5.7)})`;
+    $('#cierre .conjunto').style.transform = `scale(${1 + 0.03 * clamp((t - 14.1) / (DURACION - 14.1))})`;
 
     const pantalla = $('#revelacion .pantalla');
     const k = pantalla.clientWidth / 390;

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Arma preview-campana.jpg: los dos posts, la portada y seis fotogramas del reel en una sola imagen.
+# Arma preview-campana.jpg: los dos posts, la portada y nueve fotogramas del reel en una sola imagen.
 # Requiere que ya existan los PNG y el MP4 (ver README). Los fotogramas se extraen a un directorio temporal.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
-TIEMPOS=(0.5 3.9 5.0 6.5 7.9 9.6 12.6 14.4 18.5)
+TIEMPOS=(0.5 3.9 5.0 6.5 7.9 9.6 11.2 13.5 18.5)
 i=0
 for t in "${TIEMPOS[@]}"; do
   ffmpeg -v error -y -ss "$t" -i reel-proximamente-web.mp4 -frames:v 1 -vf scale=270:480 "$TMP/f$i.png"; i=$((i+1))

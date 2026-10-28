@@ -25,7 +25,7 @@ Estamos preparando un nuevo espacio para Piuma.
 
 Una web para recorrer con calma toda nuestra colección (acolchados, fundas nórdicas, sábanas, cubrecamas y almohadas) con sus medidas y colores, a tu ritmo.
 
-Le estamos dando las últimas puntadas. Muy pronto, nuestra nueva web.
+La estamos terminando de coser. Muy pronto, nuestra nueva web.
 
 Mientras tanto, seguimos acá y por WhatsApp para lo que necesites.
 

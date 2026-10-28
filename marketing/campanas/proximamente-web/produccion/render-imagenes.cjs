@@ -1,7 +1,7 @@
 // Renderiza las piezas fijas (posts, portada del reel) desde fuentes/*.html con Chromium.
 // Espera fuentes e imágenes antes de cada captura. Uso: node render-imagenes.cjs [pieza...]
 const path = require('node:path');
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE ? path.resolve(process.env.PLAYWRIGHT_MODULE) : 'playwright');
 const { listo } = require('./listo.cjs');
 
 const RAIZ = path.join(__dirname, '..');

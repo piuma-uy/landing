@@ -4,7 +4,7 @@
 //      node render-reel.cjs --cuadros 0,3.5  → PNG sueltos en el directorio actual (revisión rápida)
 const path = require('node:path');
 const { spawn } = require('node:child_process');
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE ? path.resolve(process.env.PLAYWRIGHT_MODULE) : 'playwright');
 const { listo } = require('./listo.cjs');
 
 const RAIZ = path.join(__dirname, '..');

@@ -4,7 +4,7 @@
 // botón flotante, sin precios, sin encabezado con carrito) se hace después, en la composición.
 // Uso: node capturar-web.cjs [url]   (ver README: hace falta el paquete playwright)
 const path = require('node:path');
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE ? path.resolve(process.env.PLAYWRIGHT_MODULE) : 'playwright');
 
 const URL = process.argv[2] || 'https://d1tm58a521hftd.cloudfront.net/';
 const OUT = path.join(__dirname, '..', 'fuentes', 'capturas');
