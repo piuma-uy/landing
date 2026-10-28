@@ -23,6 +23,7 @@ import {
 } from "./product-extras";
 import { CommerceService } from "../../../commerce/commerce.service";
 import { swatchFor } from "../../../core/color-swatches";
+import { PHOTO_SIZES, photoSrcset } from "../../../core/photos";
 import { policyTeaser } from "../../../core/shipping-policy";
 import {
   colorSoldOut,
@@ -46,6 +47,8 @@ import {
   styleUrl: "./product-detail.component.scss",
 })
 export class ProductDetailComponent {
+  readonly photoSrcset = photoSrcset;
+  readonly photoSizes = PHOTO_SIZES;
   readonly shop = inject(CommerceService);
   readonly sku = computed(
     () => this.variant().skuByColor?.[this.activeColor()],

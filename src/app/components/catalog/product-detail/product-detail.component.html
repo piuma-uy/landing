@@ -8,6 +8,8 @@
       <div class="detail__photo">
         <img
           [src]="displayedPhoto().src"
+          [attr.srcset]="photoSrcset(displayedPhoto().src)"
+          [attr.sizes]="photoSizes.detail"
           [alt]="displayedPhoto().alt"
           width="800"
           height="1000"
@@ -40,6 +42,8 @@
               >
                 <img
                   [src]="photo.src"
+                  [attr.srcset]="photoSrcset(photo.src)"
+                  [attr.sizes]="photoSizes.thumb"
                   [alt]="photo.alt"
                   loading="lazy"
                   width="800"

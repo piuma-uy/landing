@@ -41,7 +41,15 @@
                     class="type-card__media"
                     [style.view-transition-name]="type.id === morphId() ? 'piuma-foto' : null"
                   >
-                    <img [src]="type.image" [alt]="type.alt" loading="lazy" width="800" height="1000" />
+                    <img
+                      [src]="type.image"
+                      [attr.srcset]="photoSrcset(type.image)"
+                      [attr.sizes]="photoSizes.card"
+                      [alt]="type.alt"
+                      loading="lazy"
+                      width="800"
+                      height="1000"
+                    />
                   </span>
                   <span class="type-card__body">
                     <span class="type-card__name">{{ type.name }}</span>
@@ -70,6 +78,8 @@
                 <span class="category-card__media">
                   <img
                     [src]="category.image"
+                    [attr.srcset]="photoSrcset(category.image)"
+                    [attr.sizes]="photoSizes.card"
                     [alt]="category.alt"
                     loading="lazy"
                     width="800"

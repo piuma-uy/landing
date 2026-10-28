@@ -12,6 +12,8 @@
   background-color: rgba(251, 248, 244, 0.92);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid transparent;
+  // Como app instalada en iOS la barra de estado se superpone: el encabezado baja lo que ocupa.
+  padding-top: env(safe-area-inset-top, 0px);
   transition:
     border-color var(--transition),
     box-shadow var(--transition);
@@ -50,6 +52,7 @@
 
 .header__toggle {
   position: relative;
+  flex-shrink: 0;
   width: 44px;
   height: 44px;
   background: none;
@@ -107,17 +110,27 @@
   }
 }
 
+// Teléfono en horizontal o letra grande: el menú abierto puede ser más alto que la pantalla y el
+// encabezado es fijo, así que se desplaza dentro de sí mismo.
+@mixin menu-scroll {
+  max-height: calc(100dvh - var(--header-height) - env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .nav {
   display: none;
 
   &--open {
     display: block;
     position: absolute;
-    inset: var(--header-height) 0 auto;
+    inset: 100% 0 auto;
     background-color: var(--color-bg);
     border-bottom: 1px solid var(--color-border);
-    padding: var(--space-sm) var(--space-sm) var(--space-md);
+    padding: var(--space-sm) inline-safe(var(--space-sm), right) var(--space-md)
+      inline-safe(var(--space-sm), left);
     box-shadow: var(--shadow-md);
+    @include menu-scroll;
   }
 
   @include from(v.$bp-md) {
@@ -275,8 +288,9 @@
   .header--commerce .nav {
     display: none;
     position: absolute;
-    inset: var(--header-height) 0 auto;
-    padding: 1rem 1.5rem;
+    inset: 100% 0 auto;
+    padding: 1rem inline-safe(1.5rem, right) 1rem inline-safe(1.5rem, left);
+    @include menu-scroll;
     background: var(--color-bg);
     box-shadow: var(--shadow-md);
   }

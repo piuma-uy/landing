@@ -12,6 +12,7 @@ import { MAX_UNITS } from "../cart";
 import { WhatsappService } from "../../services/whatsapp.service";
 import { WhatsappIconComponent } from "../../shared/whatsapp-icon/whatsapp-icon.component";
 import { orderProgress } from "../order-progress";
+import { PHOTO_SIZES, photoSrcset } from "../../core/photos";
 
 /**
  * Líneas del carrito (T69) en el resumen del checkout (T72): foto, producto y su total; debajo la
@@ -25,7 +26,14 @@ import { orderProgress } from "../order-progress";
     @for (line of shop.cartRows(); track line.sku) {
       <article class="line">
         @if (line.product; as p) {
-          <img [src]="p.image" alt="" width="56" height="70" />
+          <img
+            [src]="p.image"
+            [attr.srcset]="photoSrcset(p.image)"
+            [attr.sizes]="thumb"
+            alt=""
+            width="56"
+            height="70"
+          />
           <div>
             <h3>{{ p.name }}</h3>
             <p class="muted">{{ p.size }} · {{ p.color }}</p>
@@ -84,6 +92,8 @@ import { orderProgress } from "../order-progress";
   styleUrl: "./cart-lines.component.scss",
 })
 export class CartLinesComponent {
+  readonly photoSrcset = photoSrcset;
+  readonly thumb = PHOTO_SIZES.thumb;
   readonly shop = inject(CommerceService);
   /** "+" se frena en el stock y en el máximo por variante que aplica el API. */
   canAdd({ quantity, product }: { quantity: number; product?: Product }) {
@@ -209,7 +219,15 @@ export class OrderProgressComponent {
       @for (line of order().items; track line.sku) {
         <li>
           @if (imageOf(line.sku); as src) {
-            <img [src]="src" alt="" width="48" height="60" loading="lazy" />
+            <img
+              [src]="src"
+              [attr.srcset]="photoSrcset(src)"
+              [attr.sizes]="thumb"
+              alt=""
+              width="48"
+              height="60"
+              loading="lazy"
+            />
           }
           <span class="name"
             >{{ line.quantity }} × {{ line.name }} · {{ line.size }} ·
@@ -253,6 +271,8 @@ export class OrderProgressComponent {
   `,
 })
 export class OrderLinesComponent {
+  readonly photoSrcset = photoSrcset;
+  readonly thumb = PHOTO_SIZES.thumb;
   readonly shop = inject(CommerceService);
   readonly order = input.required<Order>();
   /** Foto de un SKU que sigue en el catálogo. */
@@ -308,7 +328,14 @@ export class ReceiptThanksComponent {
       @for (line of order().items; track line.sku) {
         <li>
           @if (imageOf(line.sku); as src) {
-            <img [src]="src" alt="" width="48" height="60" />
+            <img
+              [src]="src"
+              [attr.srcset]="photoSrcset(src)"
+              [attr.sizes]="thumb"
+              alt=""
+              width="48"
+              height="60"
+            />
           }
           <span class="items__name"
             >{{ line.quantity }} × {{ line.name }}
@@ -329,6 +356,8 @@ export class ReceiptThanksComponent {
   styleUrl: "./receipt.component.scss",
 })
 export class ReceiptNextComponent {
+  readonly photoSrcset = photoSrcset;
+  readonly thumb = PHOTO_SIZES.thumb;
   readonly shop = inject(CommerceService);
   private readonly whatsapp = inject(WhatsappService);
   readonly order = input.required<Order>();

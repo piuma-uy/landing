@@ -25,6 +25,7 @@ import {
 import { type Address, addressMismatch, shippingCost } from "../shipping";
 import { phoneDisplay } from "../transfer";
 import { scrollBehavior } from "../screen";
+import { PHOTO_SIZES, photoSrcset } from "../../core/photos";
 import { DeliveryComponent } from "../delivery/delivery.component";
 import { CartLinesComponent } from "../order-extras/order-extras";
 import { PhoneFieldComponent } from "../phone-field/phone-field.component";
@@ -52,6 +53,8 @@ const DESKTOP = 1024;
   styleUrl: "./checkout.component.scss",
 })
 export class CheckoutComponent {
+  readonly photoSrcset = photoSrcset;
+  readonly thumbSizes = PHOTO_SIZES.thumb;
   readonly shop = inject(CommerceService);
   /** The checkout's address, kept by the page while the buyer visits /envios/. */
   readonly address = input.required<Address>();

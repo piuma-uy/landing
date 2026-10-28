@@ -6,17 +6,20 @@
   }
 }
 
+// Margen lateral que respeta el recorte de pantalla del teléfono en horizontal (safe-area, con
+// viewport-fit=cover en index.html); en vertical y en desktop env() vale 0 y queda el margen de siempre.
+@function inline-safe($space, $side) {
+  @return max(#{$space}, env(safe-area-inset-#{$side}, 0px));
+}
+
 @mixin container {
   width: 100%;
   max-width: var(--container-max);
   margin-inline: auto;
-  // viewport-fit=cover (T72): a phone on its side keeps the content clear of the notch.
-  padding-inline: max(var(--space-sm), env(safe-area-inset-left, 0px))
-    max(var(--space-sm), env(safe-area-inset-right, 0px));
+  padding-inline: inline-safe(var(--space-sm), left) inline-safe(var(--space-sm), right);
 
   @include from(v.$bp-md) {
-    padding-inline: max(var(--space-lg), env(safe-area-inset-left, 0px))
-      max(var(--space-lg), env(safe-area-inset-right, 0px));
+    padding-inline: inline-safe(var(--space-lg), left) inline-safe(var(--space-lg), right);
   }
 }
 

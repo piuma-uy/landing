@@ -74,6 +74,8 @@
 }
 .step__head {
   display: flex;
+  // Con letra grande "Editar entrega" baja debajo del título en vez de ensanchar el paso (T78).
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
   min-height: 44px;
@@ -100,8 +102,11 @@
   color: var(--color-primary-dark);
 }
 .step__title {
-  flex: 1;
+  // Ancho de su texto (no 0): así "Editar" pasa a la línea siguiente cuando no entran juntos.
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
+  hyphens: auto;
   font-size: 1.2rem;
 }
 .step__title:focus {
@@ -109,6 +114,7 @@
 }
 .step__edit {
   min-height: 44px;
+  margin-left: auto;
   padding: 0 0.25rem;
   border: 0;
   background: none;
@@ -170,6 +176,9 @@ input.ng-invalid.ng-touched {
 // Each option its own card, 14px apart: the boxes never touch.
 .pay-options {
   display: grid;
+  // minmax(0, …) y guiones: "Transferencia" con letra grande no ensancha el paso (T78).
+  grid-template-columns: minmax(0, 1fr);
+  hyphens: auto;
   gap: 0.875rem;
   margin: 0 0 1.25rem;
   padding: 0;
@@ -367,8 +376,10 @@ app-cart-lines {
   inset: auto 0 0;
   z-index: 95;
   display: flex;
+  // Con letra grande el botón baja debajo del total en vez de salirse de la pantalla (T78).
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs) var(--space-sm);
   // Tablet: the bar's content as wide as the checkout column (640px), centered.
   padding: 0.75rem
     max(
@@ -426,7 +437,7 @@ app-cart-lines {
   }
 }
 .checkout-bar__cta {
-  flex: 1;
+  flex: 1 1 10rem;
   min-height: 48px;
   font-size: 1rem;
   font-weight: 600;
