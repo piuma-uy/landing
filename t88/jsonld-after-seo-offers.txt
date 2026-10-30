@@ -1,0 +1,40 @@
+404.html [] OK
+cambios-y-devoluciones/index.html [OnlineStore, WebSite, WebPage, BreadcrumbList] OK
+catalogo/acolchados/acolchado-pluma-natural/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x6)
+catalogo/acolchados/acolchado-pluma-sintetica/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x5)
+catalogo/acolchados/index.html [OnlineStore, WebSite, CollectionPage, BreadcrumbList] OK
+catalogo/acolchados/relleno-nordico-polyester/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x2)
+catalogo/almohadas/almohada-pluma/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x2)
+catalogo/almohadas/funda-almohada/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x2)
+catalogo/almohadas/index.html [OnlineStore, WebSite, CollectionPage, BreadcrumbList] OK
+catalogo/cubrecamas/cubrecama-charo/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x4)
+catalogo/cubrecamas/cubrecama-chiara/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x3)
+catalogo/cubrecamas/cubrecama-petra/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x5)
+  ERROR Required attribute "image" is missing (x2)
+catalogo/cubrecamas/index.html [OnlineStore, WebSite, CollectionPage, BreadcrumbList] OK
+catalogo/fundas-nordicas/funda-nordica-downproof/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x6)
+catalogo/fundas-nordicas/funda-nordica-lino/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x4)
+catalogo/fundas-nordicas/funda-nordica-saten/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x12)
+catalogo/fundas-nordicas/index.html [OnlineStore, WebSite, CollectionPage, BreadcrumbList] OK
+catalogo/sabanas/index.html [OnlineStore, WebSite, CollectionPage, BreadcrumbList] OK
+catalogo/sabanas/sabanas-percal/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x6)
+catalogo/sabanas/sabanas-saten/index.html [OnlineStore, WebSite, ItemPage, ProductGroup, BreadcrumbList]
+  WARNING Missing one of field "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "isbn" on either product or all offers (x10)
+envios/index.html [OnlineStore, WebSite, FAQPage, BreadcrumbList] OK
+index.html [OnlineStore, WebSite, WebPage] OK
+privacidad/index.html [OnlineStore, WebSite, WebPage, BreadcrumbList] OK
+terminos/index.html [OnlineStore, WebSite, WebPage, BreadcrumbList] OK
+
+24 páginas, 2 errores
