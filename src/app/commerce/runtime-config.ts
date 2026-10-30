@@ -3,10 +3,10 @@
 // off instead of half on: anything unexpected turns commerce off and keeps the landing.
 import type { CognitoConfig } from "./cognito";
 
-export interface AnalyticsConfig {
-  provider: "umami";
-  hostUrl: string;
-  websiteId: string;
+/** PostHog Cloud (T97): ingestion host and the project's public API key (phc_…, not a secret). */
+export interface PosthogConfig {
+  host: string;
+  key: string;
 }
 
 export interface RuntimeConfig {
@@ -15,8 +15,8 @@ export interface RuntimeConfig {
   /** "cookie" (default) talks to the local Docker API; "cognito" to AWS. */
   auth?: "cookie" | "cognito";
   cognito?: CognitoConfig;
-  /** Analytics sin cookies (ver AnalyticsService); sin esta clave no se envía nada. */
-  analytics?: AnalyticsConfig;
+  /** Uso y errores sin cookies (ver AnalyticsService); sin esta clave no se envía nada. */
+  posthog?: PosthogConfig;
   /** Shows "Tienda de prueba · Sin cobros"; only for stores that never charge (FE-10). */
   testMode?: boolean;
   /**
@@ -59,17 +59,16 @@ function https(value: unknown) {
 const text = (value: unknown) =>
   typeof value === "string" && value.trim() !== "";
 
-function analyticsOf(raw: unknown): AnalyticsConfig | undefined {
+function posthogOf(raw: unknown): PosthogConfig | undefined {
   if (!raw || typeof raw !== "object") return undefined;
-  const a = raw as Record<string, unknown>;
-  return a["provider"] === "umami" &&
-    https(a["hostUrl"]) &&
-    text(a["websiteId"])
-    ? {
-        provider: "umami",
-        hostUrl: a["hostUrl"] as string,
-        websiteId: a["websiteId"] as string,
-      }
+  const p = raw as Record<string, unknown>;
+  const host = url(p["host"]);
+  // Only the origin: events go to <host>/batch/, and the CSP lists origins (frontend_connect_src).
+  return host?.protocol === "https:" &&
+    host.origin === String(p["host"]).replace(/\/+$/, "") &&
+    typeof p["key"] === "string" &&
+    /^phc_[A-Za-z0-9]{20,80}$/.test(p["key"])
+    ? { host: host.origin, key: p["key"] }
     : undefined;
 }
 
@@ -102,7 +101,7 @@ function commerceProblem(c: Record<string, unknown>): string | null {
 
 /**
  * The config the app boots with. Commerce is on only with `commerceEnabled: true` and a
- * coherent API/auth pair; otherwise it stays off (analytics, if valid, still works).
+ * coherent API/auth pair; otherwise it stays off (PostHog, if valid, still works).
  */
 export function parseRuntimeConfig(
   raw: unknown,
@@ -113,10 +112,10 @@ export function parseRuntimeConfig(
     return { ...COMMERCE_OFF };
   }
   const c = raw as Record<string, unknown>;
-  const analytics = analyticsOf(c["analytics"]);
+  const posthog = posthogOf(c["posthog"]);
   const off: RuntimeConfig = {
     ...COMMERCE_OFF,
-    ...(analytics && { analytics }),
+    ...(posthog && { posthog }),
   };
   if (c["commerceEnabled"] !== true) return off;
   const problem = commerceProblem(c);
@@ -130,7 +129,7 @@ export function parseRuntimeConfig(
     auth: c["auth"] === "cognito" ? "cognito" : "cookie",
     testMode: c["testMode"] === true,
     ...(c["whatsappAlerts"] === true && { whatsappAlerts: true }),
-    ...(analytics && { analytics }),
+    ...(posthog && { posthog }),
   };
   if (config.auth === "cognito") {
     const cognito = c["cognito"] as Record<string, unknown>;

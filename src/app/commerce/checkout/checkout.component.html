@@ -114,7 +114,7 @@
                     name="payWith"
                     value="card"
                     [checked]="shop.payWith() === 'card'"
-                    (change)="shop.payWith.set('card')"
+                    (change)="shop.choosePayment('card')"
                   />
                   <span
                     >Tarjeta con Mercado Pago<small
@@ -131,7 +131,7 @@
                     name="payWith"
                     value="transfer"
                     [checked]="shop.payWith() === 'transfer'"
-                    (change)="shop.payWith.set('transfer')"
+                    (change)="shop.choosePayment('transfer')"
                   />
                   <span
                     >Transferencia bancaria<small

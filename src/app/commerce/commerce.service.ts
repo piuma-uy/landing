@@ -599,9 +599,16 @@ export class CommerceService {
         () => {},
       );
     try {
-      await pollOrder(() => this.cards.order<Order>(current.orderId), {
-        onUpdate: (order) => set({ order }),
+      const order = await pollOrder(
+        () => this.cards.order<Order>(current.orderId),
+        { onUpdate: (order) => set({ order }) },
+      );
+      // What the API says after the polls (the webhook settled it, or not yet), never the URL.
+      this.analytics.event("payment_return", {
+        state: paymentState(order),
       });
+      if (paymentState(order) === "paid")
+        this.analytics.event("payment_approved", { payment_method: "card" });
     } catch (e) {
       if (!(e instanceof ApiError)) devLog(e);
       this.error.set(
@@ -622,7 +629,7 @@ export class CommerceService {
       this.config.apiBaseUrl,
     );
     if (!url) throw new Error("No pudimos abrir el pago. Probá de nuevo.");
-    this.analytics.event("pago_tarjeta", {});
+    this.analytics.event("mercadopago_opened");
     location.assign(url);
   }
   async payWithCard(order: Order) {
@@ -803,13 +810,19 @@ export class CommerceService {
     await this.run(async () => {
       await this.saveCart(addUnit(this.cart(), this.products(), sku));
       this.notice.set("Producto agregado al carrito");
-      this.analytics.event("carrito", { sku });
+      this.analytics.event("add_to_cart", { sku });
     });
   }
   async quantity(sku: string, value: number) {
     await this.run(async () => {
       await this.saveCart(setQuantity(this.cart(), sku, value));
     });
+  }
+  /** The buyer picks how to pay in the checkout's payment step. */
+  choosePayment(method: "card" | "transfer") {
+    if (this.payWith() === method) return;
+    this.payWith.set(method);
+    this.analytics.event("payment_method_selected", { payment_method: method });
   }
   async review() {
     await this.run(async () => {
@@ -823,7 +836,7 @@ export class CommerceService {
       this.paymentMethods.set(methods);
       this.payWith.set(payWithDefault(methods));
       this.quote.set(await this.priceChoice(options));
-      this.analytics.event("checkout", { items: this.cartCount() });
+      this.analytics.event("checkout_started", { items: this.cartCount() });
     });
   }
   /** Pickup or another zone: the API prices it again; the browser never adds shipping. */
@@ -936,6 +949,11 @@ export class CommerceService {
       }
       // Created: a later purchase of the same cart is a new order, never a replay of this one.
       this.attempts.end();
+      this.analytics.event("order_created", {
+        payment_method: order.paymentMethod,
+        fulfillment: shipTo.method,
+        items: payload.items.reduce((n, l) => n + l.quantity, 0),
+      });
       // A card order goes straight to Mercado Pago from the button the buyer pressed: no
       // receipt asking to pay shows in between (it showed, then the tab left by itself).
       const card =
