@@ -87,7 +87,7 @@
 }
 
 // --- Tarjetas ---------------------------------------------------
-// Son <button>, así que hay que apagar los estilos nativos.
+// Son enlaces a la página de cada categoría o producto (T88): bloque, sin subrayado.
 
 .category-card,
 .type-card {
@@ -101,6 +101,8 @@
   overflow: hidden;
   cursor: pointer;
   font-family: var(--font-body);
+  // El interlineado que tenían como <button>: el del body (1.65) agrandaría las tarjetas.
+  line-height: normal;
   color: var(--color-text);
   transition: transform var(--transition), box-shadow var(--transition);
 

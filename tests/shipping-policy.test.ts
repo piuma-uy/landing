@@ -2,10 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   FALLBACK_POLICY,
+  freeDepartments,
+  freeShippingLine,
   isShippingPath,
   policyDescription,
   policySections,
   policyTeaser,
+  policyTitle,
   shippingPolicy,
 } from "../src/app/core/shipping-policy.ts";
 import type { ShippingOptions } from "../src/app/commerce/shipping.ts";
@@ -113,4 +116,18 @@ test("the /envios/ description names the first free zones and stays short (T91)"
     policyDescription({ ...FALLBACK_POLICY, freeZones: ["Pocitos", "Centro"] }),
     "Envío gratis en Pocitos y Centro, llega en 24 a 72 h. Resto del país, a coordinar por WhatsApp.",
   );
+});
+
+test("free departments name the /envios/ title and the descriptions (T88)", () => {
+  assert.deepEqual(freeDepartments(FALLBACK_POLICY), ["Montevideo", "Canelones"]);
+  assert.equal(
+    policyTitle(FALLBACK_POLICY, "Piuma"),
+    "Envío gratis en zonas de Montevideo y Canelones | Piuma",
+  );
+  assert.equal(freeShippingLine(FALLBACK_POLICY), "Envío gratis en zonas de Montevideo y Canelones.");
+  // Zones without a department, or none free: no promise the policy does not make.
+  const plain = { ...FALLBACK_POLICY, freeAreas: ["Pocitos"], freeZones: ["Pocitos"] };
+  assert.equal(policyTitle(plain, "Piuma"), "Envíos y entregas | Piuma");
+  assert.equal(freeShippingLine(plain), "Envío gratis en Pocitos.");
+  assert.equal(freeShippingLine({ ...plain, freeAreas: [], freeZones: [] }), "");
 });

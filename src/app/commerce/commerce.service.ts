@@ -235,6 +235,13 @@ export class CommerceService {
   readonly view = signal<View>("shop");
   /** /envios/ (shipping policy) instead of the home sections; same document, no reload (T68). */
   readonly shippingPage = signal(isShippingPath(location.pathname));
+  /**
+   * The page came from 404.html (CloudFront serves it, with status 404, for unknown paths): it
+   * carries noindex and shows "No encontramos esta página" until another section is opened (T88).
+   */
+  readonly notFound = signal(
+    !!document.querySelector('meta[name="robots"][content="noindex"]'),
+  );
   /** Privacy, terms or returns page instead of the home sections, like /envios/ (T89). */
   readonly legalPage = signal<LegalId | null>(legalIdFor(location.pathname));
   /**
@@ -702,6 +709,7 @@ export class CommerceService {
       history.replaceState(history.state, "", "/" + location.search);
     this.shippingPage.set(false);
     this.legalPage.set(null);
+    this.notFound.set(false);
     this.view.set("shop");
     requestAnimationFrame(() =>
       document.getElementById(fragment)?.scrollIntoView({ behavior: "smooth" }),
@@ -715,6 +723,7 @@ export class CommerceService {
       this.legalPage.set(null);
     }
     this.view.set(view);
+    this.notFound.set(false);
     this.error.set("");
     this.notice.set("");
     this.toTop();
@@ -1322,6 +1331,7 @@ export class CommerceService {
         this.shippingFrom.set(this.view() === "shop" ? null : this.view());
       history.pushState(null, "", path + location.search);
     }
+    this.notFound.set(false);
     this.view.set("shop");
     window.scrollTo({ top: 0 });
     return true;

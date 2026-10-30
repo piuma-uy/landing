@@ -14,10 +14,12 @@ export const SITE_CONFIG = {
   whatsappNumber: '59891345454',
 
   email: 'distrifotosrl@gmail.com',
-  instagramUrl: 'https://instagram.com/piuma_uy',
-  // TODO: URL inventada — el catálogo sólo menciona Instagram. Confirmar si Piuma tiene
-  // Facebook; si no, sacar 'facebook' de los [networks] en contact y footer.
-  facebookUrl: 'https://facebook.com/piuma',
+  instagramUrl: 'https://www.instagram.com/piuma_uy/',
+  /**
+   * Linktree de Piuma: va en el sameAs de los datos estructurados y en llms.txt (T88). Facebook se
+   * sacó del sitio: la URL era inventada y apuntaba a otra cuenta.
+   */
+  linktreeUrl: 'https://linktr.ee/piuma_uy',
 
   city: 'Barra de Carrasco, Montevideo, Uruguay',
 } as const;

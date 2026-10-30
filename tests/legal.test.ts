@@ -88,7 +88,8 @@ test("cada página legal prerenderizada: meta propia, breadcrumb, enlazada desde
     assert.ok(doc.description.length <= 156, doc.description);
     assert.ok(!/name="robots"/.test(html), "indexable");
     const graph = JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)![1])["@graph"];
-    assert.deepEqual(graph[1].itemListElement[1], {
+    const trail = graph.find((n: { "@type": string }) => n["@type"] === "BreadcrumbList");
+    assert.deepEqual(trail.itemListElement[1], {
       "@type": "ListItem",
       position: 2,
       name: doc.title,

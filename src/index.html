@@ -1,29 +1,33 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-UY">
   <head>
     <meta charset="utf-8" />
     <base href="/" />
-    <title>Piuma — Ropa de cama de calidad | Sábanas, fundas y cubrecamas</title>
+    <title>Piuma | Ropa de cama en Uruguay: sábanas y acolchados</title>
     <!-- viewport-fit=cover: sin él env(safe-area-inset-*) vale 0 en Safari iOS. Sin interactive-widget:
          la barra del checkout (T72) detecta el teclado porque achica sólo el viewport visual. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       name="description"
-      content="Piuma: ropa de cama pensada para el descanso. Sábanas, fundas nórdicas, almohadas y cubrecamas en algodón y lino de calidad. Consultá por WhatsApp."
+      content="Sábanas, acolchados, fundas nórdicas, cubrecamas y almohadas de algodón, pluma y lino. Envío gratis en zonas de Montevideo y Canelones."
     />
     <meta name="theme-color" content="#faf7f2" />
     <!-- Sólo hay paleta clara: que el modo oscuro del sistema no oscurezca la página por su cuenta. -->
     <meta name="color-scheme" content="only light" />
 
-    <!-- Open Graph / redes sociales. Reemplazar og:image y og:url al tener dominio propio. -->
+    <!-- Open Graph / redes sociales. scripts/prerender.ts pone en cada página su título, descripción,
+         imagen de 1200x630 con URL absoluta (SITE_URL), og:url, canonical, hreflang y Twitter. -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Piuma — Ropa de cama de calidad" />
+    <meta property="og:title" content="Piuma | Ropa de cama en Uruguay: sábanas y acolchados" />
     <meta
       property="og:description"
-      content="Sábanas, fundas nórdicas, almohadas y cubrecamas en textiles naturales. Confort y diseño para tu descanso."
+      content="Sábanas, acolchados, fundas nórdicas, cubrecamas y almohadas de algodón, pluma y lino. Envío gratis en zonas de Montevideo y Canelones."
     />
-    <meta property="og:image" content="assets/images/hero-piuma.webp" />
+    <meta property="og:image" content="assets/images/og/inicio.jpg" />
     <meta property="og:locale" content="es_UY" />
+
+    <!-- main.ts lo lee antes de arrancar: pedirlo ya, en paralelo con los scripts (LCP). -->
+    <link rel="preload" href="runtime-config.json" as="fetch" crossorigin />
 
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 
