@@ -31,7 +31,8 @@ function setup(config: Record<string, unknown> = {}) {
     {
       fetch: (async (url: string, init: RequestInit) => {
         calls.push({ url, body: init.body as URLSearchParams });
-        const next = responses.shift();
+        // A pushed promise keeps the request in flight until the test settles it.
+        const next = await responses.shift();
         if (next instanceof Error) throw next;
         return new Response(JSON.stringify(next ?? {}), {
           status: next ? 200 : 400,
@@ -278,6 +279,33 @@ test("failed refresh ends the session", async () => {
   assert.equal(s.auth.user, null);
   assert.equal(await s.auth.getAccessToken(), "");
   assert.equal(s.store.has("piuma-session"), false);
+});
+
+test("a refresh in flight during logout does not bring the session back (T87-03)", async () => {
+  const s = setup();
+  await login(s);
+  let answer!: (r: unknown) => void;
+  s.responses.push(new Promise((r) => (answer = r)));
+  const renewing = s.auth.refresh();
+  s.responses.push({ ok: true });
+  await s.auth.logout();
+  answer({ access_token: "access-2", expires_in: 900 });
+  assert.equal(await renewing, false);
+  assert.equal(s.auth.user, null);
+  assert.equal(await s.auth.getAccessToken(), "");
+  assert.equal(s.store.has("piuma-session"), false);
+  // A stale refresh that fails leaves the session signed in after it alone.
+  await login(s);
+  s.responses.push(new Promise((r) => (answer = r)));
+  const stale = s.auth.refresh();
+  s.auth.clear();
+  await login(s);
+  answer(null);
+  assert.equal(await stale, false);
+  // Read again: the assertion above narrowed the getter to null.
+  assert.equal((s.auth as CognitoAuth).user?.email, "ana@example.com");
+  assert.equal(await s.auth.getAccessToken(), "access-1");
+  assert.equal(JSON.parse(s.store.get("piuma-session")!).refreshToken, "refresh-1");
 });
 
 test("hosted UI: the refresh token alone stays in the tab and renews after a reload (T61b)", async () => {

@@ -279,6 +279,8 @@ export class CognitoAuth {
   private refreshToken = "";
   private expiresAt = 0;
   private refreshing: Promise<boolean> | null = null;
+  /** Bumped by clear(): a refresh started before "Salir" must not bring the session back (T87-03). */
+  private generation = 0;
   private profile: CognitoUser | null = null;
   /** Where the session came from: the refresh and the logout differ. */
   private source: "forms" | "hosted" = "hosted";
@@ -427,6 +429,35 @@ export class CognitoAuth {
     });
   }
 
+  /**
+   * GlobalSignOut: revokes every refresh and access token of the user, this tab's included.
+   * Cognito keeps renewing sessions from before a password change or a TOTP enrollment
+   * (validated in dev, T87-04 and T87-NV-MFA), so both end them here.
+   */
+  async signOutEverywhere() {
+    await this.idp("GlobalSignOut", { AccessToken: await this.getAccessToken() });
+    this.clear();
+  }
+
+  /**
+   * Sign-in after a password reset that ends every other session first. The sign-out also
+   * revokes this sign-in, so it signs in once more. A failed sign-out keeps the first
+   * session, and a step after the password (TOTP) skips it.
+   */
+  async signInEndingOtherSessions(
+    email: string,
+    password: string,
+  ): Promise<SignInResult> {
+    const first = await this.signIn(email, password);
+    if (!("user" in first)) return first;
+    try {
+      await this.signOutEverywhere();
+    } catch {
+      return first;
+    }
+    return this.signIn(email, password);
+  }
+
   /** Builds the hosted UI URL and stores the attempt; the caller navigates to it. */
   async authorizeUrl(
     options: { signup?: boolean; provider?: string } = {},
@@ -533,18 +564,24 @@ export class CognitoAuth {
             client_id: this.config.clientId,
             refresh_token: this.refreshToken,
           });
-    this.refreshing = renewed
+    const generation = this.generation;
+    const refreshing: Promise<boolean> = renewed
       .then((tokens) => {
+        if (generation !== this.generation) return false;
         this.accept(tokens);
         this.persist();
         return true;
       })
       .catch(() => {
-        this.clear();
+        // A stale failure must not wipe the session that replaced it.
+        if (generation === this.generation) this.clear();
         return false;
       })
-      .finally(() => (this.refreshing = null));
-    return this.refreshing;
+      .finally(() => {
+        if (this.refreshing === refreshing) this.refreshing = null;
+      });
+    this.refreshing = refreshing;
+    return refreshing;
   }
 
   /**
@@ -582,6 +619,8 @@ export class CognitoAuth {
   }
 
   clear() {
+    this.generation++;
+    this.refreshing = null;
     this.challenge = null;
     this.accessToken = "";
     this.refreshToken = "";

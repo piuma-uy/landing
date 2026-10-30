@@ -1,0 +1,23 @@
+# npm and GitHub Actions updates, grouped so a week's bumps arrive as one PR per kind (T87-07).
+# Security updates are separate and follow the advisories (vite via @angular/build, for example).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      angular:
+        patterns: ["@angular/*"]
+      production:
+        dependency-type: production
+      development:
+        dependency-type: development
