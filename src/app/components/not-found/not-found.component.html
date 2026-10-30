@@ -1,0 +1,33 @@
+<section class="not-found container" aria-labelledby="not-found-title">
+  <span class="eyebrow">Error 404</span>
+  <h1 id="not-found-title">No encontramos esta página</h1>
+  <p class="not-found__lead">
+    Puede que el enlace esté mal escrito o que el producto ya no esté en el catálogo. Elegí una
+    categoría o escribinos por WhatsApp.
+  </p>
+
+  @if (categories().length) {
+    <nav aria-label="Categorías del catálogo">
+      <ul class="not-found__links">
+        @for (category of categories(); track category.id) {
+          <li>
+            <a [href]="catalogPath(category.id)">{{ category.name }}</a>
+          </li>
+        }
+        <li>
+          <a href="/envios/" (click)="shop.showShipping($event)">Envíos</a>
+        </li>
+      </ul>
+    </nav>
+  }
+
+  <div class="not-found__actions">
+    <button type="button" class="btn btn--outline" (click)="shop.section('catalogo')">
+      Ver la colección
+    </button>
+    <a [href]="askLink()" class="btn btn--whatsapp" target="_blank" rel="noopener noreferrer">
+      <app-whatsapp-icon />
+      Escribinos
+    </a>
+  </div>
+</section>

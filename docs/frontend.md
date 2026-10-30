@@ -94,22 +94,26 @@ No hay SSR: el hosting es estático (S3 + CloudFront en AWS; Vercel para la land
 `ng build` y después [`scripts/prerender.ts`](../scripts/prerender.ts), que a partir de `catalog.json` escribe en
 `dist/piuma-landing/browser/`:
 
-- `index.html` y `catalogo/<categoría>/[<producto>/]index.html`: el mismo index del build con title, description,
-  canonical y Open Graph de cada página, datos estructurados JSON-LD (`Store`, `Product` con `AggregateOffer`,
-  `ItemList`, `BreadcrumbList`) y el contenido como HTML semántico dentro de `<app-root>` para crawlers sin JavaScript. Ese
-  HTML se oculta con CSS (sólo se ve en `<noscript>`) y Angular lo reemplaza al arrancar; no se agregan scripts inline
-  (CSP `script-src 'self'`).
-- `envios/index.html`: la política de Piuma (`FALLBACK_POLICY`, sin API en el build) con `Store` y `BreadcrumbList`.
-- `robots.txt` y `sitemap.xml` (con imágenes).
+- `index.html`, `envios/index.html` y `catalogo/<categoría>/[<producto>/]index.html`: el mismo index del build con title
+  (≤ 60) y description (≤ 155) propios, canonical, `hreflang` `es-UY`, Open Graph y Twitter con una imagen de 1200×630 por
+  página, datos estructurados JSON-LD (`OnlineStore`, `WebSite`, la página, `ProductGroup` con sus variantes,
+  `BreadcrumbList`, `FAQPage` en `/envios/`) y el contenido como HTML semántico dentro de `<app-root>` para crawlers y
+  motores de IA sin JavaScript. Ese HTML se oculta con CSS (sólo se ve en `<noscript>`) y Angular lo reemplaza al arrancar;
+  no se agregan scripts inline (CSP `script-src 'self'`; el JSON-LD es un bloque de datos).
+- `404.html`: `noindex`, sin canonical; CloudFront la sirve con estado 404 en cualquier ruta desconocida y la app muestra
+  "No encontramos esta página" con las categorías.
+- `robots.txt` (bloquea `/cuenta`, `/checkout`, `/panel`, `/pago`, `/auth`), `sitemap.xml` (sólo URLs indexables, con
+  imágenes y `lastmod`) y `llms.txt` (marca, catálogo por categoría, envíos y contacto para motores de IA).
 
-El dominio sale de `SITE_URL` al compilar (por defecto `https://piuma.uy`): `SITE_URL=https://piuma-landing.vercel.app npm
-run build`. `<base href="/">` en `index.html` es necesario para que los assets relativos funcionen en las subrutas.
-Cuenta, carrito, pedidos y admin son vistas en la misma URL y llevan `<meta name="robots" content="noindex">` mientras
-están abiertas.
+Títulos, descripciones, imágenes para compartir, datos estructurados, GEO, variables del build y qué hacer al tener el
+dominio real: [`docs/seo.md`](seo.md). `<base href="/">` en `index.html` es necesario para que los assets relativos
+funcionen en las subrutas. Cuenta, carrito, pedidos y admin son vistas en la misma URL y llevan
+`<meta name="robots" content="noindex">` mientras están abiertas.
 
-El hosting tiene que servir `catalogo/.../index.html` en esas rutas: en AWS lo hace la CloudFront Function
-`piuma-backend/infra/functions/spa-routing.js`; Vercel lo hace solo. Un producto que existe sólo en el API (no en
-`catalog.json`) no tiene página: se abre en la landing sin cambiar la URL.
+El hosting tiene que servir `catalogo/.../index.html` y `envios/index.html` en esas rutas y `404.html` con estado 404 en
+las demás: en AWS lo hacen la CloudFront Function `piuma-backend/infra/functions/spa-routing.js` y la página de error de
+la distribución. Un producto que existe sólo en el API (no en `catalog.json`) no tiene página: se abre en la landing sin
+cambiar la URL y su tarjeta enlaza a la categoría.
 
 ## Uso y errores (PostHog, T97)
 
@@ -147,8 +151,11 @@ src/
    ├─ models/catalog.model.ts      Category → ProductType → Variant
    ├─ services/                    catálogo, uso y errores (PostHog) y links wa.me
    ├─ shared/                      íconos y botón flotante de WhatsApp
-   └─ components/                  header, hero, catalog (+ product-detail), about, contact, footer, shipping-policy
-scripts/prerender.ts               páginas del catálogo y /envios/, robots.txt y sitemap.xml
+   └─ components/                  header, hero, catalog (+ product-detail), about, contact, footer, shipping-policy,
+                                   not-found
+scripts/prerender.ts               páginas del catálogo, /envios/ y 404.html, robots.txt, sitemap.xml y llms.txt
+scripts/seo.ts                     metadatos, JSON-LD, respuestas citables y llms.txt (lo usa prerender.ts)
+scripts/og-images.py               imágenes 1200×630 para compartir (src/assets/images/og/)
 tests/                             unitarios node --test (sin Angular)
 ```
 
@@ -162,9 +169,10 @@ sitio salen del catálogo PDF, convertidas a `.webp` en `src/assets/images/`.
   mensajes predefinidos salen de [`core/whatsapp.ts`](../src/app/core/whatsapp.ts).
 - **Imágenes:** hero en `heroImage` de [`hero.component.ts`](../src/app/components/hero/hero.component.ts), sobre nosotros
   en `image` de [`about.component.ts`](../src/app/components/about/about.component.ts), productos en el campo `image` de
-  `catalog.json`, logos en `header.component.html`/`footer.component.html` y Open Graph en `og:image` de
-  [`index.html`](../src/index.html). Rutas sin barra inicial (`assets/images/...`); al reemplazar una foto, actualizar su
-  `alt` y, como `/assets/` se cachea un año en CloudFront, cambiarle el nombre.
+  `catalog.json`, logos en `header.component.html`/`footer.component.html` y las imágenes para compartir (1200×630) en
+  `src/assets/images/og/`, que se regeneran con `scripts/og-images.py` (ver [`seo.md`](seo.md)). Rutas sin barra inicial
+  (`assets/images/...`); al reemplazar una foto, actualizar su `alt` (lo que se ve, sin materiales que el producto no
+  tiene: `tests/seo.test.ts` lo controla) y, como `/assets/` se cachea un año en CloudFront, cambiarle el nombre.
 - **Colores y tipografías:** el `:root` de [`_tokens.scss`](../src/styles/_tokens.scss) (`--color-primary`,
   `--color-secondary`, `--color-accent`, `--color-text`, `--font-heading`, `--font-body`) y el `<link>` de Google Fonts en
   `index.html`.

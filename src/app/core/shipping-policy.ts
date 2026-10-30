@@ -55,7 +55,8 @@ export const FALLBACK_POLICY: ShippingPolicy = {
 
 export const isShippingPath = (path: string) => /^\/envios\/?$/.test(path);
 
-const list = (items: string[]) =>
+/** "a, b y c". */
+export const list = (items: string[]) =>
   items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} y ${items.at(-1)}`;
 
 const zoneLabel = (name: string) => name.replace(/\s*\(a coordinar\)\s*$/i, "").trim();
@@ -162,6 +163,27 @@ export function policySections(policy: ShippingPolicy): PolicySection[] {
     text: "Después de la compra te escribimos por WhatsApp para coordinar día y horario de la entrega.",
   });
   return sections;
+}
+
+/** Departamentos con envío gratis, en orden: ["Montevideo", "Canelones"] (de freeAreas, T73). */
+export function freeDepartments(policy: ShippingPolicy): string[] {
+  return policy.freeAreas.filter((a) => a.includes(":")).map((a) => a.slice(0, a.indexOf(":")).trim());
+}
+
+/** "Envío gratis en zonas de Montevideo y Canelones." para descripciones; "" sin zonas gratis. */
+export function freeShippingLine(policy: ShippingPolicy): string {
+  const departments = freeDepartments(policy);
+  if (departments.length) return `Envío gratis en zonas de ${list(departments)}.`;
+  return policy.freeZones.length ? `Envío gratis en ${list(policy.freeZones)}.` : "";
+}
+
+/** Title de /envios/ (≤ 60 caracteres con la marca): las zonas gratis primero, que es lo que se busca. */
+export function policyTitle(policy: ShippingPolicy, brand: string): string {
+  const departments = freeDepartments(policy);
+  const title = departments.length
+    ? `Envío gratis en zonas de ${list(departments)} | ${brand}`
+    : `Envíos y entregas | ${brand}`;
+  return title.length <= 60 ? title : `Envíos y entregas | ${brand}`;
 }
 
 /** Description de /envios/ para buscadores (≤ 155 caracteres): con muchas zonas, las primeras y "más". */

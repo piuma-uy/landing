@@ -6,7 +6,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build && node scripts/prerender.ts",
+    "build": "ng build && node --import ./tests/resolve-ts.ts scripts/prerender.ts",
     "watch": "ng build --watch --configuration development",
     "test": "tsc -p tsconfig.spec.json && node --import ./tests/resolve-ts.ts --test tests/*.test.ts"
   },

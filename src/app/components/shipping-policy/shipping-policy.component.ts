@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject } from
 import { Meta, Title } from '@angular/platform-browser';
 import { CommerceService } from '../../commerce/commerce.service';
 import { SITE_CONFIG } from '../../core/site-config';
-import { policyDescription, policySections } from '../../core/shipping-policy';
+import { policyDescription, policySections, policyTitle } from '../../core/shipping-policy';
 import { WhatsappService } from '../../services/whatsapp.service';
 import { WhatsappIconComponent } from '../../shared/whatsapp-icon/whatsapp-icon.component';
 
@@ -29,7 +29,7 @@ export class ShippingPolicyComponent {
     const title = inject(Title);
     const meta = inject(Meta);
     const before = { title: title.getTitle(), description: meta.getTag('name="description"')?.content };
-    title.setTitle(`Envíos y entregas | ${SITE_CONFIG.brandName}`);
+    title.setTitle(policyTitle(this.shop.policy(), SITE_CONFIG.brandName));
     meta.updateTag({ name: 'description', content: policyDescription(this.shop.policy()) });
     inject(DestroyRef).onDestroy(() => {
       title.setTitle(before.title);
