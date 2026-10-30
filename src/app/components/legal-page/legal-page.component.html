@@ -1,0 +1,71 @@
+<!-- Sin espacios entre tramos: si no, "[A CONFIRMAR] ." queda con un espacio antes del punto. -->
+<ng-template #rich let-text
+  >@for (part of parts(text); track $index) {@if (part.pending) {<mark>{{ part.text }}</mark>} @else {<span>{{ part.text }}</span>}}</ng-template
+>
+@let d = doc();
+<article class="legal container" aria-labelledby="legal-title">
+  <span class="eyebrow">Legal</span>
+  <h1 id="legal-title">{{ d.title }}</h1>
+  <p class="legal__updated">
+    Última actualización: <ng-container *ngTemplateOutlet="rich; context: { $implicit: d.updated }" />
+  </p>
+
+  @if (draft) {
+    <p class="legal__draft" role="note">
+      <strong>Borrador para revisar.</strong> Lo marcado en
+      <mark>[A CONFIRMAR]</mark> lo tiene que definir Piuma antes de publicar.
+    </p>
+  }
+
+  @for (section of d.sections; track section.title) {
+    <section class="legal__section">
+      <h2>{{ section.title }}</h2>
+      @for (paragraph of section.paragraphs; track $index) {
+        <p>
+          <ng-container *ngTemplateOutlet="rich; context: { $implicit: paragraph }" />
+        </p>
+      }
+      @if (section.items?.length) {
+        <ul>
+          @for (item of section.items; track $index) {
+            <li>
+              <ng-container *ngTemplateOutlet="rich; context: { $implicit: item }" />
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
+  <nav class="legal__more" aria-label="Más información">
+    <h2>Más información</h2>
+    <ul>
+      @for (other of others(); track other.id) {
+        <li>
+          <a [href]="other.path" (click)="shop.showLegal(other.id, $event)">{{
+            other.label
+          }}</a>
+        </li>
+      }
+      <li>
+        <a href="/envios/" (click)="shop.showShipping($event)">Envíos y entregas</a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="legal__actions">
+    @if (shop.shippingFrom()) {
+      <button type="button" class="btn btn--outline" (click)="back()">
+        Volver
+      </button>
+    } @else {
+      <button
+        type="button"
+        class="btn btn--outline"
+        (click)="shop.section('catalogo')"
+      >
+        Ver la colección
+      </button>
+    }
+  </div>
+</article>

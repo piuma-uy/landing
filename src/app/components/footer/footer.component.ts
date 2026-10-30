@@ -8,6 +8,7 @@ import {
   signal,
 } from "@angular/core";
 import { CommerceService } from "../../commerce/commerce.service";
+import { LEGAL_PAGES } from "../../core/legal-pages";
 import { pageCostMessage } from "../../core/page-cost";
 import { SITE_CONFIG } from "../../core/site-config";
 import { WhatsappService } from "../../services/whatsapp.service";
@@ -36,6 +37,8 @@ export class FooterComponent {
     { label: "Sobre nosotros", fragment: "sobre-nosotros" },
     { label: "Contacto", fragment: "contacto" },
   ];
+  /** Cambios y devoluciones, términos y privacidad (T89). */
+  readonly legal = [...LEGAL_PAGES].reverse();
 
   constructor() {
     // Nada en el camino crítico: se mide una sola vez, recién cuando alguien llega al pie, y así

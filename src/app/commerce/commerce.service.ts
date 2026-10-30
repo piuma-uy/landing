@@ -41,6 +41,7 @@ import {
   isShippingPath,
   shippingPolicy,
 } from "../core/shipping-policy";
+import { type LegalId, legalIdFor, legalPage as legalInfo } from "../core/legal-pages";
 import {
   CardApi,
   Checkout,
@@ -234,7 +235,12 @@ export class CommerceService {
   readonly view = signal<View>("shop");
   /** /envios/ (shipping policy) instead of the home sections; same document, no reload (T68). */
   readonly shippingPage = signal(isShippingPath(location.pathname));
-  /** The view /envios/ was opened from ("¿Cómo funcionan los envíos?" in the checkout). */
+  /** Privacy, terms or returns page instead of the home sections, like /envios/ (T89). */
+  readonly legalPage = signal<LegalId | null>(legalIdFor(location.pathname));
+  /**
+   * The view /envios/ or a legal page was opened from ("¿Cómo funcionan los envíos?" or the
+   * terms in the checkout); null from the shop.
+   */
   readonly shippingFrom = signal<View | null>(null);
   /** GET /shipping-options for the policy page and the product line; null until it answers. */
   private readonly publicShipping = signal<ShippingOptions | null>(null);
@@ -500,14 +506,18 @@ export class CommerceService {
       const order = this.leaving();
       if (event.persisted && order) this.stay(order);
     });
-    // Back and forward between /envios/ and the page it was opened from.
+    // Back and forward between /envios/, the legal pages and the page they were opened from.
     addEventListener("popstate", () => {
       const shipping = isShippingPath(location.pathname);
-      if (shipping === this.shippingPage()) return;
+      const legal = legalIdFor(location.pathname);
+      if (shipping === this.shippingPage() && legal === this.legalPage())
+        return;
       this.shippingPage.set(shipping);
+      this.legalPage.set(legal);
+      if (shipping || legal) return;
       const from = this.shippingFrom();
-      if (!shipping && from) this.view.set(from);
-      if (!shipping) this.shippingFrom.set(null);
+      if (from) this.view.set(from);
+      this.shippingFrom.set(null);
     });
   }
   async initialize() {
@@ -691,6 +701,7 @@ export class CommerceService {
     if (location.pathname !== "/")
       history.replaceState(history.state, "", "/" + location.search);
     this.shippingPage.set(false);
+    this.legalPage.set(null);
     this.view.set("shop");
     requestAnimationFrame(() =>
       document.getElementById(fragment)?.scrollIntoView({ behavior: "smooth" }),
@@ -698,9 +709,10 @@ export class CommerceService {
   }
   open(view: View) {
     if (view === "orders" && this.user()?.admin) view = "admin";
-    if (this.shippingPage()) {
+    if (this.shippingPage() || this.legalPage()) {
       history.replaceState(history.state, "", "/" + location.search);
       this.shippingPage.set(false);
+      this.legalPage.set(null);
     }
     this.view.set(view);
     this.error.set("");
@@ -1286,18 +1298,33 @@ export class CommerceService {
    * From the checkout, the browser's back button returns to it with the cart as it was.
    */
   showShipping(event?: MouseEvent) {
+    if (this.showPage(SHIPPING_PATH, event)) {
+      this.legalPage.set(null);
+      this.shippingPage.set(true);
+    }
+  }
+  /** Privacy, terms and returns links (footer, checkout): same behaviour as "Envíos" (T89). */
+  showLegal(id: LegalId, event?: MouseEvent) {
+    if (this.showPage(legalInfo(id).path, event)) {
+      this.shippingPage.set(false);
+      this.legalPage.set(id);
+    }
+  }
+  /** Pushes an info page's URL, remembering the view it was opened from; false on a modified click. */
+  private showPage(path: string, event?: MouseEvent): boolean {
     const modified =
       event &&
       (event.button || event.metaKey || event.ctrlKey || event.shiftKey);
-    if (modified) return;
+    if (modified) return false;
     event?.preventDefault();
-    if (!this.shippingPage()) {
-      this.shippingFrom.set(this.view() === "shop" ? null : this.view());
-      history.pushState(null, "", SHIPPING_PATH + location.search);
+    if (location.pathname.replace(/\/?$/, "/") !== path) {
+      if (!this.shippingPage() && !this.legalPage())
+        this.shippingFrom.set(this.view() === "shop" ? null : this.view());
+      history.pushState(null, "", path + location.search);
     }
-    this.shippingPage.set(true);
     this.view.set("shop");
     window.scrollTo({ top: 0 });
+    return true;
   }
   /** Zones for the policy page and the product line, asked once (static policy meanwhile). */
   loadPolicy() {
