@@ -124,7 +124,7 @@
     "id": "fundas-nordicas",
     "name": "Fundas nórdicas",
     "image": "assets/images/productos/categoria-fundas-nordicas.webp",
-    "alt": "Cama tendida con funda nórdica blanca y almohadones grises",
+    "alt": "Cama tendida con una funda nórdica clara y almohadas beige",
     "types": [
       {
         "id": "funda-nordica-downproof",
@@ -257,7 +257,7 @@
     "id": "sabanas",
     "name": "Sábanas",
     "image": "assets/images/productos/producto-sabanas-percal.webp",
-    "alt": "Juego de sábanas de algodón percal blanco doblado",
+    "alt": "Cama con sábanas blancas de algodón percal y almohadas",
     "types": [
       {
         "id": "sabanas-percal",
@@ -368,7 +368,7 @@
     "id": "cubrecamas",
     "name": "Cubrecamas",
     "image": "assets/images/productos/producto-cubrecama-chiara.webp",
-    "alt": "Cubrecama Chiara gris sobre una cama con respaldo oscuro",
+    "alt": "Cubrecamas Chiara grises doblados sobre una cama con respaldo de madera",
     "types": [
       {
         "id": "cubrecama-chiara",
@@ -420,6 +420,7 @@
         "currency": "UYU",
         "image": "assets/images/productos/producto-cubrecama-petra.webp",
         "alt": "Cubrecama Petra sobre una cama con almohadón a rayas azules",
+        "colorImages": { "Blanco": "assets/images/productos/producto-cubrecama-petra.webp" },
         "gallery": [
           {
             "src": "assets/images/productos/producto-cubrecama-petra-3.webp",

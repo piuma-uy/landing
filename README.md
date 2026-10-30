@@ -33,7 +33,8 @@ infraestructura (Terraform) y el pipeline que publica esta tienda.
 ## Qué hace
 
 - Página única con scroll (inicio, catálogo, sobre nosotros, contacto) y fichas de producto con URL propia,
-  prerenderizadas para SEO.
+  prerenderizadas para SEO y motores de IA: metadatos, datos estructurados, `sitemap.xml`, `llms.txt` y una 404 real
+  ([`docs/seo.md`](docs/seo.md)).
 - Catálogo por categoría → producto → medida y color, con precio y stock del API.
 - Cuenta (ingreso, registro, recuperación de contraseña), carrito, checkout con envío o retiro, y pago por transferencia o
   con tarjeta (Mercado Pago).
@@ -125,6 +126,10 @@ presupuestos, GitHub, secretos, monitoreo) y lo que falta para abrir al público
 - La configuración del front en AWS es la variable `FRONTEND_RUNTIME_CONFIG` de cada environment de `piuma-backend`
   (`commerceEnabled`, `testMode`). En prod sigue sin definir, así que el comercio está apagado; `testMode` nunca en prod.
 - Al subir Angular, actualizar el hash del script inline en la CSP (`piuma-backend/infra/frontend-script-hashes.json`).
+- Variables del build para SEO (T88, detalle en [`docs/seo.md`](docs/seo.md)): `SITE_URL` (por defecto
+  `https://piuma.uy`), `SITE_COMMERCE=1` cuando se encienda `commerceEnabled` (el texto de "cómo comprar" y "cómo pagar"
+  del HTML prerenderizado y de `llms.txt`; en AWS es el input `storefront_commerce` del workflow `Deploy`, apagado por
+  defecto) y `SEO_OFFERS=1` con el catálogo real cargado (precios en los datos estructurados, B5).
 - Cambios de catálogo, textos y fotos: [`docs/frontend.md`](docs/frontend.md).
 
 ## Correrlo local

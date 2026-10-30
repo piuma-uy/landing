@@ -3,7 +3,7 @@ import { SITE_CONFIG } from '../../core/site-config';
 import { WhatsappService } from '../../services/whatsapp.service';
 import { WhatsappIconComponent } from '../whatsapp-icon/whatsapp-icon.component';
 
-export type SocialNetwork = 'instagram' | 'whatsapp' | 'facebook';
+export type SocialNetwork = 'instagram' | 'whatsapp';
 
 @Component({
   selector: 'app-social-links',

@@ -36,7 +36,11 @@
             <!-- Nivel 2 -->
             <div class="grid grid--types">
               @for (type of category.types; track type.id) {
-                <button type="button" class="type-card" (click)="openType(type.id)">
+                <a
+                  class="type-card"
+                  [href]="cardHref(category.id, type.id)"
+                  (click)="plainClick($event) && openType(type.id)"
+                >
                   <span
                     class="type-card__media"
                     [style.view-transition-name]="type.id === morphId() ? 'piuma-foto' : null"
@@ -62,7 +66,7 @@
                       {{ formatPriceFrom(type) }}
                     </span>
                   </span>
-                </button>
+                </a>
               }
             </div>
 
@@ -74,7 +78,11 @@
           <!-- Nivel 1: entrada al catálogo -->
           <div class="grid grid--categories">
             @for (category of cats; track category.id) {
-              <button type="button" class="category-card" (click)="openCategory(category.id)">
+              <a
+                class="category-card"
+                [href]="cardHref(category.id)"
+                (click)="plainClick($event) && openCategory(category.id)"
+              >
                 <span class="category-card__media">
                   <img
                     [src]="category.image"
@@ -89,7 +97,7 @@
                 <span class="category-card__body">
                   <span class="category-card__name">{{ category.name }}</span>
                 </span>
-              </button>
+              </a>
             }
           </div>
         }

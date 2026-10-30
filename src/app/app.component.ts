@@ -16,6 +16,7 @@ import { ContactComponent } from "./components/contact/contact.component";
 import { FooterComponent } from "./components/footer/footer.component";
 import { ShippingPolicyComponent } from "./components/shipping-policy/shipping-policy.component";
 import { LegalPageComponent } from "./components/legal-page/legal-page.component";
+import { NotFoundComponent } from "./components/not-found/not-found.component";
 import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.component";
 
 @Component({
@@ -31,6 +32,7 @@ import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.compone
     FooterComponent,
     ShippingPolicyComponent,
     LegalPageComponent,
+    NotFoundComponent,
     WhatsappFabComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,7 +40,11 @@ import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.compone
     <app-header />
     <main>
       <app-commerce />
-      @if (shop.legalPage() && (!shop.enabled || shop.view() === "shop")) {
+      @if (shop.notFound() && (!shop.enabled || shop.view() === "shop")) {
+        @defer {
+          <app-not-found />
+        }
+      } @else if (shop.legalPage() && (!shop.enabled || shop.view() === "shop")) {
         <!-- Privacidad, términos y cambios (T89): texto largo, en su propio chunk. -->
         @defer (on immediate) {
           <app-legal-page [page]="shop.legalPage()!" />
@@ -65,10 +71,11 @@ export class AppComponent {
     const analytics = inject(AnalyticsService);
     analytics.pageview();
     analytics.trackWhatsappClicks();
-    // Cuenta, carrito, pedidos y admin se ven en la misma URL pero no son contenido indexable.
+    // Cuenta, carrito, pedidos y admin se ven en la misma URL pero no son contenido indexable; la
+    // 404 tampoco (trae su noindex en el HTML).
     const meta = inject(Meta);
     effect(() => {
-      if (this.shop.view() === "shop") meta.removeTag('name="robots"');
+      if (this.shop.view() === "shop" && !this.shop.notFound()) meta.removeTag('name="robots"');
       else meta.updateTag({ name: "robots", content: "noindex" });
     });
   }

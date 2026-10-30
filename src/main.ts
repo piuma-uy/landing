@@ -17,7 +17,10 @@ import { ReportingErrorHandler } from "./app/services/analytics.service";
 async function start() {
   let config: RuntimeConfig = COMMERCE_OFF;
   try {
-    const response = await fetch("/runtime-config.json", { cache: "no-store" });
+    // Sin `cache` propio: así usa el <link rel="preload"> de index.html, que lo pide junto con los
+    // scripts y ahorra una ida y vuelta antes de pintar (LCP, T88). Llega fresco igual: CloudFront y
+    // los servidores locales lo sirven con Cache-Control: no-cache.
+    const response = await fetch("/runtime-config.json");
     // Validated: a malformed or incoherent file leaves commerce off (FE-09).
     if (response.ok)
       config = parseRuntimeConfig(await response.json(), (m) =>

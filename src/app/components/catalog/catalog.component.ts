@@ -19,6 +19,26 @@ import { ProductDetailComponent } from './product-detail/product-detail.componen
 import { SizeGuideComponent } from './size-guide/size-guide.component';
 import { PHOTO_SIZES, photoSrcset } from '../../core/photos';
 
+/** `go` cuando el navegador registró el primer LCP; sin la API, cuando terminó de cargar. */
+function afterFirstLcp(go: () => void): void {
+  if (!PerformanceObserver.supportedEntryTypes?.includes('largest-contentful-paint')) {
+    if (document.readyState === 'complete') go();
+    else addEventListener('load', go, { once: true });
+    return;
+  }
+  let done = false;
+  const once = () => {
+    if (done) return;
+    done = true;
+    observer.disconnect();
+    go();
+  };
+  const observer = new PerformanceObserver(once);
+  observer.observe({ type: 'largest-contentful-paint', buffered: true });
+  // Pestaña en segundo plano: no hay pintadas que medir.
+  setTimeout(once, 3000);
+}
+
 /**
  * Catálogo de 3 niveles: categorías → tipos → detalle con variantes.
  *
@@ -79,11 +99,11 @@ export class CatalogComponent {
       const scroll = effect(() => {
         if (!this.categories()) return;
         scroll.destroy();
-        // Después de un primer frame con contenido: un scroll antes deja a la página sin LCP.
+        // Después del primer LCP: Chrome deja de medirlo con cualquier scroll, y uno antes de la
+        // primera pintada deja a la página sin LCP (Lighthouse NO_LCP y sin Core Web Vitals, T88).
         const go = () =>
           requestAnimationFrame(() => document.getElementById('catalogo')?.scrollIntoView());
-        if (document.readyState === 'complete') go();
-        else addEventListener('load', go, { once: true });
+        afterFirstLcp(go);
       });
     }
     const popstate = () => {
@@ -144,6 +164,23 @@ export class CatalogComponent {
       update();
       this.appRef.tick();
     });
+  }
+
+  /**
+   * Las tarjetas son enlaces a su página prerenderizada, así buscadores y "abrir en otra pestaña" las
+   * siguen (T88). Un producto sin página propia (sólo en el API) enlaza a su categoría.
+   */
+  cardHref(categoryId: string, typeId?: string): string {
+    const page = this.prerendered()?.find((c) => c.id === categoryId);
+    if (!page) return '/';
+    return catalogPath(categoryId, typeId && page.types.some((t) => t.id === typeId) ? typeId : null);
+  }
+
+  /** Un clic común abre la tarjeta acá mismo; con Ctrl, Cmd, Shift o la rueda, el enlace sigue. */
+  plainClick(event: MouseEvent): boolean {
+    if (event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+    event.preventDefault();
+    return true;
   }
 
   private navigate(): void {
