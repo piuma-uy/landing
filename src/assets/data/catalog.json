@@ -383,9 +383,13 @@
         ],
         "includes": "Incluye 1 o 2 fundas de almohada de 50x70 cm según tamaño",
         "currency": "UYU",
-        "image": "assets/images/productos/producto-cubrecama-chiara.webp",
-        "alt": "Cubrecama Chiara gris doblado sobre una cama con respaldo de madera",
+        "image": "assets/images/productos/producto-cubrecama-chiara-4.webp",
+        "alt": "El cubrecama Chiara gris tendido en un dormitorio con dos camas",
         "gallery": [
+          {
+            "src": "assets/images/productos/producto-cubrecama-chiara-5.webp",
+            "alt": "Detalle del bordado en relieve del cubrecama Chiara junto a una manta de waffle"
+          },
           {
             "src": "assets/images/productos/producto-cubrecama-chiara-2.webp",
             "alt": "Cubrecamas Chiara grises doblados y apilados"
