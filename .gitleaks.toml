@@ -1,0 +1,72 @@
+# Escaneo de secretos (T84). Lo usan el job "Secret scan" de .github/workflows/secret-scan.yml y el hook opcional
+# de pre-commit (README). Reglas por defecto de gitleaks + patrones de los proveedores de Piuma que las reglas por
+# defecto no cubren. Mantener idéntico en piuma-backend y landing salvo la allowlist de fixtures de cada repo.
+# Probar cambios con: gitleaks git --log-opts=--all --config .gitleaks.toml --redact
+title = "piuma"
+
+[extend]
+useDefault = true
+
+# Mercado Pago: access token de producción (APP_USR-) o de prueba (TEST-),
+# p. ej. APP_USR-<app id>-<MMDDHH>-<32 hex>-<user id>.
+[[rules]]
+id = "piuma-mercadopago-access-token"
+description = "Mercado Pago access token"
+regex = '''\b((?:APP_USR|TEST)-\d{6,20}-\d{6}-[0-9a-f]{32}-\d{5,15})\b'''
+keywords = ["app_usr-", "test-"]
+
+# Mercado Pago: clave secreta de webhooks (64 hex). Un hex de 64 suelto es un hash cualquiera, así que se exige
+# contexto de webhook / firma / Mercado Pago en el nombre de la variable.
+[[rules]]
+id = "piuma-mercadopago-webhook-secret"
+description = "Mercado Pago webhook signing secret"
+regex = '''(?i)(?:webhook|signing|signature|mercado_?pago|\bmp)[\w.-]{0,30}(?:secret|key|token)[\w.-]{0,10}["']?\s*(?:=|:|:=|=>)\s*["'`]?([0-9a-f]{64})\b'''
+secretGroup = 1
+keywords = ["webhook", "signing", "signature", "mercado", "mp"]
+
+# Google OAuth: client secret (GOCSPX-…).
+[[rules]]
+id = "piuma-google-oauth-client-secret"
+description = "Google OAuth client secret"
+regex = '''\b(GOCSPX-[A-Za-z0-9_-]{28})(?:[^A-Za-z0-9_-]|$)'''
+secretGroup = 1
+keywords = ["gocspx-"]
+
+# AWS: el access key id (AKIA…/ASIA…) lo cubre la regla por defecto aws-access-token; acá la secret access key,
+# que sólo es reconocible por el contexto.
+[[rules]]
+id = "piuma-aws-secret-access-key"
+description = "AWS secret access key"
+regex = '''(?i)aws[\w.-]{0,20}secret[\w.-]{0,20}["']?\s*(?:=|:|:=|=>)\s*["'`]?([A-Za-z0-9/+]{40})(?:[^A-Za-z0-9/+=]|$)'''
+secretGroup = 1
+entropy = 3.5
+keywords = ["aws"]
+
+# Twilio: la API key (SK…) la cubre la regla por defecto twilio-api-key; acá el auth token (32 hex) junto a un
+# nombre de Twilio.
+[[rules]]
+id = "piuma-twilio-auth-token"
+description = "Twilio auth token"
+regex = '''(?i)twilio[\w.-]{0,20}(?:auth|token|secret)[\w.-]{0,20}["']?\s*(?:=|:|:=|=>)\s*["'`]?([0-9a-f]{32})\b'''
+secretGroup = 1
+keywords = ["twilio"]
+
+# Allowlist: SOLO fixtures de test claramente falsos. Cada entrada nombra el valor exacto (no carpetas enteras),
+# así un secreto real pegado en un test igual se detecta. Agregar una entrada exige justificarla en el PR.
+[[allowlists]]
+description = "Vectores SRP sintéticos de tests (pool ABCdef123, usuario user-1-ñ): el secretBlock es parte del vector, no una credencial"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''^tests/fixtures/srp-vectors\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"secretBlock": "''']
+
+[[allowlists]]
+description = "Contraseña de prueba del pool Cognito falso en tests/account.test.ts"
+regexTarget = "match"
+regexes = ['''"Mi-Clave-Propia-99"''']
+
+[[allowlists]]
+description = "Claves PostHog de relleno (0123456789abcdef…) en tests/runtime-config.test.ts"
+regexTarget = "match"
+regexes = ['''ph[cx]_0123456789abcdef(?:ABCDEF0123456789abcdef(?:ABCD)?)?''']

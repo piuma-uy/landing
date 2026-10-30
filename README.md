@@ -96,6 +96,16 @@ Resultados: [informe de tests](https://github.com/piuma-uy/piuma-backend/blob/ma
 - CSP sin `unsafe-inline` en scripts: cada script inline del build tiene que estar en la CSP por hash, y el pipeline lo
   verifica antes de publicar.
 - El build de producción corre aislado de las credenciales AWS.
+- Escaneo de secretos: el workflow `Secret scan` corre gitleaks (`.gitleaks.toml`, mismas reglas que piuma-backend:
+  Mercado Pago, Google OAuth, AWS, Twilio y las de gitleaks) sobre todo el historial en cada PR y push a `main` o
+  `tienda-local`, y falla si encuentra algo. La allowlist sólo admite fixtures de test falsos, valor por valor;
+  `scripts/gitleaks-selftest.sh` prueba cada regla. Si falla, no pegar el hallazgo en el PR: rotar y avisar. Hook
+  opcional antes de cada commit (`brew install gitleaks`):
+
+  ```sh
+  printf '#!/bin/sh\nexec gitleaks git --pre-commit --staged --config .gitleaks.toml --redact --no-banner\n' > "$(git rev-parse --git-path hooks)/pre-commit"
+  chmod +x "$(git rev-parse --git-path hooks)/pre-commit"
+  ```
 
 Auditoría del front: [`docs/security/audit-claude-front.md`](docs/security/audit-claude-front.md). Lista única de hallazgos
 abiertos de ambos repos:
