@@ -11,6 +11,7 @@ import {
 } from "rxjs";
 import { Category } from "../models/catalog.model";
 import { adaptCatalog } from "../core/catalog-adapter";
+import { sortCatalogSizes } from "../core/sizes";
 import { CommerceService, Product } from "../commerce/commerce.service";
 @Injectable({ providedIn: "root" })
 export class CatalogService {
@@ -19,6 +20,7 @@ export class CatalogService {
   private readonly source = this.http
     .get<Category[]>("assets/data/catalog.json")
     .pipe(
+      map(sortCatalogSizes),
       catchError(() => of([] as Category[])),
       shareReplay({ bufferSize: 1, refCount: false }),
     );

@@ -27,27 +27,30 @@
         <thead>
           <tr>
             <th scope="col" class="guide__col-size">Tamaño</th>
-            <th scope="col" [class.guide__col--active]="highlight() === 'linen'">
-              <span class="guide__col-main">Sábanas</span>
-              <span class="guide__col-sub">y fundas nórdicas Satén y Lino</span>
-            </th>
-            <th scope="col" [class.guide__col--active]="highlight() === 'duvet'">
-              <span class="guide__col-main">Acolchados</span>
-              <span class="guide__col-sub">y funda nórdica Downproof</span>
-            </th>
+            @for (column of columns; track column.id) {
+              <th scope="col" [class.guide__col--active]="highlight() === column.id">
+                <span class="guide__col-main">{{ column.label }}</span>
+              </th>
+            }
           </tr>
         </thead>
         <tbody>
-          @for (row of rows(); track row.size) {
+          @for (row of rows; track row.size) {
             <tr>
               <th scope="row" class="guide__col-size">
                 <span class="guide__size-name">{{ row.size }}</span>
-                @if (row.bed; as bed) {
-                  <span class="guide__size-bed">cama {{ bed }}</span>
-                }
+                <span class="guide__size-bed">cama {{ row.bed }}</span>
               </th>
-              <td [class.guide__col--active]="highlight() === 'linen'">{{ row.linen }}</td>
-              <td [class.guide__col--active]="highlight() === 'duvet'">{{ row.duvet }}</td>
+              @for (column of columns; track column.id) {
+                <td [class.guide__col--active]="highlight() === column.id">
+                  @if (row.sizes[column.id]; as size) {
+                    {{ size }}
+                  } @else {
+                    <span aria-hidden="true">—</span>
+                    <span class="sr-only">No se hace en esta medida</span>
+                  }
+                </td>
+              }
             </tr>
           }
         </tbody>
@@ -55,8 +58,13 @@
     </div>
 
     <p class="guide__note">
-      <strong>Cubrecamas:</strong> miden igual que los acolchados, salvo el King, que mide
-      300 x 260.
+      <strong>Fundas de almohada:</strong> {{ pillowcases }}.
+    </p>
+    <p class="guide__callout">
+      Sábanas, fundas nórdicas y cubrecamas vienen con 1 o 2 fundas de almohada según el tamaño.
+    </p>
+    <p class="guide__callout">
+      Si tus medidas difieren o no encajan exactamente, consultanos por WhatsApp.
     </p>
   </div>
 </section>

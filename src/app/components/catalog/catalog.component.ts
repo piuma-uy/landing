@@ -180,11 +180,6 @@ export class CatalogComponent {
     }).format(min);
   }
 
-  typeCountLabel(category: Category): string {
-    const count = category.types.length;
-    return count === 1 ? '1 tipo' : `${count} tipos`;
-  }
-
   variantCountLabel(type: ProductType): string {
     const count = type.variants.length;
     return count === 1 ? '1 medida' : `${count} medidas`;

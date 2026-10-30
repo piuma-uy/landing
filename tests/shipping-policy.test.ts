@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   FALLBACK_POLICY,
   isShippingPath,
+  policyDescription,
   policySections,
   policyTeaser,
   shippingPolicy,
@@ -47,22 +48,25 @@ test("the policy follows GET /shipping-options (T68)", () => {
   assert.equal(policyTeaser(policy), "Envío gratis en Pocitos");
   assert.deepEqual(
     policySections(policy).map((s) => s.title),
-    ["Cuánto tarda", "Envío gratis", "Con costo de envío", "Resto de Montevideo e interior", "Tu dirección", "Compras grandes", "Retiro", "Cómo sigue"],
+    ["Cuánto tarda", "Envío gratis", "Con costo de envío", "Resto de Montevideo e interior", "Compras grandes", "Retiro", "Cómo sigue"],
   );
-  // Piuma's: no pickup section, free zones listed, the rest by WhatsApp with an agency.
+  // Piuma's: no pickup section, free zones listed, the rest by WhatsApp.
   const sections = policySections(FALLBACK_POLICY);
   assert.equal(sections.some((s) => s.title === "Retiro"), false);
-  assert.match(sections.find((s) => s.title.startsWith("Resto"))!.text, /tipo DAC/);
-  assert.match(sections.find((s) => s.title.startsWith("Resto"))!.text, /18 departamentos del interior/);
-  // T73: the free zones by department, and how the zone decides the address.
+  assert.equal(
+    sections.find((s) => s.title.startsWith("Resto"))!.text,
+    "Otros barrios de Montevideo y los 18 departamentos del interior. Lo coordinamos por WhatsApp.",
+  );
+  // T73 + T91: the free zones by department, free shipping from $ 3.000, no "Tu dirección".
   assert.deepEqual(sections.find((s) => s.title === "Envío gratis")!.items, [
-    "Montevideo: Carrasco, Pocitos, Punta Carretas y Ciudad Vieja",
-    "Canelones: Ciudad de la Costa",
+    "Montevideo: Carrasco, Pocitos, Punta Carretas, Ciudad Vieja, Cordón, Malvín, Parque Rodó y Centro",
+    "Canelones: Parque Miramar y Ciudad de la Costa",
   ]);
   assert.match(
-    sections.find((s) => s.title === "Tu dirección")!.text,
-    /define el departamento y, en las zonas gratis, también el barrio\. Para otro barrio de Montevideo lo elegís de la lista/,
+    sections.find((s) => s.title === "Compras grandes")!.text,
+    /^Envío gratis en compras desde \$\s3\.000\.$/,
   );
+  assert.equal(sections.some((s) => s.title === "Tu dirección"), false);
   assert.equal(policyTeaser({ ...FALLBACK_POLICY, freeZones: ["A", "B"] }), "Envío gratis en A y B");
 });
 
@@ -96,8 +100,17 @@ test("free zones by department, as GET /shipping-options declares them (T73)", (
   ]);
   const sections = policySections(policy);
   assert.equal(sections.some((s) => s.title.startsWith("Resto")), false);
+});
+
+test("the /envios/ description names the first free zones and stays short (T91)", () => {
+  const description = policyDescription(FALLBACK_POLICY);
   assert.equal(
-    sections.find((s) => s.title === "Tu dirección")!.text,
-    "La zona que elegís al comprar define el departamento y, en las zonas gratis, también el barrio. Después completás calle y número, y si querés el apartamento y alguna indicación.",
+    description,
+    "Envío gratis en Carrasco, Pocitos, Punta Carretas, Ciudad Vieja y más, llega en 24 a 72 h. Resto del país, a coordinar por WhatsApp.",
+  );
+  assert.ok(description.length <= 155);
+  assert.equal(
+    policyDescription({ ...FALLBACK_POLICY, freeZones: ["Pocitos", "Centro"] }),
+    "Envío gratis en Pocitos y Centro, llega en 24 a 72 h. Resto del país, a coordinar por WhatsApp.",
   );
 });

@@ -102,8 +102,9 @@ test("/envios/ prerenderizada: política de Piuma, meta propia, breadcrumb y en 
   const description = html.match(/<meta\s+name="description"\s+content="([^"]*)"/)![1];
   assert.match(description, /^Envío gratis en Carrasco, Pocitos/);
   assert.ok(description.length <= 156, description);
-  for (const text of ["24 a 72 h", "Punta Carretas", "Ciudad de la Costa", "tipo DAC", "WhatsApp"])
+  for (const text of ["24 a 72 h", "Punta Carretas", "Parque Miramar", "Lo coordinamos por WhatsApp", "compras desde $\u00a03.000"])
     assert.ok(html.includes(text), text);
+  for (const text of ["tipo DAC", "Tu dirección"]) assert.ok(!html.includes(text), text);
   assert.deepEqual(
     jsonLd(html)["@graph"].map((n: { "@type": string }) => n["@type"]),
     ["Store", "BreadcrumbList"],
