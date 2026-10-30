@@ -9,7 +9,7 @@
         "id": "acolchado-pluma-natural",
         "name": "Acolchado Pluma natural",
         "fullName": "Acolchado de pluma natural",
-        "material": "100% algodón",
+        "material": "100% algodón / tela downproof",
         "description": "Respirable, térmico e hipoalergénico.",
         "longDescription": [
           "Ligero, aireado y naturalmente confortable. Su relleno de pluma natural brinda una excelente regulación de la temperatura, adaptándose al cuerpo para ofrecer abrigo sin sensación de pesadez. Su capacidad de respiración lo convierte en una opción ideal para quienes buscan calidez y confort durante la noche, especialmente si suelen tener cambios de temperatura al dormir. Con el cuidado adecuado, es una pieza pensada para acompañarte durante muchos años.",
@@ -52,7 +52,7 @@
         "id": "acolchado-pluma-sintetica",
         "name": "Acolchado Pluma sintética",
         "fullName": "Acolchado de pluma sintética",
-        "material": "100% algodón",
+        "material": "100% algodón / tela downproof",
         "description": "Lavable, térmico moderado y 100% hipoalergénico.",
         "longDescription": [
           "Confort y abrigo para disfrutar cada noche. Su relleno de pluma sintética ofrece una sensación suave y envolvente, proporcionando muy buen abrigo durante los meses más fríos. Es una alternativa práctica y accesible, ideal para quienes buscan confort y facilidad de cuidado, especialmente para pieles sensibles.",
@@ -89,14 +89,15 @@
       },
       {
         "id": "relleno-nordico-polyester",
-        "name": "Relleno nórdico de polyester",
-        "fullName": "Relleno nórdico de polyester",
+        "name": "Relleno nórdico",
+        "fullName": "Relleno nórdico",
         "material": "100% poliéster",
-        "description": "Suave, liviano y cálido.",
+        "description": "Suave y liviano.",
         "longDescriptionTitle": "Relleno Nórdico Microfibra 225 g/m² – 100% Poliéster",
         "longDescription": [
-          "Relleno nórdico de microfibra 100% poliéster, suave, liviano y cálido. Su relleno de 225 g/m² brinda un excelente abrigo para las noches frescas, manteniendo el confort y una buena distribución del calor. Práctico, resistente y de fácil mantenimiento.",
-          "Está pensado para usarse dentro de una funda nórdica, que lo protege y te permite cambiar el look de la cama cuando quieras. Por su gramaje liviano es ideal para primavera y verano."
+          "Relleno nórdico de microfibra 100% poliéster, suave y liviano. Por su gramaje liviano es ideal para otoño, primavera y verano. Práctico, resistente y de fácil mantenimiento.",
+          "Está pensado para usarse dentro de una funda nórdica, que lo protege y te permite cambiar el look de la cama cuando quieras.",
+          "Viene con un sistema de atado en las esquinas, para sujetarlo a la funda nórdica y que no se mueva dentro de ella."
         ],
         "currency": "UYU",
         "image": "assets/images/productos/producto-relleno-nordico-polyester.webp",
@@ -115,7 +116,7 @@
           { "size": "Twin", "productSize": "160x230 cm", "colors": ["Blanco"], "price": 2000 },
           { "size": "Queen", "productSize": "240x260 cm", "colors": ["Blanco"], "price": 2900 }
         ],
-        "_todo": "Grafía inconsistente: el nombre del producto dice 'polyester' y el título de la descripción dice 'Poliéster'. Unificar. || Resuelto: el material pasó de '100% algodón' (catálogo 2026) a '100% poliéster', confirmado por el texto de la marca — quedaba contradictorio con el nombre del producto."
+        "_todo": "Resuelto: el nombre pasó a 'Relleno nórdico' (sin 'de polyester'), así ya no choca con 'Poliéster' del título de la descripción. El id relleno-nordico-polyester no cambia (SKUs y URLs). || Resuelto: el material pasó de '100% algodón' (catálogo 2026) a '100% poliéster', confirmado por el texto de la marca — quedaba contradictorio con el nombre del producto."
       }
     ]
   },
@@ -129,13 +130,11 @@
         "id": "funda-nordica-downproof",
         "name": "Funda nórdica Downproof",
         "fullName": "Funda nórdica Downproof",
-        "material": "100% algodón",
-        "description": "Con cierre y cintas.",
+        "material": "Tela 100% algodón",
+        "description": "Con cierre y tiras de ajuste.",
         "includes": "Incluye 1 o 2 fundas de almohada de 50x70 cm según tamaño",
         "longDescription": [
-          "Tela 100% algodón, downproof, con cierre y cintas. Confeccionada en algodón Downproof, una tela de alta densidad especialmente desarrollada para acompañar acolchados de plumón natural. Su tejido compacto evita que el relleno atraviese la funda, mientras permite que el aire circule libremente, manteniendo la frescura, la suavidad y el confort en cada descanso.",
-          "Además, incorpora cintas interiores que permiten sujetar el acolchado Piuma a la funda, evitando que se desplace y logrando que permanezca perfectamente acomodado durante toda la noche.",
-          "Una funda pensada para cuidar tu acolchado, prolongar su vida útil y ofrecer una experiencia de descanso tan confortable como elegante."
+          "Tela 100% algodón Downproof, con cierre y cintas interiores. Su tejido compacto evita que el relleno salga de la funda, manteniendo la suavidad y frescura. Las cintas permiten sujetar el acolchado Piuma para que no se mueva durante la noche. Una funda diseñada para proteger tu acolchado, prolongar su vida útil y brindarte el máximo confort."
         ],
         "currency": "UYU",
         "image": "assets/images/productos/producto-funda-nordica-downproof.webp",
@@ -172,9 +171,10 @@
         "name": "Funda nórdica Satén",
         "fullName": "Funda nórdica 300 hilos satén",
         "material": "100% algodón",
-        "description": "Reversible, con cierre y cintas.",
+        "description": "Reversible, con botones y cintas.",
         "longDescription": [
-          "Elaborada en 100% algodón con tejido satén de 300 hilos, esta funda nórdica ofrece una textura excepcionalmente suave, con un delicado brillo que aporta elegancia a la cama. Su tejido resistente y confortable brinda una sensación de frescura y bienestar en cada descanso. Además, es transpirable y mantiene su suavidad y calidad lavado tras lavado."
+          "Elaborada en 100% algodón con tejido satén de 300 hilos, esta funda nórdica ofrece una textura excepcionalmente suave, con un delicado brillo que aporta elegancia a la cama. Su tejido resistente y confortable brinda una sensación de frescura y bienestar en cada descanso. Además, es transpirable y mantiene su suavidad y calidad lavado tras lavado.",
+          "Las cintas permiten sujetar el acolchado Piuma para que no se mueva durante la noche. Una funda diseñada para proteger tu acolchado, prolongar su vida útil y brindarte el máximo confort."
         ],
         "includes": "Incluye 1 o 2 fundas de almohada de 50x70 cm según tamaño",
         "currency": "UYU",
@@ -220,22 +220,23 @@
         "name": "Funda nórdica Lino y algodón",
         "fullName": "Funda nórdica de lino y algodón",
         "material": "55% lino / 45% algodón",
-        "description": "Reversible, con cierre y cintas.",
+        "description": "Reversible, con botones y cintas.",
         "longDescription": [
-          "Elaborada en una combinación de 55% lino y 45% algodón, esta funda nórdica ofrece una textura natural, fresca y agradable al tacto. Su tejido combina la suavidad del algodón con la frescura y resistencia del lino, aportando un estilo elegante y relajado a la cama. Transpirable y confortable, es ideal para disfrutar de un descanso fresco y natural."
+          "Elaborada en una combinación de 55% lino y 45% algodón, esta funda nórdica ofrece una textura natural, fresca y agradable al tacto. Su tejido combina la suavidad del algodón con la frescura y resistencia del lino, aportando un estilo elegante y relajado a la cama. Transpirable y confortable, es ideal para disfrutar de un descanso fresco y natural.",
+          "Las cintas permiten sujetar el acolchado Piuma para que no se mueva durante la noche. Una funda diseñada para proteger tu acolchado, prolongar su vida útil y brindarte el máximo confort."
         ],
         "includes": "Incluye 1 o 2 fundas de almohada de 50x70 cm según tamaño",
         "currency": "UYU",
-        "image": "assets/images/productos/producto-funda-nordica-lino.webp",
-        "alt": "Cama tendida con la funda nórdica de lino y algodón en blanco",
+        "image": "assets/images/productos/producto-funda-nordica-lino-3.webp",
+        "alt": "Detalle del botón de madera de la funda nórdica de lino",
         "gallery": [
+          {
+            "src": "assets/images/productos/producto-funda-nordica-lino.webp",
+            "alt": "Cama tendida con la funda nórdica de lino y algodón en blanco"
+          },
           {
             "src": "assets/images/productos/producto-funda-nordica-lino-2.webp",
             "alt": "Funda nórdica de lino en su bolsa, con la etiqueta de 55% lino y 45% algodón"
-          },
-          {
-            "src": "assets/images/productos/producto-funda-nordica-lino-3.webp",
-            "alt": "Detalle del botón de madera de la funda nórdica de lino"
           },
           {
             "src": "assets/images/productos/producto-funda-nordica-lino-4.webp",
@@ -300,10 +301,10 @@
         "name": "Sábana Satén",
         "fullName": "Sábanas 300 hilos satén",
         "material": "100% algodón",
-        "description": "Suave y brillante.",
+        "description": "Suave y con un leve brillo.",
         "longDescriptionTitle": "Sábanas 300 Hilos Satén – 100% Algodón",
         "longDescription": [
-          "Elaboradas en 100% algodón con tejido satén de 300 hilos, estas sábanas ofrecen una textura excepcionalmente suave, con un delicado brillo que aporta elegancia a la cama. Su tejido es más denso, envolvente y confortable, proporcionando una sensación de lujo y bienestar en cada descanso. Además de su excelente suavidad, son transpirables, duraderas y mantienen la calidad y el confort con el paso del tiempo."
+          "Elaboradas en 100% algodón con satén de 300 hilos, estas sábanas ofrecen una textura excepcionalmente suave, con un delicado brillo que aporta elegancia a la cama. Su tejido es más denso, envolvente y confortable, proporcionando una sensación de lujo y bienestar en cada descanso. Además de su excelente suavidad, son transpirables, duraderas y mantienen la calidad y el confort con el paso del tiempo."
         ],
         "includes": "Incluye 1 o 2 fundas de almohada según medida",
         "currency": "UYU",
@@ -376,8 +377,8 @@
         "material": "100% algodón",
         "description": "Fresco y elegante.",
         "longDescription": [
-          "Confeccionada en 100% algodón, esta cubrecama con trama española combina la suavidad del algodón con un diseño atemporal que aporta textura y calidez a cualquier ambiente.",
-          "Su delicado tono gris se adapta con facilidad a diferentes estilos de decoración, convirtiéndola en el complemento ideal para vestir la cama durante todo el año. Liviana, respirable y de tacto agradable, brinda el equilibrio perfecto entre confort y elegancia.",
+          "Confeccionado en 100% algodón, este cubrecama con trama española combina la suavidad del algodón con un diseño atemporal que aporta textura y calidez a cualquier ambiente.",
+          "Su delicado tono gris se adapta con facilidad a diferentes estilos de decoración, convirtiéndolo en el complemento ideal para vestir la cama durante todo el año. Liviano, respirable y de tacto agradable, brinda el equilibrio perfecto entre confort y elegancia.",
           "Una pieza versátil, pensada para quienes buscan calidad, diseño y el bienestar único que solo el algodón natural puede ofrecer."
         ],
         "includes": "Incluye 1 o 2 fundas de almohada de 50x70 cm según tamaño",
@@ -397,7 +398,7 @@
         "variants": [
           { "size": "Dos plazas", "productSize": "220x240 cm", "colors": ["Gris"], "price": 4500 },
           { "size": "Queen", "productSize": "240x260 cm", "colors": ["Gris"], "price": 4800 },
-          { "size": "King", "productSize": "300x260 cm", "colors": ["Gris"], "price": 5800 }
+          { "size": "Super King", "productSize": "300x260 cm", "colors": ["Gris"], "price": 5800 }
         ]
       },
       {
@@ -407,8 +408,8 @@
         "material": "100% algodón",
         "description": "Fresco y liviano.",
         "longDescription": [
-          "Confeccionada en 100% algodón, la cubrecama Petra reúne la ligereza y la respirabilidad de la fibra natural en una pieza de líneas simples, pensada para vestir la cama sin recargarla.",
-          "Su blanco puro combina con cualquier decoración y realza la luz del dormitorio, mientras que su tejido liviano la vuelve una compañera cómoda durante todo el año: abriga lo justo en las noches frescas y no pesa cuando sube la temperatura.",
+          "Confeccionado en 100% algodón, el cubrecama Petra reúne la ligereza y la respirabilidad de la fibra natural en una pieza de líneas simples, pensada para vestir la cama sin recargarla.",
+          "En blanco o en azul, combina con cualquier decoración y aporta luz al dormitorio, mientras que su tejido liviano lo vuelve un compañero cómodo durante todo el año: abriga lo justo en las noches frescas y no pesa cuando sube la temperatura.",
           "Una pieza serena y versátil, para quienes buscan la calidez y el bienestar que solo el algodón natural puede ofrecer."
         ],
         "includes": "Incluye 1 o 2 fundas de almohada de 50x70 cm según tamaño",
@@ -422,11 +423,11 @@
           }
         ],
         "variants": [
-          { "size": "Twin", "productSize": "160x230 cm", "colors": ["Blanco"], "price": 3000 },
-          { "size": "Plaza y media", "productSize": "180x240 cm", "colors": ["Blanco"], "price": 3600 },
+          { "size": "Twin", "productSize": "160x230 cm", "colors": ["Blanco", "Azul"], "price": 3000 },
+          { "size": "Plaza y media", "productSize": "180x240 cm", "colors": ["Blanco", "Azul"], "price": 3600 },
           { "size": "Dos plazas", "productSize": "220x240 cm", "colors": ["Blanco"], "price": 4300 }
         ],
-        "_todo": "Petra queda sólo en BLANCO por decisión comercial. La lista de precios 2026 todavía lista la medida Twin en 'rosa - blanco - azul': si vuelve a ofrecerse algún color, reponer las variantes. Se sacó de la galería la foto de los cubrecamas apilados en rosa, blanco y azul (producto-cubrecama-petra-2.webp) porque mostraba colores que ya no se venden."
+        "_todo": "Petra viene en BLANCO y, en Twin y Plaza y media, también en AZUL (cambios del cliente 2026-10-30, mismo precio que el blanco). El azul todavía no tiene foto propia: la ficha muestra la del blanco como referencia y lo aclara. Se sacó de la galería la foto de los cubrecamas apilados en rosa, blanco y azul (producto-cubrecama-petra-2.webp) porque mostraba colores que ya no se venden."
       },
       {
         "id": "cubrecama-charo",
@@ -435,7 +436,7 @@
         "material": "100% algodón",
         "description": "Fresco y liviano.",
         "longDescription": [
-          "Confeccionada en 100% algodón, la cubrecama Charo apuesta por la nobleza de la fibra natural: un tejido liviano y respirable que se siente fresco al tacto y acompaña el descanso sin agregar peso.",
+          "Confeccionado en 100% algodón, el cubrecama Charo apuesta por la nobleza de la fibra natural: un tejido liviano y respirable que se siente fresco al tacto y acompaña el descanso sin agregar peso.",
           "Disponible en blanco y en natural, dos tonos serenos que iluminan el dormitorio y conviven bien con maderas, lino y fibras. Su caída suave viste la cama con una sencillez que no pasa de moda.",
           "Una pieza pensada para durar, que suma calidez todo el año y conserva su tacto y su color lavado tras lavado."
         ],
@@ -467,7 +468,7 @@
         },
         "variants": [
           { "size": "Queen", "productSize": "240x260 cm", "colors": ["Blanco", "Natural"], "price": 4900 },
-          { "size": "King", "productSize": "300x260 cm", "colors": ["Blanco", "Natural"], "price": 6100 }
+          { "size": "Super King", "productSize": "300x260 cm", "colors": ["Blanco", "Natural"], "price": 6100 }
         ],
         "_todo": "Resuelto: la marca indicó qué fotos corresponden al color Natural (IMG_0108, IMG_0110, IMG_0114) y cuáles al Blanco (IMG_0095, IMG_0098). A tener en cuenta: IMG_0114 (natural-3) muestra dos cubrecamas blancos doblados encima del natural, así que en esa foto conviven los dos tonos."
       }

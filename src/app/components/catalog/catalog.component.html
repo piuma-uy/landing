@@ -88,7 +88,6 @@
                 </span>
                 <span class="category-card__body">
                   <span class="category-card__name">{{ category.name }}</span>
-                  <span class="category-card__meta">{{ typeCountLabel(category) }}</span>
                 </span>
               </button>
             }
@@ -106,7 +105,7 @@
 
     @if (categories(); as cats) {
       @if (cats.length) {
-        <app-size-guide [categories]="cats" [activeCategory]="activeCategory()" />
+        <app-size-guide [activeCategory]="activeCategory()" />
       }
     }
   </div>

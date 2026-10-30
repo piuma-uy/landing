@@ -1,7 +1,8 @@
 /**
  * Política de envíos que se muestra en /envios/, en la ficha de producto y en el checkout. La arma
  * GET /shipping-options cuando la tienda está conectada; el prerender (sin API) y la tienda sin
- * política guardada usan FALLBACK_POLICY, que es la que pasó Piuma (T29). Sin Angular: lo importa
+ * política guardada usan FALLBACK_POLICY, que es la que pasó Piuma (T29, zonas y envío gratis desde
+ * $ 3.000 actualizados en T91). Sin Angular: lo importa
  * scripts/seo.ts.
  */
 import type { ShippingOptions, ShippingZone } from "../commerce/shipping";
@@ -23,22 +24,36 @@ export interface ShippingPolicy {
   freeFrom: string | null;
 }
 
-export const FALLBACK_POLICY: ShippingPolicy = {
-  leadTime: "24 a 72 h",
-  freeZones: ["Carrasco", "Pocitos", "Punta Carretas", "Ciudad Vieja", "Ciudad de la Costa"],
-  freeAreas: ["Montevideo: Carrasco, Pocitos, Punta Carretas y Ciudad Vieja", "Canelones: Ciudad de la Costa"],
-  paidZones: [],
-  coordinate: true,
-  pickup: null,
-  freeFrom: null,
-};
-
-export const isShippingPath = (path: string) => /^\/envios\/?$/.test(path);
-
 const money = (minor: number, currency: string) =>
   new Intl.NumberFormat("es-UY", { style: "currency", currency, maximumFractionDigits: 0 }).format(
     minor / 100,
   );
+
+export const FALLBACK_POLICY: ShippingPolicy = {
+  leadTime: "24 a 72 h",
+  freeZones: [
+    "Carrasco",
+    "Pocitos",
+    "Punta Carretas",
+    "Ciudad Vieja",
+    "Cordón",
+    "Malvín",
+    "Parque Rodó",
+    "Centro",
+    "Parque Miramar",
+    "Ciudad de la Costa",
+  ],
+  freeAreas: [
+    "Montevideo: Carrasco, Pocitos, Punta Carretas, Ciudad Vieja, Cordón, Malvín, Parque Rodó y Centro",
+    "Canelones: Parque Miramar y Ciudad de la Costa",
+  ],
+  paidZones: [],
+  coordinate: true,
+  pickup: null,
+  freeFrom: money(300000, "UYU"),
+};
+
+export const isShippingPath = (path: string) => /^\/envios\/?$/.test(path);
 
 const list = (items: string[]) =>
   items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} y ${items.at(-1)}`;
@@ -133,23 +148,7 @@ export function policySections(policy: ShippingPolicy): PolicySection[] {
   if (policy.coordinate)
     sections.push({
       title: "Resto de Montevideo e interior",
-      text:
-        "Otros barrios de Montevideo y los 18 departamentos del interior. Lo coordinamos por " +
-        "WhatsApp: envío propio o por agencia (tipo DAC). El costo se acuerda aparte y no se " +
-        "cobra en la compra.",
-    });
-  if (policy.freeAreas.length || policy.coordinate)
-    sections.push({
-      title: "Tu dirección",
-      text:
-        "La zona que elegís al comprar define el departamento" +
-        (policy.freeAreas.length ? " y, en las zonas gratis, también el barrio" : "") +
-        ". " +
-        (policy.coordinate
-          ? "Para otro barrio de Montevideo lo elegís de la lista; para el interior, elegís el " +
-            "departamento y escribís tu ciudad o localidad. "
-          : "") +
-        "Después completás calle y número, y si querés el apartamento y alguna indicación.",
+      text: "Otros barrios de Montevideo y los 18 departamentos del interior. Lo coordinamos por WhatsApp.",
     });
   if (policy.freeFrom)
     sections.push({
@@ -165,9 +164,11 @@ export function policySections(policy: ShippingPolicy): PolicySection[] {
   return sections;
 }
 
-/** Description de /envios/ para buscadores (≤ 155 caracteres con la política de Piuma). */
+/** Description de /envios/ para buscadores (≤ 155 caracteres): con muchas zonas, las primeras y "más". */
 export function policyDescription(policy: ShippingPolicy): string {
-  const free = policy.freeZones.length ? `Envío gratis en ${list(policy.freeZones)}` : "Envíos";
+  const zones = policy.freeZones;
+  const named = zones.length > 4 ? `${zones.slice(0, 4).join(", ")} y más` : list(zones);
+  const free = zones.length ? `Envío gratis en ${named}` : "Envíos";
   const lead = policy.leadTime ? `, llega en ${policy.leadTime}` : "";
   const rest = policy.coordinate ? ". Resto del país, a coordinar por WhatsApp." : ".";
   return free + lead + rest;

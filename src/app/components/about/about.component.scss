@@ -33,27 +33,3 @@
     object-fit: cover;
   }
 }
-
-.about__values {
-  list-style: none;
-  margin: var(--space-md) 0 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-sm);
-}
-
-.about__value {
-  padding-left: var(--space-sm);
-  border-left: 2px solid var(--color-primary);
-
-  h3 {
-    margin-bottom: 0.2rem;
-    font-size: 1.05rem;
-  }
-
-  p {
-    margin: 0;
-    color: var(--color-text);
-    font-size: 0.92rem;
-  }
-}

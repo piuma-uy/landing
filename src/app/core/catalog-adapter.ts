@@ -3,6 +3,7 @@
 // Framework-free so it can be unit tested with `node --test` (see tests/catalog.test.ts).
 import type { Category } from "../models/catalog.model";
 import type { Product } from "../commerce/commerce.service";
+import { sortCatalogSizes } from "./sizes";
 
 export function adaptCatalog(
   source: Category[],
@@ -61,5 +62,5 @@ export function adaptCatalog(
     variant.stockByColor![p.color] = p.stock;
     variant.price = Math.min(variant.price, p.priceMinor / 100);
   }
-  return [...categories.values()];
+  return sortCatalogSizes([...categories.values()]);
 }
