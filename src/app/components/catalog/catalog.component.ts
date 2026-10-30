@@ -100,7 +100,7 @@ export class CatalogComponent {
     // Cambiar de categoría con un tipo abierto tiene que volver a la grilla de tipos.
     this.selectedTypeId.set(null);
     this.navigate();
-    this.analytics.event('categoria', { id });
+    this.analytics.event('category_viewed', { category: id });
   }
 
   openType(id: string): void {
@@ -109,7 +109,7 @@ export class CatalogComponent {
       this.selectedTypeId.set(id);
       this.navigate();
     });
-    this.analytics.event('producto', { id });
+    this.analytics.event('product_viewed', { product: id });
   }
 
   backToCategories(): void {

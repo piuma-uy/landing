@@ -111,19 +111,24 @@ El hosting tiene que servir `catalogo/.../index.html` en esas rutas: en AWS lo h
 `piuma-backend/infra/functions/spa-routing.js`; Vercel lo hace solo. Un producto que existe sólo en el API (no en
 `catalog.json`) no tiene página: se abre en la landing sin cambiar la URL.
 
-## Analytics
+## Uso y errores (PostHog, T97)
 
-Apagado por defecto. Con la clave `analytics` en `runtime-config.json` se mandan eventos a [Umami](https://umami.is) (open
-source, sin cookies, self-hosted o Umami Cloud), sin cargar su script:
+Apagado por defecto. Con la clave `posthog` en `runtime-config.json` (en AWS, vía `FRONTEND_RUNTIME_CONFIG`) la tienda manda
+uso y errores a [PostHog Cloud](https://posthog.com) región EU, sin cargar su SDK:
 
 ```json
-"analytics": { "provider": "umami", "hostUrl": "https://<umami>", "websiteId": "<uuid>" }
+"posthog": { "host": "https://eu.i.posthog.com", "key": "phc_…" }
 ```
 
-Envía páginas vistas (inicio y cada URL del catálogo) y los eventos `whatsapp`, `categoria`, `producto`, `carrito` y
-`checkout`, sin query ni hash en la URL; del referrer manda sólo el origen (vacío si es la propia tienda). Respeta Do Not
-Track y Global Privacy Control. Al activarlo, sumar el origen de `hostUrl` a `frontend_connect_src` de
-`piuma-backend/infra` (CSP `connect-src`).
+`key` es la Project API key **pública** del proyecto (`phc_…`, no es un secreto); una clave personal `phx_…` se rechaza.
+`AnalyticsService` encola los eventos y los manda con `fetch` (keepalive) a `<host>/batch/`: páginas vistas, el embudo
+(`product_viewed`, `add_to_cart`, `checkout_started`, `payment_method_selected`, `order_created`, `mercadopago_opened`,
+`payment_return`, `payment_approved`), `category_viewed`, `whatsapp_clicked` y los errores no atrapados como `$exception`
+(`ReportingErrorHandler`, con `provideBrowserGlobalErrorListeners`; mensaje y stack recortados, sin mails ni números largos,
+hasta 10 distintos por visita). Sin cookies: `distinct_id` es un UUIDv7 al azar de la pestaña (`sessionStorage`), eventos
+anónimos, sólo la ruta de la URL y el origen del referrer. Respeta Do Not Track y Global Privacy Control. Al activarlo,
+sumar `https://eu.i.posthog.com` a `frontend_connect_src` de `piuma-backend/infra` (CSP `connect-src`). Qué ver dónde,
+alta de la cuenta y privacidad: [`piuma-backend/docs/monitoreo.md`](https://github.com/piuma-uy/piuma-backend/blob/main/docs/monitoreo.md).
 
 ## Estructura
 
@@ -140,7 +145,7 @@ src/
    ├─ commerce/                    tienda: API, Cognito (SRP/PKCE), carrito, checkout, pagos, envíos, panel
    ├─ core/                        site-config (WhatsApp, redes), catalog-seo, catalog-adapter, whatsapp, swatches
    ├─ models/catalog.model.ts      Category → ProductType → Variant
-   ├─ services/                    catálogo, analytics (Umami) y links wa.me
+   ├─ services/                    catálogo, uso y errores (PostHog) y links wa.me
    ├─ shared/                      íconos y botón flotante de WhatsApp
    └─ components/                  header, hero, catalog (+ product-detail), about, contact, footer, shipping-policy
 scripts/prerender.ts               páginas del catálogo y /envios/, robots.txt y sitemap.xml

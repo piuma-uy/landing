@@ -1,4 +1,8 @@
-import { provideZoneChangeDetection } from "@angular/core";
+import {
+  ErrorHandler,
+  provideBrowserGlobalErrorListeners,
+  provideZoneChangeDetection,
+} from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { provideHttpClient, withFetch } from "@angular/common/http";
 import { AppComponent } from "./app/app.component";
@@ -8,6 +12,7 @@ import {
   parseRuntimeConfig,
   type RuntimeConfig,
 } from "./app/commerce/runtime-config";
+import { ReportingErrorHandler } from "./app/services/analytics.service";
 
 async function start() {
   let config: RuntimeConfig = COMMERCE_OFF;
@@ -25,6 +30,9 @@ async function start() {
     providers: [
       provideZoneChangeDetection(),
       provideHttpClient(withFetch()),
+      // Errores no atrapados, también fuera de Angular, a PostHog cuando está configurado (T97).
+      provideBrowserGlobalErrorListeners(),
+      { provide: ErrorHandler, useClass: ReportingErrorHandler },
       { provide: RUNTIME_CONFIG, useValue: config },
     ],
   });

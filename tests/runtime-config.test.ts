@@ -17,10 +17,9 @@ const aws = {
   },
 };
 const docker = { commerceEnabled: true, apiBaseUrl: "http://localhost:3000" };
-const analytics = {
-  provider: "umami",
-  hostUrl: "https://cloud.umami.is",
-  websiteId: "site-1",
+const posthog = {
+  host: "https://eu.i.posthog.com",
+  key: "phc_0123456789abcdefABCDEF0123456789abcdefABCD",
 };
 
 function parse(raw: unknown) {
@@ -106,19 +105,27 @@ test("Cognito against the local API and localhost redirects work for e2e", () =>
   assert.equal(config.cognito?.google, true);
 });
 
-test("analytics survives with commerce off and is dropped when malformed", () => {
-  assert.deepEqual(parse({ commerceEnabled: false, analytics }).config, {
+test("PostHog survives with commerce off and is dropped when malformed (T97)", () => {
+  assert.deepEqual(parse({ commerceEnabled: false, posthog }).config, {
     ...COMMERCE_OFF,
-    analytics,
+    posthog,
   });
-  assert.deepEqual(parse({ ...aws, analytics }).config.analytics, analytics);
+  assert.deepEqual(parse({ ...aws, posthog }).config.posthog, posthog);
+  // A trailing slash is the same origin.
+  assert.deepEqual(
+    parse({ posthog: { ...posthog, host: posthog.host + "/" } }).config.posthog,
+    posthog,
+  );
   for (const bad of [
-    { ...analytics, hostUrl: "http://cloud.umami.is" },
-    { ...analytics, provider: "ga" },
-    { ...analytics, websiteId: "" },
-    "umami",
+    { ...posthog, host: "http://eu.i.posthog.com" },
+    { ...posthog, host: "https://eu.i.posthog.com/batch/" },
+    { ...posthog, key: "" },
+    // A personal API key (phx_) is a secret and never goes in a public file.
+    { ...posthog, key: "phx_0123456789abcdefABCDEF0123456789abcdef" },
+    { ...posthog, key: "phc_0123456789abcdef'; alert(1)" },
+    "posthog",
   ])
-    assert.equal(parse({ ...aws, analytics: bad }).config.analytics, undefined);
+    assert.equal(parse({ ...aws, posthog: bad }).config.posthog, undefined);
 });
 
 test("local URLs are only this machine over http(s)", () => {
