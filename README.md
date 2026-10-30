@@ -7,8 +7,13 @@ serverless de [`piuma-uy/piuma-backend`](https://github.com/piuma-uy/piuma-backe
 infraestructura (Terraform) y el pipeline que publica esta tienda.
 
 - **Rama `tienda-local`** (esta): la tienda con cuenta, carrito, checkout y panel de administración. Es la que se despliega
-  en AWS. dev: <https://d1tm58a521hftd.cloudfront.net> (tienda de prueba, no cobra).
-- **Rama `main`**: la landing pública original, en Vercel, sin comercio. No se toca desde este trabajo.
+  en AWS:
+  - **prod**: <https://piuma.uy> (`www.piuma.uy` redirige). En línea con el catálogo; el comercio sigue apagado hasta
+    completar el [checklist de apertura](https://github.com/piuma-uy/piuma-backend#checklist-para-abrir-al-público).
+  - **dev**: <https://d1tm58a521hftd.cloudfront.net> (tienda de prueba con Mercado Pago sandbox, no cobra).
+- **Rama `main`**: la landing original de Vercel, sin comercio. `piuma.uy` sirve `tienda-local` desde AWS.
+- **Rama `marketing/proximamente-web`**: campaña de Instagram «Próximamente nueva web» (dos posts, reel y portada) en
+  [`marketing/campanas/proximamente-web/`](https://github.com/piuma-uy/landing/tree/marketing/proximamente-web/marketing/campanas/proximamente-web).
 
 > **Informe del proyecto** (diagrama interactivo, decisiones y defensa):
 > [`piuma-backend/docs/informe/README.md`](https://github.com/piuma-uy/piuma-backend/blob/main/docs/informe/README.md).
@@ -21,6 +26,7 @@ infraestructura (Terraform) y el pipeline que publica esta tienda.
 - [Pruebas](#pruebas)
 - [Seguridad](#seguridad)
 - [Costos](#costos)
+- [Operación y mantenimiento](#operación-y-mantenimiento)
 - [Correrlo local](#correrlo-local)
 - [Documentación](#documentación)
 
@@ -57,8 +63,9 @@ Arquitectura completa (DynamoDB, SQS, SES, EventBridge, SSM, CloudWatch, IAM, OI
 
 ## Despliegue
 
-Este repo no tiene credenciales de AWS ni pipeline de deploy propio. Lo publica el workflow **`Deploy dev`** de
-`piuma-backend`, que se lanza a mano desde `main` con el SHA completo de un commit de `tienda-local`:
+Este repo no tiene credenciales de AWS ni pipeline de deploy propio. Lo publica el workflow **`Deploy`** de
+`piuma-backend`, que se lanza a mano desde `main` con el entorno (`dev` o `prod`, este último con `confirm=PRODUCCION`) y
+el SHA completo de un commit de `tienda-local`:
 
 1. El job `build-frontend` hace checkout de ese SHA y corre `npm ci --ignore-scripts` y `npm run build`. Corre **sin
    credenciales AWS** ni secretos.
@@ -96,8 +103,19 @@ abiertos de ambos repos:
 ## Costos
 
 El hosting del front (CloudFront + S3) cuesta alrededor de **USD 1 al mes** en el escenario de poco tráfico. Toda la tienda
-en AWS ronda **USD 3,38 al mes** calculado, con un presupuesto de USD 4–6:
+en AWS ronda **USD 3,28 al mes** calculado, con un presupuesto de USD 4–6:
 [`piuma-backend/docs/costs.md`](https://github.com/piuma-uy/piuma-backend/blob/main/docs/costs.md).
+
+## Operación y mantenimiento
+
+Todo lo que hay que mantener (dominio `piuma.uy` en NIC Uruguay y su vencimiento, DNS, certificados, correo, cuentas AWS,
+presupuestos, GitHub, secretos, monitoreo) y lo que falta para abrir al público está en un solo lugar, el
+[README de piuma-backend](https://github.com/piuma-uy/piuma-backend#runbook-de-mantenimiento). Lo propio de este repo:
+
+- La configuración del front en AWS es la variable `FRONTEND_RUNTIME_CONFIG` de cada environment de `piuma-backend`
+  (`commerceEnabled`, `testMode`). En prod sigue sin definir, así que el comercio está apagado; `testMode` nunca en prod.
+- Al subir Angular, actualizar el hash del script inline en la CSP (`piuma-backend/infra/frontend-script-hashes.json`).
+- Cambios de catálogo, textos y fotos: [`docs/frontend.md`](docs/frontend.md).
 
 ## Correrlo local
 
