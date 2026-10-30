@@ -16,7 +16,7 @@
   }
 
   @include from(v.$bp-lg) {
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
     gap: var(--space-xl);
   }
 }

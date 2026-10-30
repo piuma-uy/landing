@@ -146,6 +146,12 @@
 .step__body > .step__hint:last-child {
   margin-bottom: 0;
 }
+// Términos, privacidad y arrepentimiento antes de pagar (T89), como "¿Cómo funcionan los envíos?".
+.step__legal a {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 // --- Fields (component styles do not reach app-delivery; it has its own) ---
 label {

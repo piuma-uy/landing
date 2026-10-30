@@ -1,0 +1,110 @@
+@use 'variables' as v;
+@use 'mixins' as *;
+
+// Texto largo para leer en el teléfono: una columna de ~68 caracteres, sin tarjetas.
+.legal {
+  max-width: calc(68ch + 2 * var(--space-md));
+  padding-top: calc(var(--header-height) + var(--space-md));
+  padding-bottom: var(--space-xl);
+
+  @include from(v.$bp-md) {
+    padding-top: calc(var(--header-height) + var(--space-lg));
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin: 0 0 var(--space-xs);
+  }
+
+  mark {
+    background: var(--color-secondary);
+    color: inherit;
+    border-bottom: 1px dashed var(--color-primary-dark);
+    padding: 0 0.2em;
+  }
+}
+
+.legal__updated {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-md);
+}
+
+.legal__draft {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  font-size: 0.92rem;
+}
+
+.legal__section {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-md);
+
+  h2 {
+    font-size: 1.3rem;
+    margin: 0 0 var(--space-xs);
+  }
+
+  p,
+  li {
+    overflow-wrap: anywhere;
+  }
+
+  ul {
+    padding-left: 1.2rem;
+    margin: 0;
+  }
+
+  li + li {
+    margin-top: 0.4rem;
+  }
+}
+
+.legal__more {
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
+  background: var(--color-secondary);
+  border-radius: var(--radius-lg);
+
+  h2 {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-primary-dark);
+    margin: 0 0 var(--space-xs);
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  // Filas de 44px: área táctil.
+  a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+}
+
+.legal__actions {
+  display: flex;
+  margin-top: var(--space-lg);
+
+  .btn {
+    flex: 1 1 14rem;
+
+    @include from(v.$bp-md) {
+      flex: 0 0 auto;
+    }
+  }
+}

@@ -15,6 +15,7 @@ import { AboutComponent } from "./components/about/about.component";
 import { ContactComponent } from "./components/contact/contact.component";
 import { FooterComponent } from "./components/footer/footer.component";
 import { ShippingPolicyComponent } from "./components/shipping-policy/shipping-policy.component";
+import { LegalPageComponent } from "./components/legal-page/legal-page.component";
 import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.component";
 
 @Component({
@@ -29,6 +30,7 @@ import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.compone
     ContactComponent,
     FooterComponent,
     ShippingPolicyComponent,
+    LegalPageComponent,
     WhatsappFabComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,7 +38,12 @@ import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.compone
     <app-header />
     <main>
       <app-commerce />
-      @if (shop.shippingPage() && (!shop.enabled || shop.view() === "shop")) {
+      @if (shop.legalPage() && (!shop.enabled || shop.view() === "shop")) {
+        <!-- Privacidad, términos y cambios (T89): texto largo, en su propio chunk. -->
+        @defer (on immediate) {
+          <app-legal-page [page]="shop.legalPage()!" />
+        }
+      } @else if (shop.shippingPage() && (!shop.enabled || shop.view() === "shop")) {
         <app-shipping-policy />
       } @else if (!shop.enabled || shop.view() === "shop") {
         <app-hero />

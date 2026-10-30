@@ -28,9 +28,22 @@
             >
           </li>
         }
+      </ul>
+    </nav>
+
+    <nav class="footer__nav" aria-label="Ayuda y legales">
+      <h2 class="footer__heading">Ayuda</h2>
+      <ul>
         <li>
           <a href="/envios/" (click)="shop.showShipping($event)">Envíos</a>
         </li>
+        @for (doc of legal; track doc.id) {
+          <li>
+            <a [href]="doc.path" (click)="shop.showLegal(doc.id, $event)">{{
+              doc.label
+            }}</a>
+          </li>
+        }
       </ul>
     </nav>
 

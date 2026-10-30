@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { SITE_CONFIG } from "../src/app/core/site-config.ts";
 import type { Category } from "../src/app/models/catalog.model.ts";
 import { catalogPath, pageMeta, parseCatalogPath } from "../src/app/core/catalog-seo.ts";
+import { LEGAL_PAGES } from "../src/app/core/legal-pages.ts";
 import { prerenderPages, robotsTxt, sitemapXml } from "../scripts/seo.ts";
 
 const site = { ...SITE_CONFIG, url: "https://piuma.uy" };
@@ -29,9 +30,9 @@ test("catalogPath y parseCatalogPath son inversas", () => {
     assert.equal(parseCatalogPath(other), null, other);
 });
 
-test("una página por URL pública: inicio, envíos, cada categoría y cada producto", () => {
+test("una página por URL pública: inicio, envíos, legales, cada categoría y cada producto", () => {
   const products = categories.reduce((n, c) => n + c.types.length, 0);
-  assert.equal(pages.length, 2 + categories.length + products);
+  assert.equal(pages.length, 2 + LEGAL_PAGES.length + categories.length + products);
   assert.equal(new Set(pages.map((p) => p.path)).size, pages.length);
 });
 

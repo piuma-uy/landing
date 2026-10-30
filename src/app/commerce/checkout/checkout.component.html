@@ -155,6 +155,21 @@
               productos sin cobrar nada.
             </p>
           }
+          <p class="step__hint step__legal">
+            Al confirmar aceptás los
+            <a href="/terminos/" (click)="shop.showLegal('terminos', $event)"
+              >términos y condiciones</a
+            >
+            y la
+            <a href="/privacidad/" (click)="shop.showLegal('privacidad', $event)"
+              >política de privacidad</a
+            >. Tenés 5 días hábiles para
+            <a
+              href="/cambios-y-devoluciones/"
+              (click)="shop.showLegal('cambios', $event)"
+              >arrepentirte</a
+            >.
+          </p>
         </div>
       }
     </section>

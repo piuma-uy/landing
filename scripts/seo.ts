@@ -2,7 +2,8 @@
  * Prerender del catálogo para SEO: funciones puras que usa scripts/prerender.ts después de `ng build`.
  *
  * La app sigue siendo un SPA sin SSR (el hosting es estático). Por cada URL pública del catálogo
- * (inicio, /catalogo/<categoría>/ y /catalogo/<categoría>/<producto>/) se escribe una copia del
+ * (inicio, /catalogo/<categoría>/, /catalogo/<categoría>/<producto>/, /envios/ y las páginas legales
+ * /privacidad/, /terminos/ y /cambios-y-devoluciones/) se escribe una copia del
  * index.html del build con:
  * - title, description, canonical y Open Graph propios de la página;
  * - datos estructurados JSON-LD (Store, Product con AggregateOffer, ItemList, BreadcrumbList);
@@ -14,13 +15,15 @@
  */
 import type { Category, ProductType } from "../src/app/models/catalog.model.ts";
 import { catalogPath, pageMeta, type PageMeta } from "../src/app/core/catalog-seo.ts";
-import { generalMessage, normalizeWhatsapp, waLink } from "../src/app/core/whatsapp.ts";
+import { formatWhatsapp, generalMessage, normalizeWhatsapp, waLink } from "../src/app/core/whatsapp.ts";
 import {
   FALLBACK_POLICY,
   SHIPPING_PATH,
   policyDescription,
   policySections,
 } from "../src/app/core/shipping-policy.ts";
+import { type LegalDoc, legalDocs } from "../src/app/core/legal.ts";
+import { LEGAL_PAGES } from "../src/app/core/legal-pages.ts";
 
 export interface Site {
   /** Origen público sin barra final, ej. https://piuma.uy */
@@ -112,15 +115,39 @@ function shippingBody(): string {
   );
 }
 
+/** Privacidad, términos o cambios (T89): el mismo texto que LegalPageComponent. */
+function legalBody(doc: LegalDoc): string {
+  const paragraphs = (texts: string[]) => texts.map((t) => `<p>${escapeHtml(t)}</p>`).join("");
+  return (
+    `<nav aria-label="Ruta"><a href="/">Inicio</a></nav>` +
+    `<h1>${escapeHtml(doc.title)}</h1>` +
+    `<p>Última actualización: ${escapeHtml(doc.updated)}</p>` +
+    doc.sections
+      .map(
+        (s) =>
+          `<h2>${escapeHtml(s.title)}</h2>${paragraphs(s.paragraphs)}` +
+          (s.items?.length ? `<ul>${s.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>` : ""),
+      )
+      .join("")
+  );
+}
+
+/** Privacidad, términos y cambios con el WhatsApp de la tienda. */
+export const siteLegalDocs = (site: Site) => legalDocs(LEGAL_PAGES, formatWhatsapp(site.whatsappNumber));
+
+/** Una página informativa en vez del catálogo: /envios/ o una legal. */
+type InfoPage = "shipping" | LegalDoc;
+
 function body(
   site: Site,
   categories: Category[],
   category: Category | null,
   type: ProductType | null,
-  shipping = false,
+  info: InfoPage | null = null,
 ): string {
   let main: string;
-  if (shipping) main = shippingBody();
+  if (info === "shipping") main = shippingBody();
+  else if (info) main = legalBody(info);
   else if (category && type) {
     main =
       `<nav aria-label="Ruta"><a href="/">Inicio</a> › <a href="${catalogPath(category.id)}">${escapeHtml(category.name)}</a></nav>` +
@@ -148,6 +175,7 @@ function body(
     `<header><p><a href="/">${escapeHtml(site.brandName)}</a></p></header>` +
     `<main>${main}</main>` +
     `<footer><p><a href="${SHIPPING_PATH}">Envíos</a>` +
+    LEGAL_PAGES.map((p) => ` · <a href="${p.path}">${escapeHtml(p.label)}</a>`).join("") +
     ` · <a href="${escapeHtml(whatsappLink(site))}">WhatsApp</a>` +
     ` · <a href="mailto:${escapeHtml(site.email)}">${escapeHtml(site.email)}</a>` +
     ` · <a href="${escapeHtml(site.instagramUrl)}">Instagram</a> · ${escapeHtml(site.city)}</p></footer>` +
@@ -275,9 +303,14 @@ function render(
   categories: Category[],
   category: Category | null,
   type: ProductType | null,
-  shipping = false,
+  info: InfoPage | null = null,
 ): Page {
-  const meta = shipping ? shippingMeta(site) : pageMeta(site.brandName, category, type);
+  const meta =
+    info === "shipping"
+      ? shippingMeta(site)
+      : info
+        ? legalMeta(site, info)
+        : pageMeta(site.brandName, category, type);
   const title = escapeHtml(meta.title);
   const description = escapeHtml(meta.description);
   const head = [
@@ -286,7 +319,7 @@ function render(
     `<meta property="og:site_name" content="${escapeHtml(site.brandName)}">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     `<script type="application/ld+json">${jsonForScript(
-      shipping ? shippingData(site) : structuredData(site, categories, category, type),
+      info ? infoData(site, info === "shipping" ? "Envíos" : info.title, meta.path) : structuredData(site, categories, category, type),
     )}</script>`,
     `<style>.prerender{display:none}</style>`,
     `<noscript><style>.prerender{display:block;padding:1rem}</style></noscript>`,
@@ -300,7 +333,7 @@ function render(
   );
   out = replace(out, /<\/head>/, () => `  ${head}\n  </head>`);
   out = replace(out, /<app-root><\/app-root>/, () =>
-    `<app-root>${body(site, categories, category, type, shipping)}</app-root>`,
+    `<app-root>${body(site, categories, category, type, info)}</app-root>`,
   );
   return { ...meta, html: out };
 }
@@ -311,8 +344,14 @@ const shippingMeta = (site: Site): PageMeta => ({
   description: policyDescription(FALLBACK_POLICY),
 });
 
+const legalMeta = (site: Site, doc: LegalDoc): PageMeta => ({
+  path: doc.path,
+  title: `${doc.title} | ${site.brandName}`,
+  description: doc.description,
+});
+
 /** Store y BreadcrumbList; la política en sí va como texto. */
-function shippingData(site: Site) {
+function infoData(site: Site, name: string, path: string) {
   const [store] = structuredData(site, [])["@graph"];
   return {
     "@context": "https://schema.org",
@@ -322,20 +361,21 @@ function shippingData(site: Site) {
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Inicio", item: `${site.url}/` },
-          { "@type": "ListItem", position: 2, name: "Envíos", item: `${site.url}${SHIPPING_PATH}` },
+          { "@type": "ListItem", position: 2, name, item: `${site.url}${path}` },
         ],
       },
     ],
   };
 }
 
-/** Todas las páginas públicas: catálogo y /envios/, a partir del index.html que deja `ng build`. */
+/** Todas las páginas públicas: catálogo, /envios/ y legales, a partir del index.html que deja `ng build`. */
 export function prerenderPages(html: string, site: Site, categories: Category[]): Page[] {
   if (!/<base href="\/"\s*\/?>/.test(html))
     throw new Error('prerender: index.html necesita <base href="/"> para servirse en subrutas');
   return [
     render(html, site, categories, null, null),
-    render(html, site, categories, null, null, true),
+    render(html, site, categories, null, null, "shipping"),
+    ...siteLegalDocs(site).map((d) => render(html, site, categories, null, null, d)),
     ...categories.flatMap((c) => [
       render(html, site, categories, c, null),
       ...c.types.map((t) => render(html, site, categories, c, t)),
@@ -363,6 +403,7 @@ export function sitemapXml(site: Site, categories: Category[], lastmod: string):
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`,
     entry("/", ["assets/images/hero-piuma.webp"]),
     entry(SHIPPING_PATH, []),
+    ...LEGAL_PAGES.map((p) => entry(p.path, [])),
     ...categories.flatMap((c) => [
       entry(catalogPath(c.id), [c.image]),
       ...c.types.map((t) =>
