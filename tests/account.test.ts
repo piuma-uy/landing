@@ -136,6 +136,51 @@ test("forgotten password: code and new password, then sign in", async () => {
   assert.ok("user" in (await s.auth.signIn("ana@example.com", "Otra-Clave-Nueva-7")));
 });
 
+test("a password reset ends the other sessions and keeps this tab signed in (T87-04)", async () => {
+  const s = setup();
+  s.pool.add("ana@example.com", { password: PASSWORD });
+  // Someone else's tab, signed in with the old password.
+  const other = setup(ISSUER, s.pool);
+  await other.auth.signIn("ana@example.com", PASSWORD);
+  await s.auth.confirmForgotPassword("ana@example.com", CODE, "Otra-Clave-Nueva-7");
+  const result = await s.auth.signInEndingOtherSessions("ana@example.com", "Otra-Clave-Nueva-7");
+  assert.ok("user" in result);
+  assert.deepEqual(
+    s.pool.calls.map((c) => c.action).filter((a) => a !== "RespondToAuthChallenge"),
+    ["InitiateAuth", "ConfirmForgotPassword", "InitiateAuth", "GlobalSignOut", "InitiateAuth"],
+  );
+  assert.equal(await setup(ISSUER, s.pool, other.store).auth.restore(), "expired");
+  // This tab's newest session survives a reload.
+  const mine = await setup(ISSUER, s.pool, s.store).auth.restore();
+  assert.ok(mine && mine !== "expired" && mine.email === "ana@example.com");
+});
+
+test("a failed global sign-out after a reset still signs the buyer in (T87-04)", async () => {
+  const s = setup();
+  s.pool.add("ana@example.com", { password: PASSWORD });
+  const handle = s.pool.handle.bind(s.pool);
+  s.pool.handle = (target, body) =>
+    target.endsWith("GlobalSignOut") ? [500, { __type: "InternalErrorException" }] : handle(target, body);
+  const result = await s.auth.signInEndingOtherSessions("ana@example.com", PASSWORD);
+  assert.ok("user" in result && result.user.email === "ana@example.com");
+  assert.ok(await s.auth.getAccessToken());
+  assert.ok(s.store.get(SESSION_KEY));
+});
+
+test("after enrolling TOTP every session ends, a password-only one from before too (T87-NV-MFA)", async () => {
+  const s = setup();
+  s.pool.add("admin@example.com", { password: PASSWORD, admin: true });
+  const before = setup(ISSUER, s.pool);
+  await before.auth.signIn("admin@example.com", PASSWORD);
+  await s.auth.signIn("admin@example.com", PASSWORD);
+  await s.auth.signOutEverywhere();
+  assert.equal(s.auth.user, null);
+  assert.equal(await s.auth.getAccessToken(), "");
+  assert.equal(s.store.has(SESSION_KEY), false);
+  assert.equal(await setup(ISSUER, s.pool, before.store).auth.restore(), "expired");
+  assert.ok("user" in (await s.auth.signIn("admin@example.com", PASSWORD)));
+});
+
 test("temporary password: NEW_PASSWORD_REQUIRED, then the panel", async () => {
   const s = setup();
   s.pool.add("admin@example.com", {

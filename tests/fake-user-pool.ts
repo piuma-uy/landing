@@ -62,6 +62,8 @@ export class FakeUserPool {
   readonly users = new Map<string, PoolUser>();
   readonly calls: { action: string; body: any }[] = [];
   readonly revoked: string[] = [];
+  /** Refresh tokens handed out, so GlobalSignOut can revoke every one of a user. */
+  private readonly issued: string[] = [];
   private readonly sessions = new Map<string, any>();
   readonly poolName: string;
   readonly issuer: string;
@@ -97,10 +99,18 @@ export class FakeUserPool {
   }
 
   private answer(action: string, body: any): unknown {
-    if (body.ClientId !== this.clientId) throw new Error("ResourceNotFoundException");
     const fail = (type: string, message?: string): never => {
       throw new Error(message ? `${type}|${message}` : type);
     };
+    // Only the access token, no ClientId: every refresh token of its user stops renewing.
+    if (action === "GlobalSignOut") {
+      const sub = JSON.parse(Buffer.from(String(body.AccessToken).split(".")[1] ?? "", "base64url").toString() || "{}").sub;
+      const email = [...this.users].find(([, u]) => u.userId === sub)?.[0];
+      if (!email) fail("NotAuthorizedException", "Invalid Access Token");
+      this.revoked.push(...this.issued.filter((t) => t.split(":")[1] === email));
+      return {};
+    }
+    if (body.ClientId !== this.clientId) throw new Error("ResourceNotFoundException");
     switch (action) {
       case "InitiateAuth": {
         if (body.AuthFlow === "REFRESH_TOKEN_AUTH") {
@@ -237,11 +247,13 @@ export class FakeUserPool {
     if (this.tokensFor) return this.tokensFor(email);
     const user = this.users.get(email)!;
     const now = Math.floor(Date.now() / 1000);
+    const refresh = `refresh:${email}:${randomBytes(4).toString("hex")}`;
+    if (withRefresh) this.issued.push(refresh);
     const claims = { sub: user.userId, iss: this.issuer, iat: now, exp: now + 900 };
     return {
       AccessToken: `${b64url({ alg: "none" })}.${b64url({ ...claims, token_use: "access", client_id: this.clientId, scope: "aws.cognito.signin.user.admin" })}.sig`,
       IdToken: `${b64url({ alg: "none" })}.${b64url({ ...claims, token_use: "id", aud: this.clientId, email, name: user.name, ...(user.admin && { "cognito:groups": ["admins"] }) })}.sig`,
-      ...(withRefresh && { RefreshToken: `refresh:${email}:${randomBytes(4).toString("hex")}` }),
+      ...(withRefresh && { RefreshToken: refresh }),
       ExpiresIn: 900,
       TokenType: "Bearer",
     };

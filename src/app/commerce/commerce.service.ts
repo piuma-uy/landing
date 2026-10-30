@@ -772,19 +772,23 @@ export class CommerceService {
         const url = await this.cognito.logout();
         if (url) location.assign(url);
       } else await this.request("/auth/logout", "POST", {});
-      this.user.set(null);
-      this.profile.set(null);
-      this.cart.set([]);
-      this.clearAdmin();
-      this.mfaRequired.set(false);
-      this.totp.set(null);
-      this.paymentMethods.set(null);
-      this.completed.set(null);
-      this.leaving.set(null);
-      this.paymentReturn.set(null);
-      this.quote.set(null);
+      this.forget();
       this.view.set("shop");
     });
+  }
+  /** Drops what the signed-in user saw; the caller picks the view. */
+  private forget() {
+    this.user.set(null);
+    this.profile.set(null);
+    this.cart.set([]);
+    this.clearAdmin();
+    this.mfaRequired.set(false);
+    this.totp.set(null);
+    this.paymentMethods.set(null);
+    this.completed.set(null);
+    this.leaving.set(null);
+    this.paymentReturn.set(null);
+    this.quote.set(null);
   }
   private async saveCart(items: Line[]) {
     if (this.user()) await this.request("/cart", "PUT", { items });
@@ -1120,14 +1124,14 @@ export class CommerceService {
       const code = totpCode(input);
       if (!code) throw new Error("Escribí los 6 números que muestra la app.");
       await this.enrollment.verify(await this.cognito.getAccessToken(), code);
-      this.totp.set(null);
-      await this.loadAdmin();
-      if (this.mfaRequired())
-        throw new Error(
-          "Activamos el segundo factor, pero el panel todavía no lo ve. Probá de nuevo en unos segundos.",
-        );
+      // A session from before the second factor (another tab, someone with the password) keeps
+      // renewing and could replace the authenticator: every one ends, this tab's too (T87-NV-MFA).
+      await this.cognito.signOutEverywhere().catch(() => this.cognito!.logout());
+      clearSession(sessionStorage);
+      this.forget();
+      this.view.set("account");
       this.notice.set(
-        "Segundo factor activado. Desde el próximo ingreso te vamos a pedir el código de la app.",
+        "Segundo factor activado. Ingresá de nuevo con tu contraseña y el código de la app.",
       );
     });
   }

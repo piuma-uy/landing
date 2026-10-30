@@ -268,7 +268,10 @@ export class AccountComponent implements OnDestroy {
         codeOf(this.code)!,
         this.password(),
       );
-      await this.finish(await this.cognito!.signIn(email, this.password()));
+      // Whoever held a session with the old password loses it (T87-04).
+      await this.finish(
+        await this.cognito!.signInEndingOtherSessions(email, this.password()),
+      );
     });
   }
 
