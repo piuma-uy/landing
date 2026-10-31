@@ -30,10 +30,17 @@ llevan `noindex` mientras están abiertas), `sitemap.xml` (sólo URLs indexables
 | `SITE_LASTMOD`  | fecha del commit compilado | `<lastmod>` del sitemap (`AAAA-MM-DD`). Compilar dos veces el mismo commit da el mismo sitemap                 |
 | `SITE_COMMERCE` | apagado                    | `1`: "cómo comprar" y "cómo pagar" dicen que se compra online (transferencia o Mercado Pago)                   |
 | `SEO_OFFERS`    | apagado                    | `1`: precio por variante (`Offer` en UYU, con `availability` si hay stock) en el JSON-LD y en el texto         |
+| `SITE_ENV`      | `prod`                     | `dev`: publica las páginas legales aunque sean borrador (`LEGAL_DRAFT`); ver abajo                             |
 
 `SITE_COMMERCE` existe porque `commerceEnabled` está en `runtime-config.json`, que el deploy escribe **después** del build:
 el HTML prerenderizado no lo puede leer. En AWS lo pasa el input `storefront_commerce` del workflow `Deploy` de
 `piuma-backend` (apagado por defecto); se prende junto con `commerceEnabled` (paso 10 del checklist de apertura).
+
+Con `LEGAL_DRAFT = true` ([`legal-pages.ts`](../src/app/core/legal-pages.ts)) y `SITE_ENV=prod`, `/privacidad/`,
+`/terminos/` y `/cambios-y-devoluciones/` no se prerenderizan (caen en la 404), no están en el pie ni en el checkout y
+no van a `sitemap.xml` ni a `llms.txt` (T99). `npm run build` le pasa el mismo valor al bundle (`ng build --define
+PIUMA_SITE_ENV`); `ng serve` y los tests quedan en `dev`. El workflow `Deploy` compila con `SITE_ENV` igual al entorno
+y borra del bucket las páginas prerenderizadas que el build ya no trae.
 
 ## Datos estructurados
 

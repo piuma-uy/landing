@@ -3,11 +3,18 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { SITE_CONFIG } from "../src/app/core/site-config.ts";
 import type { Category } from "../src/app/models/catalog.model.ts";
-import { LEGAL_DRAFT, PENDING, legalTexts, pendingParts } from "../src/app/core/legal.ts";
-import { LEGAL_PAGES, type LegalId, legalIdFor } from "../src/app/core/legal-pages.ts";
-import { prerenderPages, siteLegalDocs, sitemapXml } from "../scripts/seo.ts";
+import { PENDING, legalTexts, pendingParts } from "../src/app/core/legal.ts";
+import {
+  LEGAL_DRAFT,
+  LEGAL_PAGES,
+  type LegalId,
+  legalIdFor,
+  publishedLegalPages,
+} from "../src/app/core/legal-pages.ts";
+import { LEGAL_LINKS, SITE_ENV } from "../src/app/core/site-env.ts";
+import { NOT_FOUND_PATH, llmsTxt, prerenderPages, siteLegalDocs, sitemapXml } from "../scripts/seo.ts";
 
-const site = { ...SITE_CONFIG, url: "https://piuma.uy" };
+const site = { ...SITE_CONFIG, url: "https://piuma.uy", legalPages: LEGAL_PAGES };
 const categories: Category[] = JSON.parse(
   await readFile(new URL("../src/assets/data/catalog.json", import.meta.url), "utf8"),
 );
@@ -98,4 +105,41 @@ test("cada página legal prerenderizada: meta propia, breadcrumb, enlazada desde
     assert.ok(xml.includes(`<loc>https://piuma.uy${doc.path}</loc>`));
     assert.ok(pages.every((p) => p.html.includes(`<a href="${doc.path}">${doc.label}</a>`)));
   }
+});
+
+test("borrador en prod: ninguna página legal publicada; en dev, o ya aprobado, todas (T99)", () => {
+  assert.deepEqual(publishedLegalPages("prod", true), []);
+  assert.deepEqual(publishedLegalPages("dev", true), LEGAL_PAGES);
+  assert.deepEqual(publishedLegalPages("prod", false), LEGAL_PAGES);
+  assert.deepEqual(publishedLegalPages("dev", false), LEGAL_PAGES);
+  assert.deepEqual(publishedLegalPages("prod"), LEGAL_DRAFT ? [] : LEGAL_PAGES);
+  // ng serve y node --test no definen PIUMA_SITE_ENV: dev, con las páginas para revisarlas.
+  assert.equal(SITE_ENV, "dev");
+  assert.deepEqual(LEGAL_LINKS, LEGAL_PAGES);
+  // Una ruta legal no publicada no abre la página: queda la 404.
+  assert.equal(legalIdFor("/privacidad/", []), null);
+  assert.equal(legalIdFor("/terminos", publishedLegalPages("dev", true)), "terminos");
+});
+
+test("build de prod con el borrador: sin prerender, enlaces, sitemap ni llms.txt de las legales (T99)", () => {
+  const prod = { ...site, legalPages: publishedLegalPages("prod", true) };
+  const prodPages = prerenderPages(index, prod, categories);
+  assert.equal(prodPages.length, pages.length - LEGAL_PAGES.length);
+  assert.equal(prodPages.at(-1)!.path, NOT_FOUND_PATH);
+  const xml = sitemapXml(prod, categories, "2026-10-30");
+  const llms = llmsTxt(prod, categories);
+  for (const p of LEGAL_PAGES) {
+    assert.ok(!prodPages.some((page) => page.path === p.path), p.path);
+    for (const page of prodPages) assert.ok(!page.html.includes(`href="${p.path}"`), `${page.path} enlaza ${p.path}`);
+    assert.ok(!xml.includes(p.path), `sitemap con ${p.path}`);
+    assert.ok(!llms.includes(p.path), `llms.txt con ${p.path}`);
+  }
+  assert.deepEqual(siteLegalDocs(prod), []);
+  // Aprobado (LEGAL_DRAFT = false), prod publica lo mismo que dev.
+  const approved = { ...site, legalPages: publishedLegalPages("prod", false) };
+  assert.deepEqual(
+    prerenderPages(index, approved, categories).map((p) => p.path),
+    pages.map((p) => p.path),
+  );
+  for (const p of LEGAL_PAGES) assert.ok(llmsTxt(approved, categories).includes(`${site.url}${p.path}`));
 });

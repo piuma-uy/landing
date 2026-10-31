@@ -26,6 +26,7 @@ import { type Address, addressMismatch, shippingCost } from "../shipping";
 import { phoneDisplay } from "../transfer";
 import { scrollBehavior } from "../screen";
 import { PHOTO_SIZES, photoSrcset } from "../../core/photos";
+import { LEGAL_LINKS } from "../../core/site-env";
 import { DeliveryComponent } from "../delivery/delivery.component";
 import { CartLinesComponent } from "../order-extras/order-extras";
 import { PhoneFieldComponent } from "../phone-field/phone-field.component";
@@ -56,6 +57,8 @@ export class CheckoutComponent {
   readonly photoSrcset = photoSrcset;
   readonly thumbSizes = PHOTO_SIZES.thumb;
   readonly shop = inject(CommerceService);
+  /** "Al confirmar aceptás los términos…", only while the legal pages are published (T99). */
+  readonly legalLinks = LEGAL_LINKS.length > 0;
   /** The checkout's address, kept by the page while the buyer visits /envios/. */
   readonly address = input.required<Address>();
   /** "Tu celular" in E.164 (T71); null while the field has no valid number. */

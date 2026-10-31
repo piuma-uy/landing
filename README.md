@@ -130,6 +130,9 @@ presupuestos, GitHub, secretos, monitoreo) y lo que falta para abrir al público
   `https://piuma.uy`), `SITE_COMMERCE=1` cuando se encienda `commerceEnabled` (el texto de "cómo comprar" y "cómo pagar"
   del HTML prerenderizado y de `llms.txt`; en AWS es el input `storefront_commerce` del workflow `Deploy`, apagado por
   defecto) y `SEO_OFFERS=1` con el catálogo real cargado (precios en los datos estructurados, B5).
+- `SITE_ENV` (`prod` por defecto, o `dev`; T99): mientras las páginas legales sean borrador (`LEGAL_DRAFT` en
+  [`legal-pages.ts`](src/app/core/legal-pages.ts)), el build de prod no las publica ni las enlaza. El workflow `Deploy`
+  pasa el entorno; `npm start` las muestra. Al aprobarlas, `LEGAL_DRAFT = false` y salen en prod sin más cambios.
 - Cambios de catálogo, textos y fotos: [`docs/frontend.md`](docs/frontend.md).
 
 ## Correrlo local
