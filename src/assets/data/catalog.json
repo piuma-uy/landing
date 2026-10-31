@@ -367,8 +367,8 @@
   {
     "id": "cubrecamas",
     "name": "Cubrecamas",
-    "image": "assets/images/productos/producto-cubrecama-chiara.webp",
-    "alt": "Cubrecamas Chiara grises doblados sobre una cama con respaldo de madera",
+    "image": "assets/images/productos/producto-cubrecama-chiara-4.webp",
+    "alt": "Cubrecama Chiara gris tendido sobre una cama en un dormitorio con dos camas",
     "types": [
       {
         "id": "cubrecama-chiara",
