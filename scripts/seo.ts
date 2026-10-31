@@ -39,7 +39,7 @@ import {
 } from "../src/app/core/shipping-policy.ts";
 import { sortSizes } from "../src/app/core/sizes.ts";
 import { type LegalDoc, legalDocs } from "../src/app/core/legal.ts";
-import { LEGAL_PAGES } from "../src/app/core/legal-pages.ts";
+import { LEGAL_PAGES, type LegalPage } from "../src/app/core/legal-pages.ts";
 
 export interface Site {
   /** Origen público sin barra final, ej. https://piuma.uy */
@@ -56,6 +56,11 @@ export interface Site {
   offers?: boolean;
   /** SITE_COMMERCE=1: la tienda vende online (commerceEnabled en prod); cambia "cómo comprar". */
   commerce?: boolean;
+  /**
+   * Páginas legales publicadas (publishedLegalPages según SITE_ENV, T99): sólo éstas se prerenderizan y
+   * van en el pie, el sitemap y llms.txt. Vacío con el borrador en prod: sus URLs caen en la 404.
+   */
+  legalPages: readonly LegalPage[];
 }
 
 export interface Page extends PageMeta {
@@ -306,7 +311,10 @@ function legalBody(doc: LegalDoc): string {
 }
 
 /** Privacidad, términos y cambios con el WhatsApp de la tienda. */
-export const siteLegalDocs = (site: Site) => legalDocs(LEGAL_PAGES, formatWhatsapp(site.whatsappNumber));
+export const siteLegalDocs = (site: Site) =>
+  legalDocs(LEGAL_PAGES, formatWhatsapp(site.whatsappNumber)).filter((d) =>
+    site.legalPages.some((p) => p.id === d.id),
+  );
 
 type Kind = "home" | "category" | "product" | "shipping" | "legal" | "notFound";
 
@@ -364,7 +372,7 @@ function body(
     `<li><a href="${SHIPPING_PATH}">Envíos</a></li></ul></nav></header>` +
     `<main>${main}</main>` +
     `<footer><p><a href="${SHIPPING_PATH}">Envíos</a>` +
-    LEGAL_PAGES.map((p) => ` · <a href="${p.path}">${escapeHtml(p.label)}</a>`).join("") +
+    site.legalPages.map((p) => ` · <a href="${p.path}">${escapeHtml(p.label)}</a>`).join("") +
     ` · <a href="${escapeHtml(whatsappLink(site))}">WhatsApp ${escapeHtml(formatWhatsapp(site.whatsappNumber))}</a>` +
     ` · <a href="${escapeHtml(site.instagramUrl)}">Instagram ${escapeHtml(instagramHandle(site))}</a>` +
     ` · <a href="mailto:${escapeHtml(site.email)}">${escapeHtml(site.email)}</a>` +
@@ -773,7 +781,7 @@ export function sitemapXml(site: Site, categories: Category[], lastmod: string):
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`,
     entry("/", ["assets/images/hero-piuma.webp"]),
     entry(SHIPPING_PATH, []),
-    ...LEGAL_PAGES.map((p) => entry(p.path, [])),
+    ...site.legalPages.map((p) => entry(p.path, [])),
     ...categories.flatMap((c) => [
       entry(catalogPath(c.id), [c.image]),
       ...c.types.map((t) =>
@@ -832,7 +840,7 @@ export function llmsTxt(site: Site, categories: Category[]): string {
     "## Opcional",
     "",
     `- [Mapa del sitio](${site.url}/sitemap.xml)`,
-    ...LEGAL_PAGES.map((p) => `- [${p.label}](${site.url}${p.path})`),
+    ...site.legalPages.map((p) => `- [${p.label}](${site.url}${p.path})`),
     "",
   ].join("\n");
 }

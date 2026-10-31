@@ -3,8 +3,8 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommerceService } from '../../commerce/commerce.service';
 import { SITE_CONFIG } from '../../core/site-config';
-import { LEGAL_DRAFT, legalDocs, pendingParts } from '../../core/legal';
-import { LEGAL_PAGES, type LegalId } from '../../core/legal-pages';
+import { legalDocs, pendingParts } from '../../core/legal';
+import { LEGAL_DRAFT, LEGAL_PAGES, type LegalId } from '../../core/legal-pages';
 import { formatWhatsapp } from '../../core/whatsapp';
 
 const DOCS = legalDocs(LEGAL_PAGES, formatWhatsapp(SITE_CONFIG.whatsappNumber));

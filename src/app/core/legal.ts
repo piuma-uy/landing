@@ -6,12 +6,11 @@
  *
  * BORRADOR para aprobar por Guillermo y por Piuma; no es asesoramiento legal. Todo lo que depende de
  * la tienda va marcado con [A CONFIRMAR …]: la página lo resalta y tests/legal.test.ts impide
- * publicarlo como definitivo (LEGAL_DRAFT = false) mientras quede alguna marca.
+ * publicarlo como definitivo (LEGAL_DRAFT = false, en core/legal-pages.ts) mientras quede alguna
+ * marca. Mientras sea borrador, el build de producción no lo publica (T99).
  */
 
 import type { LegalId, LegalPage } from "./legal-pages";
-
-export const LEGAL_DRAFT = true;
 
 /** Marca de lo que tiene que confirmar Piuma; con o sin detalle: "[A CONFIRMAR: plazo]". */
 export const PENDING = /\[A CONFIRMAR[^\]]*\]/g;

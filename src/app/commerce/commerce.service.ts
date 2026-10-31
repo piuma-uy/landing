@@ -42,6 +42,7 @@ import {
   shippingPolicy,
 } from "../core/shipping-policy";
 import { type LegalId, legalIdFor, legalPage as legalInfo } from "../core/legal-pages";
+import { LEGAL_LINKS } from "../core/site-env";
 import {
   CardApi,
   Checkout,
@@ -242,8 +243,11 @@ export class CommerceService {
   readonly notFound = signal(
     !!document.querySelector('meta[name="robots"][content="noindex"]'),
   );
-  /** Privacy, terms or returns page instead of the home sections, like /envios/ (T89). */
-  readonly legalPage = signal<LegalId | null>(legalIdFor(location.pathname));
+  /**
+   * Privacy, terms or returns page instead of the home sections, like /envios/ (T89). Only the
+   * published ones: the draft in prod has no page, and its URL is the 404 (T99).
+   */
+  readonly legalPage = signal<LegalId | null>(legalIdFor(location.pathname, LEGAL_LINKS));
   /**
    * The view /envios/ or a legal page was opened from ("¿Cómo funcionan los envíos?" or the
    * terms in the checkout); null from the shop.
@@ -516,7 +520,7 @@ export class CommerceService {
     // Back and forward between /envios/, the legal pages and the page they were opened from.
     addEventListener("popstate", () => {
       const shipping = isShippingPath(location.pathname);
-      const legal = legalIdFor(location.pathname);
+      const legal = legalIdFor(location.pathname, LEGAL_LINKS);
       if (shipping === this.shippingPage() && legal === this.legalPage())
         return;
       this.shippingPage.set(shipping);
