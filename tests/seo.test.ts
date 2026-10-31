@@ -22,7 +22,7 @@ import {
   sitemapXml,
 } from "../scripts/seo.ts";
 
-const site = { ...SITE_CONFIG, url: "https://piuma.uy" };
+const site = { ...SITE_CONFIG, url: "https://piuma.uy", legalPages: LEGAL_PAGES };
 const categories: Category[] = sortCatalogSizes(
   JSON.parse(await readFile(new URL("../src/assets/data/catalog.json", import.meta.url), "utf8")),
 );

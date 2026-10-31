@@ -7,20 +7,26 @@
  *   así compilar dos veces el mismo commit no cambia el sitemap.
  * - SEO_OFFERS=1: precios en el JSON-LD y en el texto, cuando el catálogo real esté cargado (B5).
  * - SITE_COMMERCE=1: la tienda vende online (commerceEnabled); cambia "cómo comprar" y "cómo pagar".
+ * - SITE_ENV: prod (por defecto) o dev. En prod no se publica el borrador legal (T99): ni sus
+ *   páginas ni sus enlaces. package.json pasa el mismo valor a `ng build` (PIUMA_SITE_ENV).
  */
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { SITE_CONFIG } from "../src/app/core/site-config.ts";
+import { type SiteEnv, publishedLegalPages } from "../src/app/core/legal-pages.ts";
 import type { Category } from "../src/app/models/catalog.model.ts";
 import { sortCatalogSizes } from "../src/app/core/sizes.ts";
 import { NOT_FOUND_PATH, llmsTxt, prerenderPages, robotsTxt, sitemapXml, type Site } from "./seo.ts";
 
 const out = new URL("../dist/piuma-landing/browser/", import.meta.url);
+const env = process.env["SITE_ENV"] || "prod";
+if (env !== "prod" && env !== "dev") throw new Error(`prerender: SITE_ENV=${env}; tiene que ser prod o dev`);
 const site: Site = {
   ...SITE_CONFIG,
   url: (process.env["SITE_URL"] || "https://piuma.uy").replace(/\/+$/, ""),
   offers: process.env["SEO_OFFERS"] === "1",
   commerce: process.env["SITE_COMMERCE"] === "1",
+  legalPages: publishedLegalPages(env as SiteEnv),
 };
 
 function lastmod(): string {
@@ -51,5 +57,6 @@ await writeFile(new URL("sitemap.xml", out), sitemapXml(site, categories, lastmo
 await writeFile(new URL("llms.txt", out), llmsTxt(site, categories));
 console.log(
   `prerender: ${pages.length} páginas (con 404.html), robots.txt, sitemap.xml y llms.txt para ${site.url}` +
-    (site.offers ? ", con precios" : ""),
+    (site.offers ? ", con precios" : "") +
+    (site.legalPages.length ? "" : `, sin las páginas legales (borrador, SITE_ENV=${env})`),
 );

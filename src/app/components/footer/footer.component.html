@@ -31,7 +31,10 @@
       </ul>
     </nav>
 
-    <nav class="footer__nav" aria-label="Ayuda y legales">
+    <nav
+      class="footer__nav"
+      [attr.aria-label]="legal.length ? 'Ayuda y legales' : 'Ayuda'"
+    >
       <h2 class="footer__heading">Ayuda</h2>
       <ul>
         <li>
