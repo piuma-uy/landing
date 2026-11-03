@@ -156,6 +156,8 @@ src/
 scripts/prerender.ts               páginas del catálogo, /envios/ y 404.html, robots.txt, sitemap.xml y llms.txt
 scripts/seo.ts                     metadatos, JSON-LD, respuestas citables y llms.txt (lo usa prerender.ts)
 scripts/og-images.py               imágenes 1200×630 para compartir (src/assets/images/og/)
+scripts/validate-jsonld.mjs        valida a mano el JSON-LD del build (ver seo.md)
+scripts/gitleaks-selftest.sh       prueba cada regla de .gitleaks.toml (lo corre el workflow Secret scan)
 tests/                             unitarios node --test (sin Angular)
 ```
 

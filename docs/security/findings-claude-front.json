@@ -38,7 +38,7 @@
       "recomendacion": "No encender comercio fuera de CloudFront o replicar en vercel.json/netlify.toml las cabeceras de piuma-backend/infra/frontend.tf; verificar las cabeceras de CloudFront tras T41.",
       "verificarTrasT41": true,
       "status": "accepted",
-      "motivo": "La rama main de landing (Vercel) no se toca y publica el comercio apagado (runtime-config.json por defecto): sin sesión, tokens ni checkout no hay superficie para CSP/frame-ancestors. Encender el comercio sólo en CloudFront (infra/frontend.tf). Reabrir si se enciende fuera de CloudFront."
+      "motivo": "La rama main de landing (Vercel) no se toca y publica el comercio apagado (runtime-config.json por defecto): sin sesión, tokens ni checkout no hay superficie para CSP/frame-ancestors. Encender el comercio sólo en CloudFront (infra/frontend.tf). Reabrir si se enciende fuera de CloudFront. T81: vercel.json y netlify.toml se borraron de tienda-local."
     },
     {
       "id": "FE-04",

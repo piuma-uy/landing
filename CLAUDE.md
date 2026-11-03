@@ -1,6 +1,6 @@
 # landing · guía para agentes
 
-Front de Piuma: Angular 19 standalone + SCSS, sin librerías extra. Trabajar sobre la rama `tienda-local` (tienda
+Front de Piuma: Angular 22 standalone + SCSS, sin librerías extra. Trabajar sobre la rama `tienda-local` (tienda
 conectada al API). `main` es la landing pública en Vercel: no la toques ni mergees hacia ella.
 
 ## Comandos
