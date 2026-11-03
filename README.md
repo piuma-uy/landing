@@ -75,7 +75,8 @@ el SHA completo de un commit de `tienda-local`:
    `runtime-config.json` e invalida CloudFront.
 
 Detalle: [`piuma-backend/docs/deployment.md`](https://github.com/piuma-uy/piuma-backend/blob/main/docs/deployment.md#6-cicd-con-github-actions-oidc).
-La landing de `main` sigue en Vercel (`vercel.json`).
+La landing de `main` sigue en Vercel con su propia configuración; esta rama no tiene `vercel.json` ni `netlify.toml`
+(T81): su único hosting es S3 + CloudFront, con las cabeceras de seguridad de `piuma-backend/infra/frontend.tf`.
 
 ## Pruebas
 

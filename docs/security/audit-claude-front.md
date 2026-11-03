@@ -94,6 +94,8 @@ navegador no decide precio, total, estado pagado ni rol. Lo más relevante:
 - **Estado: aceptado (T55b).** `main` (Vercel) no se toca y publica el comercio apagado: sin sesión, tokens ni
   checkout no hay superficie que proteger con CSP o `frame-ancestors`. El comercio sólo se enciende en CloudFront
   (`infra/frontend.tf`). Reabrir si se enciende fuera de CloudFront.
+- **T81:** `vercel.json` y `netlify.toml` se borraron de `tienda-local`; la tienda ya no tiene configuración para
+  publicarse fuera de CloudFront. `main` conserva la suya (landing sin comercio).
 
 ### FE-04 · Baja · `checkoutUrl` acepta cualquier origen https (y `http://localhost` en producción)
 

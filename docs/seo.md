@@ -50,8 +50,8 @@ enriquecidos de Google), local:
 ```bash
 mkdir -p /tmp/sdv && cd /tmp/sdv && npm init -y && npm i @adobe/structured-data-validator @marbec/web-auto-extractor
 curl -sLO https://schema.org/version/latest/schemaorg-all-https.jsonld
-# validate.mjs: extrae el JSON-LD de cada .html de dist con WebAutoExtractor y lo pasa por el Validator (ver el PR de T88)
-node validate.mjs <landing>/dist/piuma-landing/browser
+cd - && npm run build
+node scripts/validate-jsonld.mjs dist/piuma-landing/browser /tmp/sdv   # sale con 1 si hay errores (sin SEO_OFFERS=1, los de `offers` son esperados)
 ```
 
 - **`OnlineStore`, no `LocalBusiness` ni `Store`.** Piuma vende online y no atiende en un local: sin dirección (la de
