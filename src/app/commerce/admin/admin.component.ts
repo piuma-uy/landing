@@ -23,17 +23,19 @@ import {
 import { groupSecret } from "../mfa";
 import { qrPath } from "../qr";
 import { AdminSettingsComponent } from "../admin-settings.component";
+import { AdminUsersComponent } from "./admin-users.component";
 import { shippingSummary } from "../shipping";
 import { PAID_PREVIEW, paidOrderSummary, unitsSold } from "../paid-orders";
 
+type AdminTab = "overview" | "products" | "transfers" | "settings" | "users";
 /**
- * The administration panel: second factor, summary, products, transfers and settings.
+ * The administration panel: second factor, summary, products, transfers, settings and users (T106).
  * Split from CommerceComponent and deferred so buyers never download it (initial budget).
  */
 @Component({
   selector: "app-admin",
   standalone: true,
-  imports: [FormsModule, AdminSettingsComponent],
+  imports: [FormsModule, AdminSettingsComponent, AdminUsersComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./admin.component.html",
   styleUrls: [
@@ -45,9 +47,7 @@ import { PAID_PREVIEW, paidOrderSummary, unitsSold } from "../paid-orders";
 })
 export class AdminComponent {
   readonly shop = inject(CommerceService);
-  readonly adminTab = signal<
-    "overview" | "products" | "transfers" | "settings"
-  >("overview");
+  readonly adminTab = signal<AdminTab>("overview");
   /** Transfer row with the cancellation step open. */
   readonly reviewing = signal<string | null>(null);
   /** Transfer in the "¿Estás seguro?" dialog (T74), and why the last try failed. */
@@ -150,7 +150,7 @@ export class AdminComponent {
     });
     if (!this.shop.error()) this.editing = null;
   }
-  openTab(tab: "overview" | "products" | "transfers" | "settings") {
+  openTab(tab: AdminTab) {
     this.adminTab.set(tab);
     this.reviewing.set(null);
   }

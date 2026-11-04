@@ -130,7 +130,12 @@
       [class.active]="adminTab() === 'settings'"
       (click)="openTab('settings')"
     >
-      Configuración
+      Configuración</button
+    ><button
+      [class.active]="adminTab() === 'users'"
+      (click)="openTab('users')"
+    >
+      Usuarios
     </button>
   </nav>
   @if (shop.busy()) {
@@ -485,6 +490,14 @@
         <app-admin-settings />
       } @placeholder {
         <p role="status">Cargando configuración…</p>
+      }
+    }
+    @case ("users") {
+      <!-- Its own chunk, like Configuración (T106). -->
+      @defer (on immediate) {
+        <app-admin-users />
+      } @placeholder {
+        <p role="status">Cargando administradores…</p>
       }
     }
     @case ("products") {
