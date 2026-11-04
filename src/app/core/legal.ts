@@ -4,9 +4,9 @@
  * Sin Angular y sin imports de valores (scripts/seo.ts lo corre Node tal cual): rutas, nombres y el
  * WhatsApp llegan como argumentos de legalDocs(); ver legalDocsFor en core/legal-pages.ts.
  *
- * BORRADOR para aprobar por Guillermo y por Piuma; no es asesoramiento legal. Todo lo que depende de
- * la tienda va marcado con [A CONFIRMAR …]: la página lo resalta y tests/legal.test.ts impide
- * publicarlo como definitivo (LEGAL_DRAFT = false, en core/legal-pages.ts) mientras quede alguna
+ * BORRADOR para aprobar por Guillermo y por Piuma; no es asesoramiento legal. Texto ajustado a la ley
+ * en T105 (normas y fuentes en docs/legal-fuentes.md). Lo que sólo puede dar Piuma va marcado con
+ * [A CONFIRMAR …]: la página lo resalta y tests/legal.test.ts impide publicarlo como definitivo (LEGAL_DRAFT = false, en core/legal-pages.ts) mientras quede alguna
  * marca. Mientras sea borrador, el build de producción no lo publica (T99).
  */
 
@@ -18,8 +18,9 @@ export const PENDING = /\[A CONFIRMAR[^\]]*\]/g;
 export const LEGAL_OWNER = {
   name: "Distrifoto SRL",
   rut: "213 376 180 018",
-  email: "piumainfra@gmail.com",
-  address: "[A CONFIRMAR: domicilio legal de Distrifoto SRL]",
+  /** El mail de atención del sitio (SITE_CONFIG.email); tests/legal.test.ts comprueba que coincidan. */
+  email: "distrifotosrl@gmail.com",
+  address: "[A CONFIRMAR: domicilio de Distrifoto SRL]",
 } as const;
 
 export interface LegalSection {
@@ -39,113 +40,109 @@ export interface LegalDoc extends LegalPage {
 /**
  * Las tres páginas en el orden de `pages`. `whatsapp` es el número legible de SITE_CONFIG
  * ("+598 …"): el único lugar del front con el número es site-config.ts.
+ *
+ * T105: sólo lo que exige la ley; cada obligación con su norma en docs/legal-fuentes.md (las
+ * normas no se citan en la página salvo cuando el texto nombra un derecho).
  */
 export function legalDocs(
   pages: readonly LegalPage[],
   whatsapp: string,
 ): LegalDoc[] {
   const page = (id: LegalId): LegalPage => pages.find((p) => p.id === id)!;
-  const contact =
-    `Escribinos a ${LEGAL_OWNER.email} o por WhatsApp al ${whatsapp}. ` +
-    `Responsable: ${LEGAL_OWNER.name}, RUT ${LEGAL_OWNER.rut}, ${LEGAL_OWNER.address}.`;
+  const owner = `${LEGAL_OWNER.name}, RUT ${LEGAL_OWNER.rut}, con domicilio en ${LEGAL_OWNER.address}`;
+  const contact = `mail a ${LEGAL_OWNER.email} o WhatsApp al ${whatsapp}`;
 
   const updated = "[A CONFIRMAR: fecha de publicación]";
+
+  // Arrepentimiento (Ley 17.250 art. 16; desde el 1/1/2027, redacción de la Ley 20.531 art. 108).
+  const withdrawal = [
+    "Como comprás a distancia, podés arrepentirte de la compra sin dar explicaciones y sin ninguna responsabilidad:",
+  ];
+  const withdrawalTerms = [
+    "Compras hasta el 31 de diciembre de 2026: dentro de los 5 días hábiles desde la compra o desde que recibiste el producto, lo que elijas.",
+    "Compras desde el 1 de enero de 2027: dentro de los 10 días corridos desde la compra o desde que recibiste el producto, lo que elijas.",
+  ];
+  const withdrawalHow = [
+    `Avisanos por ${contact}, con el número de pedido, dentro de ese plazo.`,
+    "Devolvés el producto sin uso y en el mismo estado en que lo recibiste; podés abrir el empaque para revisarlo. El costo de enviárnoslo es tuyo.",
+    "Te devolvemos todo lo que pagaste, envío incluido, al recibir el producto. Si pagaste con tarjeta, hacemos la devolución en Mercado Pago y se anulan las cuotas que falten.",
+  ];
+
+  // Defectos (Ley 17.250 arts. 33 y 37).
+  const defects = [
+    "Si el producto tiene un defecto o no es lo que pediste, podés elegir que te lo cambiemos por otro, aceptar otro producto o que te devolvamos lo que pagaste, sin costo para vos.",
+    "Defectos a la vista: avisanos dentro de los 90 días desde que lo recibiste. Defectos ocultos: los que aparezcan dentro de los 6 meses desde la entrega; avisanos dentro de los 3 meses desde que aparecen.",
+  ];
 
   const privacy: LegalDoc = {
     ...page("privacidad"),
     title: "Política de privacidad",
     description:
-      "Qué datos personales recoge Piuma al comprar, para qué los usa, dónde se guardan y cómo ejercer tus derechos según la Ley 18.331.",
+      "Qué datos personales trata Piuma, para qué, dónde se guardan y cómo ejercer tus derechos según la Ley 18.331.",
     updated,
     sections: [
       {
-        title: "Quién es responsable de tus datos",
+        title: "Responsable",
         paragraphs: [
-          `Piuma es una marca de ${LEGAL_OWNER.name} (RUT ${LEGAL_OWNER.rut}), responsable de la base de datos de clientes de la tienda. Tratamos tus datos según la Ley 18.331 de Protección de Datos Personales, su decreto reglamentario 414/009 y las normas que los modifican.`,
-          "Base de datos inscripta ante la Unidad Reguladora y de Control de Datos Personales (URCDP): [A CONFIRMAR: número de inscripción o trámite en curso].",
-          contact,
+          `Los datos que nos das al comprar forman la base de datos de clientes de Piuma, marca de ${owner}.`,
+          "Base de datos inscripta ante la Unidad Reguladora y de Control de Datos Personales (URCDP): [A CONFIRMAR: número y fecha de la resolución de inscripción].",
+          `Contacto: ${contact}.`,
         ],
       },
       {
-        title: "Qué datos recogemos",
+        title: "Qué datos tratamos y para qué",
         paragraphs: [
-          "Sólo los que hacen falta para venderte y entregarte el pedido:",
+          "Usamos tus datos sólo para tu cuenta, tus pedidos, el cobro, la entrega, responder tus consultas y reclamos, y cumplir obligaciones legales, contables y tributarias:",
         ],
         items: [
-          "Nombre y mail, al crear tu cuenta (o los que comparte Google, si entrás con Google).",
-          "Celular, para coordinar la entrega por WhatsApp.",
+          "Nombre, mail y celular, al crear tu cuenta (o nombre y mail que comparte Google, si entrás con Google).",
           "Dirección de entrega, si elegís envío.",
           "Tus pedidos: productos, importes, forma de pago, estado y fechas.",
-          "Si pagás con tarjeta, el resultado y el número de operación que informa Mercado Pago. Los datos de la tarjeta los cargás en Mercado Pago y nunca pasan por Piuma.",
+          "Si pagás con tarjeta, el resultado y el número de operación que informa Mercado Pago. Los datos de la tarjeta los cargás en Mercado Pago: Piuma no los recibe.",
         ],
       },
       {
-        title: "Para qué los usamos",
+        title: "Si no nos das tus datos",
         paragraphs: [
-          "Para gestionar tu cuenta, armar y cobrar tus pedidos, avisarte por mail cuando se confirma un pago, coordinar la entrega por WhatsApp, atender consultas, cambios y devoluciones, y cumplir obligaciones legales y contables.",
-          "Tratamos tus datos con tu consentimiento, que das al crear la cuenta y al confirmar la compra, y porque son necesarios para cumplir el contrato de compra. No los usamos para publicidad ni te mandamos promociones sin que lo pidas. [A CONFIRMAR: si Piuma quiere enviar novedades por mail o WhatsApp, agregar el consentimiento aparte].",
+          "Nombre, mail y celular son obligatorios para comprar; la dirección, sólo si elegís envío. Sin ellos, o si son incorrectos, no podemos tomar, cobrar ni entregar el pedido.",
         ],
       },
       {
-        title: "Dónde se guardan",
+        title: "Quién más accede a tus datos",
         paragraphs: [
-          "La tienda y sus datos están alojados en Amazon Web Services (AWS), en la región us-east-2 (Ohio, Estados Unidos). Es una transferencia internacional de datos: Estados Unidos no figura entre los países con nivel de protección adecuado para Uruguay, por eso se hace con tu consentimiento y con las garantías contractuales del proveedor. [A CONFIRMAR: base legal de la transferencia con el asesor].",
-          "Protegemos los datos con conexiones cifradas (HTTPS), acceso restringido por permisos y contraseñas que nunca se guardan en texto claro.",
-        ],
-      },
-      {
-        title: "Con quién los compartimos",
-        paragraphs: [
-          "No vendemos ni alquilamos tus datos. Sólo los ven los proveedores que hacen funcionar la tienda, cada uno para su tarea:",
+          "No vendemos ni cedemos tus datos. Sólo acceden quienes nos prestan un servicio para la compra, y las autoridades cuando una ley o un juez lo exige:",
         ],
         items: [
-          "Amazon Web Services: alojamiento, cuentas (Amazon Cognito) y mails de la tienda (Amazon SES).",
-          "Mercado Pago: el cobro con tarjeta. Al pagar aceptás también su política de privacidad.",
-          "Google: sólo si elegís entrar con Google; nos comparte tu nombre y tu mail.",
+          "Amazon Web Services: aloja la tienda, las cuentas (Amazon Cognito) y envía los mails (Amazon SES).",
+          "MercadoPago Uruguay S.R.L.: cobra los pagos con tarjeta.",
+          "Google: sólo si entrás con Google.",
           "WhatsApp: los mensajes con los que coordinamos la entrega.",
-          "PostHog (servidores en Estados Unidos): estadísticas de uso sin datos personales; ver más abajo.",
-          "Autoridades, cuando una ley o una orden judicial lo exija.",
         ],
       },
       {
-        title: "Cuánto tiempo los conservamos",
+        title: "Transferencia internacional",
         paragraphs: [
-          "Tu cuenta, mientras la tengas abierta. Los pedidos y sus datos de facturación, el tiempo que exigen las normas contables y tributarias: [A CONFIRMAR: plazo con el contador]. Los registros técnicos del servidor, 14 días y sin datos personales. Las estadísticas de uso, hasta 1 año.",
-          "Si pedís la baja de tu cuenta, borramos tus datos de contacto y conservamos sólo lo que la ley nos obliga a guardar de tus compras.",
+          "Sí hay transferencia internacional: la tienda y sus datos están alojados en Amazon Web Services, en Estados Unidos (región us-east-2, Ohio). Es necesaria para cumplir la compra que nos pedís.",
         ],
       },
       {
-        title: "Tus derechos y cómo ejercerlos",
+        title: "Cuánto tiempo los guardamos",
         paragraphs: [
-          "Podés pedir en cualquier momento acceso a tus datos, su rectificación, actualización o inclusión, y su supresión, y retirar tu consentimiento. Escribinos desde el mail de tu cuenta a " +
-            `${LEGAL_OWNER.email} o por WhatsApp al ${whatsapp}; para cuidar tus datos podemos pedirte que confirmes que sos el titular.`,
-          "Respondemos dentro de los 5 días hábiles que fija la ley. El acceso es gratuito una vez cada seis meses, salvo que haya un interés legítimo para pedirlo antes. El celular también lo podés cambiar vos desde Mi cuenta.",
+          "Los datos de tu cuenta, mientras la tengas. Los de tus compras, el plazo que exigen las normas contables y tributarias. Los registros técnicos del servidor, 14 días.",
+        ],
+      },
+      {
+        title: "Tus derechos",
+        paragraphs: [
+          `Podés pedir acceso a tus datos y su rectificación, actualización, inclusión o supresión. Pedilo por ${contact}; te podemos pedir que acredites tu identidad. Es gratis y respondemos dentro de los 5 días hábiles. El acceso es gratuito una vez cada seis meses, salvo que tengas un interés legítimo para pedirlo antes.`,
           "Si no te respondemos o no estás conforme, podés reclamar ante la URCDP (gub.uy/urcdp).",
         ],
       },
       {
-        title: "Cookies y almacenamiento en tu navegador",
+        title: "Navegador y estadísticas de uso",
         paragraphs: [
-          "No usamos cookies de publicidad ni de seguimiento. El sitio guarda en tu navegador sólo lo necesario para funcionar: tu sesión y el paso de compra en curso (sessionStorage, se borra al cerrar la pestaña) y el carrito si todavía no ingresaste (localStorage, para que no lo pierdas). Al entrar o crear la cuenta, Amazon Cognito y, si lo elegís, Google, usan sus propias cookies técnicas en sus páginas de ingreso.",
-        ],
-      },
-      {
-        title: "Estadísticas de uso sin cookies",
-        paragraphs: [
-          "Cuando está activada, usamos PostHog (servidores en Estados Unidos) para saber cómo se usa la tienda y corregir errores. Se registran las páginas que visitás, los pasos de la compra (sin montos ni datos personales), los clics a WhatsApp y errores técnicos, con un identificador al azar que se borra al cerrar la pestaña.",
-          'No usamos cookies para esto ni enviamos tu nombre, mail, teléfono, dirección, datos de pago o de tu cuenta; los eventos son anónimos y no se pueden cruzar entre visitas ni dispositivos. Si tu navegador tiene activado "No rastrear" o Global Privacy Control, no se envía nada.',
-        ],
-      },
-      {
-        title: "Menores de edad",
-        paragraphs: [
-          "La tienda está pensada para mayores de 18 años. [A CONFIRMAR: si Piuma acepta compras de menores con autorización de un adulto].",
-        ],
-      },
-      {
-        title: "Cambios en esta política",
-        paragraphs: [
-          "Si cambiamos esta política, publicamos la versión nueva en esta página con su fecha. Si el cambio es importante, te avisamos por mail antes de que rija.",
+          "Este sitio no usa cookies. Guarda en tu navegador tu sesión y el paso de compra en curso (sessionStorage, se borra al cerrar la pestaña) y el carrito si todavía no ingresaste (localStorage). Amazon Cognito y Google usan sus propias cookies en sus páginas de ingreso.",
+          "Para saber cómo se usa la tienda y corregir errores usamos PostHog (servidores en Estados Unidos): páginas vistas, pasos de la compra, clics a WhatsApp y errores, con un identificador al azar que se borra al cerrar la pestaña. No le enviamos tu nombre, mail, teléfono, dirección ni datos de pago, y PostHog descarta tu dirección IP. Si tu navegador tiene activado \"No rastrear\" o Global Privacy Control, no se envía nada.",
         ],
       },
     ],
@@ -155,77 +152,60 @@ export function legalDocs(
     ...page("terminos"),
     title: "Términos y condiciones de compra",
     description:
-      "Condiciones de compra en Piuma: precios en pesos con IVA, formas de pago, reserva, envíos, derecho de arrepentimiento de 5 días hábiles y garantía.",
+      "Condiciones de compra en Piuma: quién vende, precios con impuestos, pagos, envíos, derecho de arrepentimiento y productos con defectos.",
     updated,
     sections: [
       {
         title: "Quién vende",
         paragraphs: [
-          `Vende ${LEGAL_OWNER.name}, RUT ${LEGAL_OWNER.rut}, con la marca Piuma; domicilio: ${LEGAL_OWNER.address}. Escribinos a ${LEGAL_OWNER.email} o por WhatsApp al ${whatsapp}.`,
-          "Estas condiciones se aplican a las compras en este sitio, junto con la Ley 17.250 de Defensa del Consumidor. Al confirmar un pedido declarás que las leíste y las aceptás.",
+          `Vende ${owner}, con la marca Piuma. Atención al cliente: ${contact}.`,
+          "Vendemos sólo en Uruguay. Estas condiciones se aplican a las compras en este sitio, junto con la Ley 17.250 de Defensa del Consumidor y las demás leyes de Uruguay.",
         ],
       },
       {
-        title: "Productos y precios",
+        title: "Precios",
         paragraphs: [
-          "Los precios están en pesos uruguayos e incluyen IVA. El total que ves al confirmar ya suma el envío, si corresponde. El precio y el stock que valen son los que te muestra el carrito en el momento de confirmar.",
-          "Las fotos muestran los productos lo más fielmente posible; el color puede variar un poco según la pantalla. Las medidas de cada producto figuran en su ficha y en la guía de talles.",
-          "Si por un error evidente un precio aparece mal publicado, te avisamos y podés confirmar la compra con el precio correcto o cancelarla sin costo.",
+          "Los precios están en pesos uruguayos e incluyen IVA. El envío, si corresponde, se muestra aparte antes de confirmar y se suma al total. El precio es el mismo con tarjeta o con transferencia.",
         ],
       },
       {
-        title: "Cuenta",
+        title: "Cómo se compra",
         paragraphs: [
-          "Para comprar necesitás una cuenta con tu nombre, mail y celular, o entrar con Google. Cuidá tu contraseña: las compras hechas desde tu cuenta se consideran tuyas.",
+          "Para comprar necesitás una cuenta. Antes de confirmar ves el resumen del pedido (productos, envío, total y forma de pago) y podés corregirlo; el pedido se hace recién cuando tocás confirmar.",
+          "Al confirmar reservamos los productos por el plazo que te mostramos. Si el pago no se acredita en ese plazo, el pedido se cancela solo y no se cobra nada. El pedido queda confirmado cuando recibimos el pago, y te avisamos por mail.",
         ],
       },
       {
         title: "Formas de pago",
-        paragraphs: [
-          "En el checkout aparecen las formas de pago habilitadas en ese momento:",
-        ],
+        paragraphs: [],
         items: [
-          "Tarjeta de débito o crédito, o saldo de Mercado Pago: pagás en el sitio de Mercado Pago, con sus cuotas y condiciones. [A CONFIRMAR: si Piuma ofrece cuotas sin recargo].",
+          "Tarjeta de débito o crédito, o dinero en Mercado Pago: pagás en el sitio de Mercado Pago. Si elegís cuotas, la financiación la da Mercado Pago o el emisor de tu tarjeta, que te muestran la cantidad de cuotas, los intereses y el total antes de pagar.",
           "Transferencia bancaria: al confirmar te damos los datos de la cuenta y nos mandás el comprobante por WhatsApp.",
         ],
       },
       {
-        title: "Reserva y vencimiento",
+        title: "Envíos",
         paragraphs: [
-          "Al confirmar el pedido reservamos los productos. Si no se acredita el pago dentro del plazo que te mostramos en ese momento, el pedido vence, se cancela solo y los productos vuelven a estar a la venta; no se cobra nada.",
-          "El pedido queda confirmado cuando recibimos el pago: con tarjeta, cuando Mercado Pago lo aprueba; con transferencia, cuando la verificamos. Te avisamos por mail. Podés cancelar un pedido sin pagar desde Mis pedidos.",
-        ],
-      },
-      {
-        title: "Envíos y entrega",
-        paragraphs: [
-          "Las zonas, costos y plazos de envío y el retiro, si está disponible, están en la página de Envíos y se eligen al confirmar la compra. Después del pago te escribimos por WhatsApp para coordinar el día y el horario de la entrega.",
-          "Revisá el paquete al recibirlo. Si llega dañado o no es lo que pediste, avisanos dentro de [A CONFIRMAR: plazo, por ejemplo 48 horas] con una foto y lo resolvemos según la política de cambios y devoluciones.",
+          "Las zonas, costos y plazos de envío están en la página de Envíos y se eligen antes de confirmar. Después del pago te escribimos por WhatsApp para coordinar la entrega.",
         ],
       },
       {
         title: "Derecho de arrepentimiento",
-        paragraphs: [
-          "Como la compra es a distancia, la Ley 17.250 (artículo 16) te da derecho a arrepentirte sin dar explicaciones dentro de los 5 días hábiles desde que se formalizó la compra o desde que recibiste el producto, a tu elección.",
-          `Para ejercerlo, avisanos dentro de ese plazo por mail a ${LEGAL_OWNER.email} o por WhatsApp al ${whatsapp}, con el número de pedido. Te devolvemos todo lo que pagaste por el mismo medio de pago, y coordinamos la devolución del producto, sin uso y en las condiciones en que lo recibiste. [A CONFIRMAR con el asesor: quién paga el envío de vuelta y el plazo para reintegrar el dinero].`,
-        ],
+        paragraphs: withdrawal,
+        items: [...withdrawalTerms, ...withdrawalHow],
       },
       {
-        title: "Garantía",
-        paragraphs: [
-          "Si un producto tiene un defecto de fabricación, lo cambiamos por otro igual o te devolvemos el dinero, además de los derechos que te dan la Ley 17.250 y las normas sobre vicios ocultos. Plazo de la garantía de Piuma: [A CONFIRMAR]. No cubre el desgaste normal ni el daño por lavado o uso contrario a las indicaciones de cuidado.",
-        ],
+        title: "Productos con defectos",
+        paragraphs: defects,
       },
       {
         title: "Datos personales",
-        paragraphs: [
-          "Usamos tus datos sólo para la compra y la entrega, como explica la política de privacidad.",
-        ],
+        paragraphs: ["Tratamos tus datos como explica la política de privacidad."],
       },
       {
         title: "Consultas y reclamos",
         paragraphs: [
-          `${contact} Si no llegamos a un acuerdo, podés acudir al Área de Defensa del Consumidor del Ministerio de Economía y Finanzas (gub.uy/defensa-consumidor). Estas condiciones se rigen por las leyes de Uruguay.`,
+          `Escribinos por ${contact}. También podés reclamar ante la Unidad Defensa del Consumidor del Ministerio de Economía y Finanzas (gub.uy/defensa-consumidor, teléfono 0800 7005).`,
         ],
       },
     ],
@@ -235,35 +215,22 @@ export function legalDocs(
     ...page("cambios"),
     title: "Cambios y devoluciones",
     description:
-      "Cómo pedir un cambio o una devolución en Piuma: arrepentimiento en 5 días hábiles, productos con defectos y la política de cambios de la tienda.",
+      "Cómo arrepentirte de una compra en Piuma o reclamar por un producto con defectos: plazos, condiciones y reintegro.",
     updated,
     sections: [
       {
         title: "Te arrepentiste de la compra",
-        paragraphs: [
-          "Tenés 5 días hábiles desde la compra o desde que recibiste el producto, a tu elección, para arrepentirte sin dar explicaciones (Ley 17.250, artículo 16). Te devolvemos todo lo que pagaste por el mismo medio de pago.",
-        ],
+        paragraphs: withdrawal,
+        items: [...withdrawalTerms, ...withdrawalHow],
       },
       {
-        title: "Llegó dañado, con un defecto o no es lo que pediste",
-        paragraphs: [
-          "Lo cambiamos por otro igual o te devolvemos el dinero, sin costo para vos. Avisanos con una foto del producto y del paquete. [A CONFIRMAR: plazo para avisar].",
-        ],
-      },
-      {
-        title: "Cambios de medida o de color",
-        paragraphs: [
-          "[A CONFIRMAR: política propia de Piuma. Por ejemplo: plazo para pedir el cambio, si el producto tiene que estar sin uso, sin lavar, con etiquetas y en su empaque, si se cambia por otro producto o se da un crédito, y quién paga el envío]. Esta política nunca reduce los derechos de los dos puntos anteriores.",
-        ],
+        title: "Llegó con un defecto o no es lo que pediste",
+        paragraphs: defects,
       },
       {
         title: "Cómo pedirlo",
         paragraphs: [
-          `Escribinos por WhatsApp al ${whatsapp} o por mail a ${LEGAL_OWNER.email} con el número de pedido y qué querés hacer. Te respondemos con los pasos y coordinamos el retiro o la entrega del producto.`,
-        ],
-        items: [
-          "Producto sin uso, en las condiciones en que lo recibiste (salvo que tenga un defecto).",
-          "Reintegro por el mismo medio de pago: con tarjeta, lo hace Mercado Pago y el banco lo acredita en sus plazos; con transferencia, a una cuenta a tu nombre.",
+          `Escribinos por ${contact} con el número de pedido y qué querés hacer. Te respondemos con los pasos para devolver el producto y recibir el reintegro, que va por el mismo medio de pago: con tarjeta, en Mercado Pago; con transferencia, a una cuenta a tu nombre.`,
         ],
       },
     ],

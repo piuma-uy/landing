@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { SITE_CONFIG } from "../src/app/core/site-config.ts";
 import type { Category } from "../src/app/models/catalog.model.ts";
-import { PENDING, legalTexts, pendingParts } from "../src/app/core/legal.ts";
+import { LEGAL_OWNER, PENDING, legalTexts, pendingParts } from "../src/app/core/legal.ts";
 import {
   LEGAL_DRAFT,
   LEGAL_PAGES,
@@ -58,7 +58,7 @@ test("privacidad: responsable, Ley 18.331, alojamiento, proveedores, derechos y 
     "Ley 18.331",
     "Distrifoto SRL",
     "213 376 180 018",
-    "piumainfra@gmail.com",
+    "distrifotosrl@gmail.com",
     "+598 91 345 454",
     "us-east-2",
     "transferencia internacional",
@@ -76,15 +76,32 @@ test("privacidad: responsable, Ley 18.331, alojamiento, proveedores, derechos y 
     assert.ok(text.includes(needed), needed);
   // T102: the PostHog project lives in PostHog Cloud US (project 707747), not in the EU.
   assert.ok(!text.includes("Unión Europea"), "PostHog no está en la UE");
+  // T105, Ley 18.331 art. 13: responsable y domicilio, carácter obligatorio y consecuencias de no darlos.
+  for (const needed of ["domicilio", "obligatorios", "no podemos tomar", "acceso"]) assert.ok(text.includes(needed), needed);
+  // Decreto 414/009 art. 19: número y fecha de la inscripción de la base, visibles.
+  assert.match(text, /URCDP\): \[A CONFIRMAR: número y fecha/);
 });
 
-test("términos y cambios: Ley 17.250, IVA, arrepentimiento de 5 días hábiles y lugar para la política propia", () => {
+test("T105: un solo mail de atención en el sitio y en los textos legales", () => {
+  assert.equal(LEGAL_OWNER.email, SITE_CONFIG.email);
+});
+
+test("términos y cambios: datos del proveedor, precio con IVA, arrepentimiento vigente y el de 2027, y defectos", () => {
   const terms = all("terminos");
-  for (const needed of ["Ley 17.250", "IVA", "5 días hábiles", "Mercado Pago", "Transferencia", "WhatsApp", "Garantía"])
+  // Decreto 167/021 (Res. GMC 37/19) art. 2: razón social, RUT, domicilio y mail de atención.
+  for (const needed of ["Distrifoto SRL", "213 376 180 018", "domicilio", "distrifotosrl@gmail.com"])
     assert.ok(terms.includes(needed), needed);
-  const returns = all("cambios");
-  assert.ok(returns.includes("5 días hábiles"));
-  assert.match(returns, /\[A CONFIRMAR: política propia de Piuma/);
+  for (const needed of ["Ley 17.250", "IVA", "Mercado Pago", "Transferencia", "WhatsApp", "0800 7005"])
+    assert.ok(terms.includes(needed), needed);
+  for (const text of [terms, all("cambios")]) {
+    // Ley 17.250 art. 16 hoy, y su redacción de la Ley 20.531 (art. 108) desde el 1/1/2027.
+    assert.ok(text.includes("5 días hábiles"));
+    assert.ok(text.includes("10 días corridos"));
+    assert.ok(text.includes("sin uso"));
+    assert.ok(text.includes("El costo de enviárnoslo es tuyo"));
+    // Ley 17.250 art. 37: plazos de reclamo por defectos.
+    assert.ok(text.includes("90 días") && text.includes("6 meses") && text.includes("3 meses"));
+  }
 });
 
 test("cada página legal prerenderizada: meta propia, breadcrumb, enlazada desde el pie y en el sitemap", () => {
