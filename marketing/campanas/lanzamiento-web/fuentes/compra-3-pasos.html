@@ -21,11 +21,13 @@
     <div class="paso" id="p2"><span class="num">2</span><span class="verbo">Agregá</span></div>
     <div class="paso" id="p3"><span class="num">3</span><span class="verbo">Pagá</span></div>
   </div>
-  <div class="cierre" id="cierre">
+  <!-- Cierre de la misma familia que «Ya está pronto»: la oferta en la franja de títulos (mismo lugar, tipografía y
+       entrada que «Elegí / Agregá / Pagá») y abajo logo · filete · «piuma.uy» en la misma posición que el cierre de A. -->
+  <div class="cierre" id="cierre" style="padding-top:700px">
+    <p class="titulo oferta"><span class="renglon" id="o1">Envío gratis</span><span class="renglon" id="o2"><em>desde $&nbsp;3.000</em></span></p>
     <img class="logo" src="../../../../src/assets/images/logo/logo-piuma-terracota.webp" alt="Piuma">
     <span class="filete"></span>
-    <p class="linea">Envío gratis desde $&nbsp;3.000</p>
-    <p class="web">piuma.uy</p>
+    <p class="web" style="margin-top:0">piuma.uy</p>
   </div>
 </div>
 <script>
@@ -121,11 +123,18 @@ window.render = async (t) => {
   const ci = $('#cierre');
   ci.style.opacity = k;
   const d = t - INICIO_CIERRE;
-  const items = ci.children;
+  // Oferta: entra como los verbos de los pasos (0,3 s, sube 24 px), un renglón detrás del otro.
+  ['#o1', '#o2'].forEach((s, i) => {
+    const e = entre(d, 0.45 + i * 0.18, 0.75 + i * 0.18); // después de que «Pagá» se fue
+    $(s).style.opacity = e;
+    $(s).style.transform = `translateY(${(1 - e) * 24}px)`;
+  });
+  // Logo · filete · piuma.uy: igual que el cierre de «Ya está pronto» (escalonado y un acercamiento muy lento).
+  const items = [...ci.children].slice(1);
   for (let i = 0; i < items.length; i++) {
-    const e = entre(d, 0.15 + i * 0.12, 0.65 + i * 0.12);
+    const e = entre(d, 0.9 + i * 0.12, 1.4 + i * 0.12);
     items[i].style.opacity = e;
-    items[i].style.transform = `translateY(${(1 - e) * 22}px)`;
+    items[i].style.transform = `translateY(${(1 - e) * 22}px) scale(${mezcla(1, 1.015, lin(d, 1.2, CIERRE))})`;
   }
 };
 </script>

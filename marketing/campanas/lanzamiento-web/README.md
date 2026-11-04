@@ -41,7 +41,12 @@ del checkout del sitio) y el cierre.
 | 0–4,0 s | **1 Elegí** | Categoría Cubrecamas; baja hasta el Cubrecama Chiara ($ 4.500), toque con círculo y acercamiento al toque, se abre la ficha |
 | 3,7–8,6 s | **2 Agregá** | Baja a medidas y color, toque en «Agregar al carrito», aviso «Producto agregado al carrito» y el carrito con 1; toque en el carrito y aparece «Tu carrito» con el Chiara |
 | 8,3–12,1 s | **3 Pagá** | Paso «Pago» del checkout: se toca «Tarjeta con Mercado Pago» (la otra opción visible es «Transferencia bancaria»), la cámara sube y se toca «Pagar con Mercado Pago» |
-| 11,7–15,7 s | Cierre | Logo · «Envío gratis desde $ 3.000» · «piuma.uy» |
+| 11,7–15,7 s | Cierre | «Envío gratis *desde $ 3.000*» en la franja de títulos · logo · «piuma.uy» |
+
+El cierre es de la misma familia que el de A: logo, filete y «piuma.uy» en la misma posición (desde y = 700), y la
+oferta en el lugar de los títulos con el estilo de «Ya está *pronto.*»: «Envío gratis» en Playfair Display y
+«*desde $ 3.000*» en itálica terracota (`--color-primary-dark`), 112 px. Entra cuando «Pagá» ya se fue, con la misma
+animación que los pasos (0,3 s, sube 24 px), un renglón detrás del otro; después logo · filete · web escalonados.
 
 Entre «Agregá» y «Pagá» se saltean (corte con fundido) los datos de contacto y la entrega: están en la grabación,
 pero no hacen falta para entender el flujo y mostrarían datos de prueba. La grabación termina **antes** de salir a
