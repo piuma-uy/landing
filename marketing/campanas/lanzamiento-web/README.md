@@ -24,7 +24,7 @@ Una sola frase en pantalla, la de Guillermo: «Ya está *pronto.*». Nada más q
 | Tiempo | Plano | Texto |
 | --- | --- | --- |
 | 0–4,0 s | Tres fotos reales enmarcadas, cada una con un acercamiento lento: manos prendiendo el botón de la funda de lino (`producto-funda-nordica-lino-3`), el paquete de Piuma sobre la cama (`producto-funda-nordica-saten-beige-4`) y la cama tendida con satén beige (`producto-funda-nordica-saten-beige`). Fundidos de 0,3 s | «Ya está *pronto.*» desde el primer fotograma |
-| 3,65–7,4 s | Teléfono con **https://piuma.uy real** (grabación de pantalla): inicio y baja suave hasta «Nuestra colección» | «Ya está *pronto.*» |
+| 3,67–7,4 s | Teléfono con **https://piuma.uy real** (grabación de pantalla cuadro a cuadro): inicio y baja suave hasta «Nuestra colección» | «Ya está *pronto.*» |
 | 7,0–9,5 s | Cierre sobre blanco cálido | Logo · «piuma.uy» |
 
 Las fotos son de `src/assets/images/productos/` (800 × 1000). Se ven a 1,03× y con el acercamiento llegan a **1,09×**
@@ -105,7 +105,7 @@ Evaluadas y descartadas:
 export PLAYWRIGHT_MODULE=../piuma-backend/node_modules/playwright
 cd marketing/campanas/lanzamiento-web/produccion
 
-node grabar-piuma-uy.cjs                     # A: toma de https://piuma.uy → fuentes/grabaciones/piuma-uy-inicio.{mp4,json}
+node grabar-piuma-uy.cjs                     # A: toma de https://piuma.uy (cuadro a cuadro) → fuentes/grabaciones/piuma-uy-inicio.{mp4,json}
 
 # B: API local sin Docker (puertos 3108 y 8108) + front en 4308
 ./api-local.sh <piuma-backend con npm ci>   # deja la API corriendo en segundo plano
@@ -123,6 +123,9 @@ pkill -f local-video.mts; pkill -f fake-mercadopago.mjs
 `grabador.cjs` sirve las fuentes de Google Fonts de la web (Inter 400/500/600, Playfair Display 500/600/700) desde
 `fuentes/fonts/` (mismos archivos latinos, OFL): la toma no depende de la red (el 2026-11-04 fonts.gstatic.com
 quedaba colgado) y ningún texto cambia de fuente a mitad de la grabación. Además lanza con `--disable-quic`.
+El build de producción de piuma.uy trae ese CSS de fuentes **inline** en el `index.html` (no pide `css2`), así que las
+mismas `@font-face` se agregan al final del `<head>` y el contexto que graba usa `bypassCSP` (la CSP de piuma.uy no
+permite fuentes `data:`); sin eso la toma de A salía con fuentes del sistema. Sólo afecta al navegador que graba.
 
 **Las grabaciones crudas de `fuentes/grabaciones/` no se publican**: la de B incluye el paso de datos (teléfono y
 dirección de relleno) y la pantalla «Te llevamos a Mercado Pago…» con un número de pedido local.
@@ -148,9 +151,22 @@ abrir la ficha del Chiara (fundido de unos 6 cuadros), no una pérdida.
 `mpdecimate` (cuadros casi iguales, incluye pausas a propósito): 162 → 118. `freezedetect` (n = 0,0005, d = 0,06 s):
 34 → 21 tramos quietos, todos pausas del guion (antes del toque, cierre).
 
-A («Ya está pronto») usa una toma de piuma.uy hecha con el grabador viejo y tiene el mismo síntoma en la baja por el
-inicio (9 cuadros repetidos entre 4,8 y 6,4 s); no se regrabó en T108c. Se arregla corriendo `grabar-piuma-uy.cjs`
-con el grabador nuevo y `render.cjs ya-esta-pronto`.
+### A · «Ya está pronto» (T108d)
+
+A usaba una toma de piuma.uy hecha con el screencast viejo y tenía el mismo síntoma en la baja por el inicio. Se
+regrabó con el grabador cuadro a cuadro (`grabar-piuma-uy.cjs`: 27 cuadros quieto + 48 de baja + 37 quieto = 112
+cuadros) y se re-exportó con el mismo guion y las mismas specs (9,5 s, 285 fotogramas). Además el teléfono entraba en
+3,65 s, a medio cuadro de la grilla: cada fotograma caía entre dos cuadros de la grabación y el redondeo podía
+repetirlos; ahora entra en 110/30 s (3,67 s) y el montaje toma exactamente un cuadro de la grabación por fotograma.
+
+| | Cuadros repetidos en movimiento | `freezedetect` (tramos) | `mpdecimate` (quedan de 285) |
+| --- | --- | --- | --- |
+| Antes | **9** (4,83 · 5,03 · 5,23 · 5,43 · 5,63 · 5,83 · 6,03 · 6,23 · 6,43 s; uno cada 6 cuadros) + 10 en la toma cruda | 35 (9 dentro de la baja, 4,8–6,4 s) | 176 |
+| Después | **0** (también 0 en la toma cruda) | 26 (ninguno entre 4,1 y 6,07 s, la baja) | 173 |
+
+Los tramos quietos que quedan son las pausas del guion y el acercamiento lento de las fotos (menos de un nivel de
+gris por cuadro), no pérdidas. La baja ahora termina en 6,07 s (antes ≈ 6,5 s, porque el screencast iba atrasado);
+el resto del reel no cambia. La portada de A no usa la grabación y queda igual; `preview.jpg` se regeneró.
 
 ## Revisión
 

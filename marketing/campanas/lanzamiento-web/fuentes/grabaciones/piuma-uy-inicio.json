@@ -5,11 +5,11 @@
   },
   "escala": 3,
   "fps": 30,
-  "duracion": 4.265,
+  "duracion": 3.767,
   "marcas": {
-    "inicio": 0.313,
-    "coleccion": 2.862,
-    "fin": 4.063
+    "inicio": 0.033,
+    "coleccion": 2.533,
+    "fin": 3.767
   },
   "toques": []
 }

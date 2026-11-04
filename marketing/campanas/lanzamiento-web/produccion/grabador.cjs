@@ -56,6 +56,9 @@ async function abrir() {
     timezoneId: 'America/Montevideo',
     // Sin PostHog: la grabación no debe ensuciar la analítica real.
     serviceWorkers: 'block',
+    // La CSP de piuma.uy (font-src 'self' fonts.gstatic.com) no deja usar las fuentes locales en data:. Sólo afecta
+    // a este navegador que graba; la web no se toca.
+    bypassCSP: true,
   });
   await context.route(/posthog\.com/, (r) => r.abort());
   // Fuentes de la web (Inter 400/500/600 y Playfair Display 500/600/700 de Google Fonts) servidas desde
@@ -66,15 +69,18 @@ async function abrir() {
   // Relojes falsos desde el primer script; corren solos hasta que empieza la toma.
   await context.clock.install();
   // Sin desplazamiento suave nativo: el grabador mueve la página cuadro a cuadro.
-  await context.addInitScript(() => {
+  // El build de producción (https://piuma.uy) trae el CSS de Google Fonts INLINE en el index.html, así que la ruta de
+  // css2 no se usa y, con gstatic cortado, la web caía a fuentes del sistema (T108d). Las mismas @font-face locales
+  // van también al final del <head>: con descriptores iguales gana la última declarada.
+  await context.addInitScript((css) => {
     const poner = () => {
       const s = document.createElement('style');
-      s.textContent = 'html, body, * { scroll-behavior: auto !important; }';
+      s.textContent = 'html, body, * { scroll-behavior: auto !important; }\n' + css;
       document.head.appendChild(s);
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', poner);
     else poner();
-  });
+  }, CSS_FUENTES);
   const page = await context.newPage();
   return { browser, context, page };
 }
