@@ -70,6 +70,7 @@ import {
 import {
   CheckoutAttempts,
   clearSession,
+  contactName,
   defaultPayWith,
   paymentMethodFor,
 } from "./checkout";
@@ -971,7 +972,9 @@ export class CommerceService {
           this.cardEnabled(),
         ),
         ...orderFulfillment(shipTo, address),
-        contact: { name: this.user()!.name, email: this.user()!.email, phone },
+        contact: {
+          name: contactName(this.user()!.name),
+          email: this.user()!.email, phone },
       };
       const key = await this.attempts.key(
         JSON.stringify([this.user()!.id, payload]),

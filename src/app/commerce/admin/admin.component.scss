@@ -59,3 +59,52 @@ h2 {
 .withdrawal-contact {
   overflow-wrap: anywhere;
 }
+
+// Productos y stock on a phone (T103): the five columns did not fit and "Editar" ended up off
+// screen, behind a sideways scroll nobody finds. Each variant reads as a card instead: medida y
+// color with Editar beside it, then precio, stock and estado with their labels.
+@media (max-width: 600px) {
+  .product-group thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .product-group table,
+  .product-group tbody {
+    display: block;
+  }
+  .product-group tr {
+    display: grid;
+    grid-template-columns: 6.5rem 4rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .product-group td {
+    padding: 0;
+    border-bottom: 0;
+  }
+  .product-group td:first-child {
+    grid-column: 1 / 4;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .product-group td:last-child {
+    grid-column: 4;
+    grid-row: 1;
+    justify-self: end;
+  }
+  .product-group td[data-label] {
+    white-space: nowrap;
+  }
+  .product-group td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+  }
+}
