@@ -16,16 +16,13 @@ con la funda de satén beige. Después, la web piuma.uy en un teléfono. Cierra 
 
 ```
 Elegí, agregá y pagá con tarjeta o transferencia.
-Envío gratis desde $ 3.000.
 piuma.uy
 ```
 
 Texto alternativo: Grabación de la web de Piuma en un teléfono. 1, Elegí: se toca el Cubrecama Chiara en la categoría
 Cubrecamas. 2, Agregá: se toca «Agregar al carrito» y se abre el carrito. 3, Pagá: se elige «Tarjeta con Mercado Pago»
-y se toca «Pagar con Mercado Pago». Cierra con el logo, «Envío gratis desde $ 3.000» y «piuma.uy».
+y se toca «Pagar con Mercado Pago». Cierra con el logo de Piuma y «piuma.uy».
 
 ## Antes de publicar (lo decide Guillermo)
 
-- B: **regrabar el viernes sobre piuma.uy** con la tienda abierta y precios reales (ver README). Si cambia el mínimo
-  del envío gratis o las zonas, corregir el cierre y el caption.
-- Si el envío gratis desde $ 3.000 no aplica a todas las zonas, agregar «(ver zonas en la web)».
+- B: **regrabar el viernes sobre piuma.uy** con la tienda abierta y precios reales (ver README).

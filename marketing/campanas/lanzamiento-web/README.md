@@ -9,7 +9,7 @@ tienen pista de sonido (la pone Guillermo) y todo se entiende sin sonido.
 | --- | --- | --- |
 | A · «Ya está pronto» | `ya-esta-pronto.mp4` | 1080 × 1920, 30 fps, 9,5 s, H.264 High yuv420p, +faststart, sin audio |
 | Portada A | `portada-ya-esta-pronto.png` | 1080 × 1920 PNG |
-| B · «Comprá en 3 pasos» | `compra-3-pasos.mp4` | 1080 × 1920, 30 fps, 15,7 s, H.264 High yuv420p, +faststart, sin audio |
+| B · «Comprá en 3 pasos» | `compra-3-pasos.mp4` | 1080 × 1920, 30 fps, 14,0 s, H.264 High yuv420p, +faststart, sin audio |
 | Portada B | `portada-compra-3-pasos.png` | 1080 × 1920 PNG |
 | Captions y textos alternativos | `captions.md` | |
 | Vista general | `preview.jpg` | portada + 7 fotogramas de cada reel |
@@ -30,23 +30,21 @@ Una sola frase en pantalla, la de Guillermo: «Ya está *pronto.*». Nada más q
 Las fotos son de `src/assets/images/productos/` (800 × 1000). Se ven a 1,03× y con el acercamiento llegan a **1,09×**
 (tope pedido: 1,4×). El logo se usa a 440 px de ancho (original 600 px), nunca ampliado.
 
-## B · «Comprá en 3 pasos» (15,7 s)
+## B · «Comprá en 3 pasos» (14,0 s)
 
 Grabación real de pantalla de teléfono (Playwright, 390 × 844 CSS, `deviceScaleFactor` 3 → 1170 × 2532 px), con
-toques reales (eventos touch). Textos: sólo «Elegí», «Agregá», «Pagá» (con el número en círculo, igual que los pasos
-del checkout del sitio) y el cierre.
+toques reales (eventos touch), **cuadro a cuadro a 30 fps con el tiempo controlado** (ver «Fluidez» abajo). Textos:
+sólo «Elegí», «Agregá», «Pagá» (con el número en círculo, igual que los pasos del checkout del sitio) y el cierre.
 
 | Tiempo | Paso | Lo que se ve |
 | --- | --- | --- |
-| 0–4,0 s | **1 Elegí** | Categoría Cubrecamas; baja hasta el Cubrecama Chiara ($ 4.500), toque con círculo y acercamiento al toque, se abre la ficha |
-| 3,7–8,6 s | **2 Agregá** | Baja a medidas y color, toque en «Agregar al carrito», aviso «Producto agregado al carrito» y el carrito con 1; toque en el carrito y aparece «Tu carrito» con el Chiara |
-| 8,3–12,1 s | **3 Pagá** | Paso «Pago» del checkout: se toca «Tarjeta con Mercado Pago» (la otra opción visible es «Transferencia bancaria»), la cámara sube y se toca «Pagar con Mercado Pago» |
-| 11,7–15,7 s | Cierre | «Envío gratis *desde $ 3.000*» en la franja de títulos · logo · «piuma.uy» |
+| 0–3,9 s | **1 Elegí** | Categoría Cubrecamas; baja hasta el Cubrecama Chiara ($ 4.500), toque con círculo y acercamiento al toque, se abre la ficha |
+| 3,6–8,4 s | **2 Agregá** | Baja a medidas y color, toque en «Agregar al carrito», aviso «Producto agregado al carrito» y el carrito con 1; toque en el carrito y aparece «Tu carrito» con el Chiara |
+| 8,1–11,9 s | **3 Pagá** | Paso «Pago» del checkout: se toca «Tarjeta con Mercado Pago» (la otra opción visible es «Transferencia bancaria»), la cámara sube y se toca «Pagar con Mercado Pago» |
+| 11,5–14,0 s | Cierre | Logo · «piuma.uy» |
 
-El cierre es de la misma familia que el de A: logo, filete y «piuma.uy» en la misma posición (desde y = 700), y la
-oferta en el lugar de los títulos con el estilo de «Ya está *pronto.*»: «Envío gratis» en Playfair Display y
-«*desde $ 3.000*» en itálica terracota (`--color-primary-dark`), 112 px. Entra cuando «Pagá» ya se fue, con la misma
-animación que los pasos (0,3 s, sube 24 px), un renglón detrás del otro; después logo · filete · web escalonados.
+El cierre es **el mismo que el de A**: sólo logo, filete y «piuma.uy», en la misma posición (desde y = 700), con la
+misma entrada escalonada y la misma duración (2,5 s). Sin oferta ni otro texto (pedido de Guillermo, T108c).
 
 Entre «Agregá» y «Pagá» se saltean (corte con fundido) los datos de contacto y la entrega: están en la grabación,
 pero no hacen falta para entender el flujo y mostrarían datos de prueba. La grabación termina **antes** de salir a
@@ -74,17 +72,17 @@ Rastros de prueba ocultos durante la grabación (CSS inyectado sólo en el naveg
 **Pendiente: regrabar B el viernes sobre https://piuma.uy con la tienda abierta y precios reales.** Pasos: en
 `grabar-compra.cjs`, `FRONT_URL=https://piuma.uy`, sacar el `route` de `runtime-config.json` y el registro de la
 cuenta local, entrar con una cuenta real (sin datos personales a la vista; revisar «Tus datos») y volver a correr
-`render.cjs compra-3-pasos`, `render-portadas.cjs` y `preview.sh`. Revisar que el cierre «Envío gratis desde
-$ 3.000» siga siendo cierto en prod.
+`render.cjs compra-3-pasos`, `render-portadas.cjs` y `preview.sh`, y medir la fluidez (ver «Fluidez»).
 
 ## Herramientas (todas gratis, locales, sin cuentas)
 
 Elegida: **Playwright + HTML/CSS + FFmpeg**, lo mismo que hacen por dentro Remotion y Revideo (componer en un
 navegador, capturar cada fotograma y codificar con FFmpeg), sin sumar dependencias ni licencias.
 
-- **Grabación** (`produccion/grabador.cjs`): screencast de Chromium por CDP a 1170 × 2532 (cada fotograma con su
-  hora real), toques con `touchscreen.tap`, desplazamientos suaves deterministas; FFmpeg arma un MP4 de 30 fps
-  constantes con los tiempos reales. Guarda al lado un JSON con marcas y toques (posición en CSS px).
+- **Grabación** (`produccion/grabador.cjs`): cuadro a cuadro a 1170 × 2532 con tiempo virtual (relojes de la
+  página con `page.clock`, animaciones CSS con la línea de tiempo de Chromium detenida y llevadas al instante de cada
+  cuadro, desplazamientos calculados por cuadro), toques con `touchscreen.tap`; FFmpeg arma el MP4 de 30 fps con
+  las capturas tal cual. Guarda al lado un JSON con marcas y toques (posición en CSS px).
 - **Montaje** (`fuentes/*.html` + `fuentes/motor.js` + `produccion/render.cjs`): una página por reel con
   `render(t)`; teléfono con la pantalla real, círculo y anillo en cada toque, acercamiento suave al toque, fundidos
   entre tramos, cámara que sube para el botón fijo de pago. Tipografías Playfair Display e Inter (OFL, en
@@ -122,11 +120,37 @@ node render-portadas.cjs                     # → ../portada-*.png
 pkill -f local-video.mts; pkill -f fake-mercadopago.mjs
 ```
 
-Si las fuentes de Google no cargan en Chromium, `grabador.cjs` ya lanza con `--disable-quic` (en esta red HTTP/3 a
-fonts.gstatic.com quedaba colgado).
+`grabador.cjs` sirve las fuentes de Google Fonts de la web (Inter 400/500/600, Playfair Display 500/600/700) desde
+`fuentes/fonts/` (mismos archivos latinos, OFL): la toma no depende de la red (el 2026-11-04 fonts.gstatic.com
+quedaba colgado) y ningún texto cambia de fuente a mitad de la grabación. Además lanza con `--disable-quic`.
 
 **Las grabaciones crudas de `fuentes/grabaciones/` no se publican**: la de B incluye el paso de datos (teléfono y
 dirección de relleno) y la pantalla «Te llevamos a Mercado Pago…» con un número de pedido local.
+
+## Fluidez (T108c)
+
+Guillermo vio B «un poco trancado» en un momento. Medición sobre el MP4 final (diferencia media absoluta entre
+cuadros consecutivos en gris a 270 px; «repetido» = cuadro igual al anterior con movimiento antes y después):
+
+| | Cuadros repetidos en movimiento | Dónde |
+| --- | --- | --- |
+| Antes (grabación por screencast) | **6** (+ 20 en la grabación cruda) | 1,80 y 2,00 s (baja a Chiara), 4,13 · 4,33 · 4,53 s (baja a «Agregar al carrito»), 7,33 s (apertura del carrito) |
+| Después (cuadro a cuadro) | **0** | — |
+
+Causa: el screencast de Chromium (CDP `Page.startScreencast`) no llega a 30 JPEG/s a 1170 × 2532 y en los
+desplazamientos perdía uno de cada 4–6 cuadros; al pasar a 30 fps constantes los huecos quedaban como cuadros
+repetidos (tirones cada ~0,2 s). No se interpoló nada: se cambió la forma de grabar (`grabador.cjs`). Además se
+corrigió un cuadro suelto con el pie de página al abrir el carrito (la ruta nueva se veía un cuadro a la altura de la
+anterior) y el montaje alinea los tramos a la grilla de 1/30 s, para que cada fotograma de salida avance exactamente
+un cuadro de la grabación. El único «salto» que queda en la medición (3,03 s) es la transición propia de la web al
+abrir la ficha del Chiara (fundido de unos 6 cuadros), no una pérdida.
+
+`mpdecimate` (cuadros casi iguales, incluye pausas a propósito): 162 → 118. `freezedetect` (n = 0,0005, d = 0,06 s):
+34 → 21 tramos quietos, todos pausas del guion (antes del toque, cierre).
+
+A («Ya está pronto») usa una toma de piuma.uy hecha con el grabador viejo y tiene el mismo síntoma en la baja por el
+inicio (9 cuadros repetidos entre 4,8 y 6,4 s); no se regrabó en T108c. Se arregla corriendo `grabar-piuma-uy.cjs`
+con el grabador nuevo y `render.cjs ya-esta-pronto`.
 
 ## Revisión
 

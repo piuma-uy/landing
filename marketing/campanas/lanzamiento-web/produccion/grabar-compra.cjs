@@ -4,7 +4,7 @@
 // Uso: PLAYWRIGHT_MODULE=<ruta a node_modules/playwright> node grabar-compra.cjs
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { abrir, Grabador } = require('./grabador.cjs');
+const { abrir, precargar, Grabador } = require('./grabador.cjs');
 
 const SALIDA = path.join(__dirname, '..', 'fuentes', 'grabaciones', 'compra-3-pasos');
 const FRONT = process.env.FRONT_URL ?? 'http://localhost:4308';
@@ -51,10 +51,7 @@ const OCULTAR = `.detail__stock, .preview-label { visibility: hidden !important;
 
   await page.goto(`${FRONT}/catalogo/cubrecamas/`, { waitUntil: 'load' });
   await page.locator('main a').filter({ hasText: 'Cubrecama Chiara' }).first().waitFor();
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    await Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => (i.onload = i.onerror = r)))));
-  });
+  await precargar(page);
   await page.waitForTimeout(600);
 
   const g = new Grabador(page);
@@ -67,8 +64,9 @@ const OCULTAR = `.detail__stock, .preview-label { visibility: hidden !important;
   await g.desplazarA(chiara, 150, 800);
   await g.esperar(300);
   await g.tocar(chiara, 'chiara');
-  await page.waitForURL('**/cubrecama-chiara/');
-  await page.evaluate(() => Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => (i.onload = i.onerror = r))))));
+  await g.durante(page.waitForURL('**/cubrecama-chiara/'));
+  // Fotos de la ficha: la toma espera (sin avanzar el tiempo) a que estén decodificadas, así no aparecen a medias.
+  await precargar(page);
   g.marca('producto');
   await g.esperar(1400);
 
@@ -78,23 +76,29 @@ const OCULTAR = `.detail__stock, .preview-label { visibility: hidden !important;
   await g.desplazarA(agregar, 330, 800);
   await g.esperar(500);
   await g.tocar(agregar, 'agregar');
-  await page.getByText('Producto agregado al carrito').waitFor();
+  await g.durante(page.getByText('Producto agregado al carrito').waitFor());
   await g.esperar(1300);
   await g.tocar(page.getByRole('button', { name: /carrito/i }).first(), 'carrito');
-  await page.getByRole('heading', { name: 'Tu carrito' }).waitFor();
-  await g.desplazar(0, 10);
+  // El carrito es otra ruta: hasta que la página nueva sube al principio quedaba un cuadro con la página nueva a la
+  // altura de la anterior (el pie). Se espera sin avanzar el tiempo y se sube antes del cuadro siguiente.
+  await page.getByRole('heading', { name: 'Tu carrito' }).waitFor({ timeout: 10000 });
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   g.marca('carrito');
   await g.esperar(1600);
 
   // Datos y entrega: se graban (es el flujo real) pero el montaje los saltea.
   g.marca('datos');
-  await page.locator('input[type=tel]').fill('099000000');
-  await page.getByRole('button', { name: 'Continuar' }).last().click();
-  await page.locator('main select', { has: page.locator('option', { hasText: 'Pocitos' }) }).first().selectOption({ label: 'Pocitos' });
-  await page.locator('input[name=street]').fill('Calle 1234');
-  await page.getByRole('button', { name: 'Continuar' }).last().click();
+  await g.durante(page.locator('input[type=tel]').fill('099000000'));
+  await g.durante(page.getByRole('button', { name: 'Continuar' }).last().click());
+  await g.durante(page.locator('main select', { has: page.locator('option', { hasText: 'Pocitos' }) }).first().selectOption({ label: 'Pocitos' }));
+  await g.durante(page.locator('input[name=street]').fill('Calle 1234'));
+  await g.durante(page.getByRole('button', { name: 'Continuar' }).last().click());
   const tarjeta = page.locator('label').filter({ hasText: 'Tarjeta con Mercado Pago' });
-  await tarjeta.waitFor();
+  await g.durante(tarjeta.waitFor());
+  await precargar(page);
+  // Los pasos anteriores se pliegan con transiciones CSS que corren en tiempo virtual: se dejan terminar antes de medir
+  // dónde quedó «Pago» (este tramo no sale en el montaje).
+  await g.esperar(700);
   await g.desplazarA(page.getByRole('heading', { name: 'Pago' }), 90, 10);
   await g.esperar(400);
 

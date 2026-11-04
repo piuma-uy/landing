@@ -67,8 +67,4 @@ body { font-family: 'Inter', sans-serif; overflow: hidden; }
   padding-top: 560px; z-index: 10; }
 .cierre .logo { width: 440px; height: auto; display: block; }
 .cierre .filete { width: 64px; height: 2px; background: var(--color-primary); margin: 56px 0 52px; }
-/* Oferta del cierre de «Comprá en 3 pasos»: mismo estilo que «Ya está pronto.» (Playfair, la parte destacada en
-   itálica terracota), en dos renglones dentro de la franja de títulos. */
-.cierre .oferta { top: 232px; font-size: 112px; line-height: 1.14; }
-.cierre .oferta .renglon { display: block; }
 .cierre .web { font-family: 'Playfair Display', serif; font-weight: 500; font-size: 104px; line-height: 1.2; color: var(--color-primary-dark); margin-top: 18px; }

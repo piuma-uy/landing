@@ -2,7 +2,7 @@
 # API local SIN Docker para grabar «Comprá en 3 pasos» (el pedido de Guillermo 2026-10-30 es no abrir Docker).
 # Corre el mismo código de piuma-backend (src/local.ts) con cuentas locales (cookie) y el MemoryStore en lugar de
 # DynamoDB Local, el simulador de Mercado Pago del repo (scripts/fake-mercadopago.mjs) y la política de envíos real
-# (data/shipping.piuma.json: gratis desde $ 3.000). El catálogo es data/catalog.snapshot.json (precios reales).
+# (data/shipping.piuma.json). El catálogo es data/catalog.snapshot.json (precios reales).
 # Nada sale de esta máquina; al cortar el proceso se pierde todo (memoria).
 #
 # Uso: produccion/api-local.sh <carpeta de piuma-backend con npm ci hecho> [carpeta de trabajo]
