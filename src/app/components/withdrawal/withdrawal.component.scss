@@ -1,0 +1,165 @@
+@use 'variables' as v;
+@use 'mixins' as *;
+
+// Una columna angosta para el teléfono, como las páginas legales; el formulario en una tarjeta.
+.withdrawal {
+  max-width: calc(36rem + 2 * var(--space-md));
+  padding-top: calc(var(--header-height) + var(--space-md));
+  padding-bottom: var(--space-xl);
+
+  @include from(v.$bp-md) {
+    padding-top: calc(var(--header-height) + var(--space-lg));
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin: 0 0 var(--space-sm);
+  }
+
+  a {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
+  }
+}
+
+.withdrawal__lead {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.withdrawal__form,
+.withdrawal__receipt {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-sm);
+
+  @include from(v.$bp-sm) {
+    padding: var(--space-md);
+  }
+
+  .btn {
+    width: 100%;
+    margin-top: var(--space-xs);
+  }
+}
+
+.withdrawal__receipt {
+  outline: none;
+
+  h1 {
+    font-size: clamp(1.75rem, 4.5vw, 2.5rem);
+  }
+}
+
+.withdrawal__hint {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-sm);
+}
+
+label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+}
+
+input,
+textarea {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem;
+  // 16px: el teléfono no agranda la página al tocar el campo.
+  font: inherit;
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  margin-bottom: 0.35rem;
+
+  &[aria-invalid='true'] {
+    border-color: var(--color-error);
+  }
+}
+
+input {
+  min-height: 48px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 6rem;
+}
+
+.withdrawal__help,
+.field-error {
+  font-size: 0.85rem;
+  margin: 0 0 var(--space-sm);
+}
+
+.withdrawal__help {
+  color: var(--color-text-muted);
+}
+
+.field-error,
+.withdrawal__error {
+  color: var(--color-error);
+}
+
+.withdrawal__optional {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.withdrawal__error {
+  font-size: 0.92rem;
+  margin: 0 0 var(--space-xs);
+}
+
+.withdrawal__other {
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-md);
+}
+
+.withdrawal__facts {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm);
+  background: var(--color-secondary);
+  border-radius: var(--radius-md);
+
+  div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+  }
+
+  dt {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+}
+
+.withdrawal__number dd {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.withdrawal__actions {
+  margin-top: var(--space-md);
+}

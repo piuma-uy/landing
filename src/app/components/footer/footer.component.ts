@@ -11,6 +11,7 @@ import { CommerceService } from "../../commerce/commerce.service";
 import { pageCostMessage } from "../../core/page-cost";
 import { SITE_CONFIG } from "../../core/site-config";
 import { LEGAL_LINKS } from "../../core/site-env";
+import { WITHDRAWAL_LABEL, WITHDRAWAL_PATH } from "../../core/withdrawal";
 import { WhatsappService } from "../../services/whatsapp.service";
 import { SocialLinksComponent } from "../../shared/social-links/social-links.component";
 
@@ -39,6 +40,8 @@ export class FooterComponent {
   ];
   /** Cambios y devoluciones, términos y privacidad (T89); ninguna con el borrador en prod (T99). */
   readonly legal = [...LEGAL_LINKS].reverse();
+  /** «Botón de arrepentimiento» (T109): en el pie de todas las páginas, siempre, y destacado. */
+  readonly withdrawal = { label: WITHDRAWAL_LABEL, path: WITHDRAWAL_PATH };
 
   constructor() {
     // Nada en el camino crítico: se mide una sola vez, recién cuando alguien llega al pie, y así

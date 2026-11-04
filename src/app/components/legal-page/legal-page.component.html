@@ -34,6 +34,14 @@
           }
         </ul>
       }
+      @if (section.link; as link) {
+        <a
+          class="btn btn--primary legal__link"
+          [href]="link.path"
+          (click)="shop.showWithdrawal($event)"
+          >{{ link.label }}</a
+        >
+      }
     </section>
   }
 

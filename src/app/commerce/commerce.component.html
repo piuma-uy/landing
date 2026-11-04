@@ -519,6 +519,19 @@
                     Motivo de cancelación: {{ order.cancelReason }}
                   </p>
                 }
+                @if (order.status === "paid") {
+                  <a
+                    class="text-button order-withdrawal"
+                    [href]="withdrawalPath"
+                    (click)="
+                      shop.showWithdrawal($event, {
+                        orderCode: orderRef(order),
+                        contact: order.contact?.email ?? ''
+                      })
+                    "
+                    >{{ withdrawalLabel }}</a
+                  >
+                }
               </article>
             }
           }

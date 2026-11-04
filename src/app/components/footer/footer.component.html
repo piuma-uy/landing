@@ -48,6 +48,12 @@
           </li>
         }
       </ul>
+      <a
+        class="footer__withdrawal"
+        [href]="withdrawal.path"
+        (click)="shop.showWithdrawal($event)"
+        >{{ withdrawal.label }}</a
+      >
     </nav>
 
     <div class="footer__contact">

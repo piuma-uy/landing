@@ -1,0 +1,157 @@
+<section class="withdrawal container" aria-labelledby="withdrawal-title">
+  @if (receipt(); as r) {
+    <div
+      id="withdrawal-receipt"
+      class="withdrawal__receipt"
+      tabindex="-1"
+      role="status"
+      aria-labelledby="withdrawal-done"
+    >
+      <span class="eyebrow">{{ label }}</span>
+      <h1 id="withdrawal-title">Recibimos tu pedido</h1>
+      <p id="withdrawal-done" class="withdrawal__lead">
+        Tu pedido de arrepentimiento quedó registrado. Guardá el número de
+        solicitud: es tu constancia.
+      </p>
+      <dl class="withdrawal__facts">
+        <div class="withdrawal__number">
+          <dt>N.º de solicitud</dt>
+          <dd>{{ r.number }}</dd>
+        </div>
+        <div>
+          <dt>Fecha</dt>
+          <dd>{{ when() }} (hora de Uruguay)</dd>
+        </div>
+        <div>
+          <dt>Pedido</dt>
+          <dd>#{{ r.orderCode }}</dd>
+        </div>
+        <div>
+          <dt>Contacto</dt>
+          <dd>{{ sentContact() }}</dd>
+        </div>
+      </dl>
+      <p>
+        Te vamos a escribir para coordinar la devolución del producto, sin uso y
+        como lo recibiste, y el reintegro de todo lo que pagaste.
+      </p>
+      <div class="withdrawal__actions">
+        <button
+          type="button"
+          class="btn btn--outline"
+          (click)="shop.section('catalogo')"
+        >
+          Volver a la tienda
+        </button>
+      </div>
+    </div>
+  } @else {
+    <span class="eyebrow">Cambios y devoluciones</span>
+    <h1 id="withdrawal-title">{{ label }}</h1>
+    <p class="withdrawal__lead">
+      ¿Te arrepentiste de una compra en la tienda online? Avisanos acá, sin dar
+      explicaciones. Tenés 10 días corridos desde la compra o desde que
+      recibiste el producto (compras hasta el 31/12/2026: 5 días hábiles).
+    </p>
+
+    @if (shop.enabled) {
+      <form
+        class="withdrawal__form"
+        novalidate
+        (submit)="submit($event)"
+        aria-describedby="withdrawal-required"
+      >
+        <p id="withdrawal-required" class="withdrawal__hint">
+          Todos los campos son obligatorios salvo el motivo.
+        </p>
+        <label for="withdrawal-orderCode">Número de pedido</label>
+        <input
+          id="withdrawal-orderCode"
+          name="orderCode"
+          type="text"
+          inputmode="text"
+          autocapitalize="characters"
+          autocomplete="off"
+          spellcheck="false"
+          maxlength="20"
+          placeholder="Ej.: A1B2C3D4"
+          [value]="form().orderCode"
+          (input)="set('orderCode', $event)"
+          [attr.aria-invalid]="!!problems().orderCode"
+          [attr.aria-describedby]="
+            problems().orderCode ? 'withdrawal-orderCode-error' : 'withdrawal-orderCode-help'
+          "
+        />
+        @if (problems().orderCode; as p) {
+          <p id="withdrawal-orderCode-error" class="field-error">{{ p }}</p>
+        } @else {
+          <p id="withdrawal-orderCode-help" class="withdrawal__help">
+            Está en el mail de la compra y en Mis pedidos.
+          </p>
+        }
+
+        <label for="withdrawal-contact">Mail o teléfono de la compra</label>
+        <input
+          id="withdrawal-contact"
+          name="contact"
+          type="text"
+          inputmode="email"
+          autocomplete="email"
+          autocapitalize="off"
+          spellcheck="false"
+          maxlength="254"
+          [value]="form().contact"
+          (input)="set('contact', $event)"
+          [attr.aria-invalid]="!!problems().contact"
+          [attr.aria-describedby]="problems().contact ? 'withdrawal-contact-error' : null"
+        />
+        @if (problems().contact; as p) {
+          <p id="withdrawal-contact-error" class="field-error">{{ p }}</p>
+        }
+
+        <label for="withdrawal-reason"
+          >Motivo <span class="withdrawal__optional">(opcional)</span></label
+        >
+        <textarea
+          id="withdrawal-reason"
+          name="reason"
+          rows="3"
+          [attr.maxlength]="reasonMax"
+          [value]="form().reason"
+          (input)="set('reason', $event)"
+          [attr.aria-invalid]="!!problems().reason"
+          aria-describedby="withdrawal-reason-count"
+        ></textarea>
+        <p id="withdrawal-reason-count" class="withdrawal__help">
+          @if (problems().reason; as p) {
+            <span class="field-error">{{ p }}</span>
+          } @else {
+            {{ form().reason.length }} / {{ reasonMax }}
+          }
+        </p>
+
+        @if (error(); as e) {
+          <p class="withdrawal__error" role="alert">{{ e }}</p>
+        }
+        <button type="submit" class="btn btn--primary" [disabled]="sending()">
+          {{ sending() ? "Enviando…" : "Enviar pedido de arrepentimiento" }}
+        </button>
+      </form>
+    }
+
+    <p class="withdrawal__other">
+      {{ shop.enabled ? "También podés avisarnos" : "Avisanos" }} por
+      <a [href]="mailLink()">mail a {{ email }}</a> o por
+      <a [href]="whatsappLink()" target="_blank" rel="noopener noreferrer"
+        >WhatsApp al {{ whatsapp.display() }}</a
+      >, con el número de pedido.
+      @if (returnsPage; as page) {
+        Cómo sigue la devolución:
+        <a [href]="page.path" (click)="shop.showLegal(page.id, $event)">{{
+          page.label
+        }}</a
+        >.
+      }
+    </p>
+  }
+</section>

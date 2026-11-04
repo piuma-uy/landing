@@ -56,9 +56,9 @@ test("catalogPath y parseCatalogPath son inversas", () => {
     assert.equal(parseCatalogPath(other), null, other);
 });
 
-test("una página por URL pública: inicio, envíos, legales, cada categoría, cada producto y la 404", () => {
+test("una página por URL pública: inicio, envíos, legales, arrepentimiento, cada categoría, cada producto y la 404", () => {
   const products = categories.reduce((n, c) => n + c.types.length, 0);
-  assert.equal(pages.length, 3 + LEGAL_PAGES.length + categories.length + products);
+  assert.equal(pages.length, 4 + LEGAL_PAGES.length + categories.length + products);
   assert.equal(new Set(pages.map((p) => p.path)).size, pages.length);
   assert.equal(pages.at(-1)!.path, NOT_FOUND_PATH);
 });
@@ -113,8 +113,8 @@ test("la imagen para compartir de cada página existe y mide 1200x630 (scripts/o
     shareImage(null, null, true),
     ...categories.flatMap((c) => [shareImage(c, null), ...c.types.map((t) => shareImage(c, t))]),
   ];
-  // Las páginas legales (T89) comparten la del inicio.
-  assert.equal(new Set(images.map((i) => i.path)).size, indexable.length - LEGAL_PAGES.length);
+  // Las páginas legales (T89) y el «Botón de arrepentimiento» (T109) comparten la del inicio.
+  assert.equal(new Set(images.map((i) => i.path)).size, indexable.length - LEGAL_PAGES.length - 1);
   for (const { path, alt } of images) {
     const bytes = await readFile(new URL(`../src/${path}`, import.meta.url));
     assert.deepEqual(jpegSize(bytes), [1200, 630], path);

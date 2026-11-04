@@ -9,6 +9,7 @@ import { WhatsappService } from "../services/whatsapp.service";
 import { WhatsappIconComponent } from "../shared/whatsapp-icon/whatsapp-icon.component";
 import { AccountComponent } from "./account/account.component";
 import { buyerCancellable, dateTime, reservedUntil } from "./orders";
+import { WITHDRAWAL_LABEL, WITHDRAWAL_PATH } from "../core/withdrawal";
 import {
   CONFIRMATION_PROMISE,
   orderCode,
@@ -54,6 +55,9 @@ export class CommerceComponent {
   readonly reservationText = reservationText;
   readonly confirmationPromise = CONFIRMATION_PROMISE;
   readonly buyerCancellable = buyerCancellable;
+  /** «Botón de arrepentimiento» in «Mis pedidos» (T109). */
+  readonly withdrawalPath = WITHDRAWAL_PATH;
+  readonly withdrawalLabel = WITHDRAWAL_LABEL;
   readonly shippingSummary = shippingSummary;
   readonly shippingFollowUp = shippingFollowUp;
   /** "Qué pasa ahora" de la confirmación, según cómo se paga. */

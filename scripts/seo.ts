@@ -40,6 +40,7 @@ import {
 import { sortSizes } from "../src/app/core/sizes.ts";
 import { type LegalDoc, legalDocs } from "../src/app/core/legal.ts";
 import { LEGAL_PAGES, type LegalPage } from "../src/app/core/legal-pages.ts";
+import { WITHDRAWAL_LABEL, WITHDRAWAL_PATH } from "../src/app/core/withdrawal.ts";
 
 export interface Site {
   /** Origen público sin barra final, ej. https://piuma.uy */
@@ -304,7 +305,8 @@ function legalBody(doc: LegalDoc): string {
       .map(
         (s) =>
           `<h2>${escapeHtml(s.title)}</h2>${paragraphs(s.paragraphs)}` +
-          (s.items?.length ? `<ul>${s.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>` : ""),
+          (s.items?.length ? `<ul>${s.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>` : "") +
+          (s.link ? `<p><a href="${s.link.path}">${escapeHtml(s.link.label)}</a></p>` : ""),
       )
       .join("")
   );
@@ -316,7 +318,23 @@ export const siteLegalDocs = (site: Site) =>
     site.legalPages.some((p) => p.id === d.id),
   );
 
-type Kind = "home" | "category" | "product" | "shipping" | "legal" | "notFound";
+/**
+ * /arrepentimiento/ (T109): sin JavaScript no hay formulario, así que el HTML estático da el mail y
+ * el WhatsApp, que también valen como aviso. Se publica siempre (no es texto del borrador legal).
+ */
+function withdrawalBody(site: Site): string {
+  return (
+    crumbs([{ name: "Inicio", path: "/" }]) +
+    `<h1>${escapeHtml(WITHDRAWAL_LABEL)}</h1>` +
+    `<p>¿Te arrepentiste de una compra en la tienda online? Avisanos sin dar explicaciones, con el número de ` +
+    `pedido y el mail o el teléfono de la compra. Tenés 10 días corridos desde la compra o desde que recibiste ` +
+    `el producto (compras hasta el 31/12/2026: 5 días hábiles).</p>` +
+    `<p>Mail: <a href="mailto:${escapeHtml(site.email)}">${escapeHtml(site.email)}</a> · ` +
+    `WhatsApp: <a href="${escapeHtml(whatsappLink(site))}">${escapeHtml(formatWhatsapp(site.whatsappNumber))}</a></p>`
+  );
+}
+
+type Kind = "home" | "category" | "product" | "shipping" | "legal" | "withdrawal" | "notFound";
 
 function body(
   site: Site,
@@ -328,6 +346,7 @@ function body(
 ): string {
   let main: string;
   if (kind === "shipping") main = shippingBody();
+  else if (kind === "withdrawal") main = withdrawalBody(site);
   else if (doc) main = legalBody(doc);
   else if (kind === "notFound") main = notFoundBody(site, categories);
   else if (category && type) {
@@ -373,6 +392,7 @@ function body(
     `<main>${main}</main>` +
     `<footer><p><a href="${SHIPPING_PATH}">Envíos</a>` +
     site.legalPages.map((p) => ` · <a href="${p.path}">${escapeHtml(p.label)}</a>`).join("") +
+    ` · <a href="${WITHDRAWAL_PATH}">${escapeHtml(WITHDRAWAL_LABEL)}</a>` +
     ` · <a href="${escapeHtml(whatsappLink(site))}">WhatsApp ${escapeHtml(formatWhatsapp(site.whatsappNumber))}</a>` +
     ` · <a href="${escapeHtml(site.instagramUrl)}">Instagram ${escapeHtml(instagramHandle(site))}</a>` +
     ` · <a href="mailto:${escapeHtml(site.email)}">${escapeHtml(site.email)}</a>` +
@@ -573,6 +593,12 @@ export function structuredData(
       { name: doc.title, path: doc.path },
     ]);
     page = [webPage(site, "WebPage", meta, image, { breadcrumb: ref }), trail];
+  } else if (kind === "withdrawal") {
+    const [trail, ref] = crumb([
+      { name: "Inicio", path: "/" },
+      { name: WITHDRAWAL_LABEL, path: WITHDRAWAL_PATH },
+    ]);
+    page = [webPage(site, "WebPage", meta, image, { breadcrumb: ref }), trail];
   } else if (kind === "shipping") {
     const [trail, ref] = crumb([
       { name: "Inicio", path: "/" },
@@ -660,6 +686,12 @@ const legalMeta = (site: Site, doc: LegalDoc): PageMeta => ({
   description: doc.description,
 });
 
+const withdrawalMeta = (site: Site): PageMeta => ({
+  path: WITHDRAWAL_PATH,
+  title: withBrand(WITHDRAWAL_LABEL, site.brandName),
+  description: `Arrepentite de una compra hecha en la tienda online de ${site.brandName}: número de pedido, mail o teléfono, y te damos un número de solicitud.`,
+});
+
 const notFoundMeta = (site: Site): PageMeta => ({
   path: NOT_FOUND_PATH,
   title: withBrand("Página no encontrada", site.brandName),
@@ -678,7 +710,9 @@ function render(
   const meta =
     kind === "shipping"
       ? shippingMeta(site)
-      : doc
+      : kind === "withdrawal"
+        ? withdrawalMeta(site)
+        : doc
         ? legalMeta(site, doc)
         : kind === "notFound"
         ? notFoundMeta(site)
@@ -735,7 +769,7 @@ function render(
 }
 
 /**
- * Todas las páginas: inicio, /envios/, las legales (T89), cada categoría y cada producto, y al final 404.html, a partir
+ * Todas las páginas: inicio, /envios/, las legales (T89), /arrepentimiento/ (T109), cada categoría y cada producto, y al final 404.html, a partir
  * del index.html que deja `ng build`.
  */
 export function prerenderPages(html: string, site: Site, categories: Category[]): Page[] {
@@ -745,6 +779,7 @@ export function prerenderPages(html: string, site: Site, categories: Category[])
     render(html, site, categories, "home"),
     render(html, site, categories, "shipping"),
     ...siteLegalDocs(site).map((d) => render(html, site, categories, "legal", null, null, d)),
+    render(html, site, categories, "withdrawal"),
     ...categories.flatMap((c) => [
       render(html, site, categories, "category", c),
       ...c.types.map((t) => render(html, site, categories, "product", c, t)),
@@ -782,6 +817,7 @@ export function sitemapXml(site: Site, categories: Category[], lastmod: string):
     entry("/", ["assets/images/hero-piuma.webp"]),
     entry(SHIPPING_PATH, []),
     ...site.legalPages.map((p) => entry(p.path, [])),
+    entry(WITHDRAWAL_PATH, []),
     ...categories.flatMap((c) => [
       entry(catalogPath(c.id), [c.image]),
       ...c.types.map((t) =>
