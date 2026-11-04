@@ -51,6 +51,15 @@ regex = '''(?i)twilio[\w.-]{0,20}(?:auth|token|secret)[\w.-]{0,20}["']?\s*(?:=|:
 secretGroup = 1
 keywords = ["twilio"]
 
+# PostHog: la clave personal (phx_…) da acceso a la API de PostHog y es secreta (T104). La de proyecto (phc_…) es
+# pública por diseño (va en runtime-config.json) y no se marca.
+[[rules]]
+id = "piuma-posthog-personal-api-key"
+description = "PostHog personal API key"
+regex = '''\b(phx_[A-Za-z0-9]{32,80})\b'''
+secretGroup = 1
+keywords = ["phx_"]
+
 # Allowlist: SOLO fixtures de test claramente falsos. Cada entrada nombra el valor exacto (no carpetas enteras),
 # así un secreto real pegado en un test igual se detecta. Agregar una entrada exige justificarla en el PR.
 [[allowlists]]

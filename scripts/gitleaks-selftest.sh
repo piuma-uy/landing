@@ -47,6 +47,8 @@ expect_leak "AWS secret access key" "aws_secret_access_key = ${b40}"
 expect_leak "Twilio auth token" "TWILIO_AUTH_TOKEN=${hex32b}"
 expect_leak "Twilio API key" "TWILIO_API_KEY=S""K${hex32b}"
 
+expect_leak "PostHog personal API key" "const POSTHOG = \"ph""x_${b40}Kd7\""
+
 expect_clean "sha256 digest without secret context" "sha256: ${hex64}"
 expect_clean "Mercado Pago public key" "MP_PUBLIC_KEY=APP""_USR-1f2e3d4c-5b6a-4978-8a9b-0c1d2e3f4a5b"
 expect_clean "PostHog placeholder fixture" "const KEY = \"phc_0123456789abcdefABCDEF0123456789abcdef\";"

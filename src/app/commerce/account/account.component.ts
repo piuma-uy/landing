@@ -85,6 +85,8 @@ export class AccountComponent implements OnDestroy {
   readonly hosted = !!this.cognito && !this.cognito.forms;
   readonly google = !!this.shop.config.cognito?.google;
   readonly step = signal<Step>("signin");
+  /** The TOTP step comes from a password reset: completing it ends every session (T104). */
+  private afterReset = false;
   readonly texts = computed(() => TEXTS[this.step()]);
   readonly pending = signal(false);
   readonly error = signal(this.shop.takeLoginError());
@@ -268,10 +270,13 @@ export class AccountComponent implements OnDestroy {
         codeOf(this.code)!,
         this.password(),
       );
-      // Whoever held a session with the old password loses it (T87-04).
-      await this.finish(
-        await this.cognito!.signInEndingOtherSessions(email, this.password()),
+      // Whoever held a session with the old password loses it (T87-04); with TOTP, after the code (T104).
+      const result = await this.cognito!.signInEndingOtherSessions(
+        email,
+        this.password(),
       );
+      this.afterReset = !("user" in result);
+      await this.finish(result);
     });
   }
 
@@ -284,13 +289,23 @@ export class AccountComponent implements OnDestroy {
 
   async totp() {
     if (!this.check(["code"])) return;
-    await this.attempt(async () =>
-      this.finish(await this.cognito!.completeTotp(codeOf(this.code)!)),
-    );
+    await this.attempt(async () => {
+      const code = codeOf(this.code)!;
+      if (!this.afterReset)
+        return this.finish(await this.cognito!.completeTotp(code));
+      const result = await this.cognito!.completeTotpEndingOtherSessions(code);
+      if (result !== "signedOut") return this.finish(result);
+      this.afterReset = false;
+      this.go("signin");
+      this.notice.set(
+        "Cambiaste la contraseña y cerramos todas las sesiones de tu cuenta. Ingresá de nuevo con la contraseña nueva y un código nuevo.",
+      );
+    });
   }
 
   /** Back to the start after a step that needed Cognito's session (it expires in 3 minutes). */
   restart() {
+    this.afterReset = false;
     this.cognito?.clear();
     this.go("signin");
   }

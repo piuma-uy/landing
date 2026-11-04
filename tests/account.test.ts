@@ -167,6 +167,38 @@ test("a failed global sign-out after a reset still signs the buyer in (T87-04)",
   assert.ok(s.store.get(SESSION_KEY));
 });
 
+test("a password reset of an account with TOTP ends every session after the code (T104)", async () => {
+  const s = setup();
+  s.pool.add("admin@example.com", { password: PASSWORD, admin: true, totp: true });
+  // An intruder's tab, signed in with the old password and a code.
+  const other = setup(ISSUER, s.pool);
+  assert.deepEqual(await other.auth.signIn("admin@example.com", PASSWORD), { next: "totp" });
+  assert.ok("user" in (await other.auth.completeTotp(CODE)));
+  await s.auth.confirmForgotPassword("admin@example.com", CODE, "Otra-Clave-Nueva-7");
+  assert.deepEqual(
+    await s.auth.signInEndingOtherSessions("admin@example.com", "Otra-Clave-Nueva-7"),
+    { next: "totp" },
+  );
+  assert.equal(await s.auth.completeTotpEndingOtherSessions(CODE), "signedOut");
+  assert.ok(s.pool.calls.some((c) => c.action === "GlobalSignOut"));
+  assert.equal(await setup(ISSUER, s.pool, other.store).auth.restore(), "expired");
+  // This tab too: the admin signs in again with the new password and a new code.
+  assert.equal(await s.auth.getAccessToken(), "");
+  assert.equal(s.store.has(SESSION_KEY), false);
+});
+
+test("a failed global sign-out after the TOTP step of a reset keeps the session (T104)", async () => {
+  const s = setup();
+  s.pool.add("admin@example.com", { password: PASSWORD, admin: true, totp: true });
+  const handle = s.pool.handle.bind(s.pool);
+  s.pool.handle = (target, body) =>
+    target.endsWith("GlobalSignOut") ? [500, { __type: "InternalErrorException" }] : handle(target, body);
+  await s.auth.signInEndingOtherSessions("admin@example.com", PASSWORD);
+  const result = await s.auth.completeTotpEndingOtherSessions(CODE);
+  assert.ok(result !== "signedOut" && "user" in result);
+  assert.ok(await s.auth.getAccessToken());
+});
+
 test("after enrolling TOTP every session ends, a password-only one from before too (T87-NV-MFA)", async () => {
   const s = setup();
   s.pool.add("admin@example.com", { password: PASSWORD, admin: true });
