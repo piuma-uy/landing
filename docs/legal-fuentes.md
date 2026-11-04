@@ -90,6 +90,25 @@ Notas:
   ley no obliga a publicarlo (art. 13 no lo pide), pero conviene que el contador lo fije para el registro de la base
   (Dec. 414/009 art. 16 F).
 
+## Cómo lo resuelven tiendas online chicas de Uruguay (referencia de tono y alcance)
+
+Pedido de Guillermo (2026-11-04): tomar como referencia a tiendas uruguayas con web propia, **sin copiar textos**. Se
+abrieron estas páginas el 2026-11-04; de ellas se tomó la estructura y el tono, no la redacción. Lo que decide el
+contenido sigue siendo la ley (tablas de arriba).
+
+| Tienda                                    | Páginas abiertas                                                                                                                                                                            | Qué se tomó / qué no                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Mintt** (ropa de cama, marca chica)     | <https://mintt.com.uy/terminos-y-condiciones> · <https://mintt.com.uy/condiciones-de-compra> · <https://mintt.com.uy/envios-y-devoluciones>                                                 | Mismo rubro y mismo esquema de tres páginas cortas. No muestra razón social, RUT ni domicilio, no nombra el art. 16 y da un plazo de cambio distinto en dos páginas (15 y 20 días): por eso acá un mismo texto alimenta las dos páginas (`withdrawal*` y `defects` en `legal.ts`) y van los datos del Dec. 167/021. |
+| **Tiendas Montevideo** (blanquería y hogar) | <https://www.tiendasmontevideo.com.uy/como-comprar/>                                                                                                                                      | Separa la entrega (plazos en días hábiles) del cambio comercial en local (15 días con ticket). Ese cambio es una política propia, no una obligación: Piuma no la tiene y no se inventa.                                                                                                                       |
+| **Mira** (mira.uy, Masdelar S.A.)         | <https://mira.uy/terminos-condiciones>                                                                                                                                                      | Arrepentimiento con el art. 16, aviso por mail como medio fehaciente y reintegro por el mismo medio de pago, con domicilio y mail del proveedor: mismo alcance que el nuestro. No se tomaron sus cláusulas de exoneración o límite de responsabilidad, ni el consentimiento publicitario: la ley no las pide.            |
+| **Mi Uruguay** (miuruguay.com.uy, Mvdeo S.A.) | <https://miuruguay.com.uy/terminos-de-compra-online/>                                                                                                                                   | Razón social, RUT y domicilio a la vista; sección propia de arrepentimiento (plazo, producto sin uso, reintegro total por el mismo medio) y privacidad remitida a la Ley 18.331, la 19.670 y sus decretos. Es el modelo más cercano al de Piuma.                                                         |
+
+Conclusión: las tiendas chicas publican textos cortos, en segunda persona y en tres páginas (compra, privacidad,
+cambios); las que cumplen muestran razón social, RUT y domicilio y explican el art. 16 sin condiciones. Los textos de
+Piuma siguen ese tono y ese alcance, sin las cláusulas extra que algunas agregan (exoneraciones, precios «sujetos a
+cambios sin aviso», consentimiento publicitario) porque la ley no las exige y algunas chocan con los arts. 12 y 14 de
+la Ley 17.250.
+
 ## Qué se sacó del borrador de T89 y por qué
 
 - Garantía propia con plazo a definir, aviso de daño «en 48 horas», fotos/colores, error de precio, menores, cambios
