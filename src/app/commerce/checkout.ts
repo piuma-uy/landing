@@ -38,6 +38,25 @@ export function defaultPayWith(transfer: boolean, card: boolean): PayWith {
   return transfer ? "transfer" : card ? "card" : "pending";
 }
 
+/**
+ * The order's contact name as the API accepts it (letters, spaces and . , ' -, starting with a
+ * letter, up to 100). Accounts created without a name show the mail's local part ("ana.perez99"),
+ * and Google names may carry digits or emoji: anything else becomes a space, so the order is not
+ * refused with a bare "Solicitud inválida" (T103). Nothing usable left → "Cliente".
+ */
+export function contactName(name: string) {
+  const clean = name
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{M} .,'’-]+/gu, " ")
+    .split(/\s+/)
+    .map((word) => word.replace(/^[^\p{L}]+|[ ,'’-]+$/gu, ""))
+    .filter(Boolean)
+    .join(" ")
+    .slice(0, 100)
+    .trim();
+  return clean || "Cliente";
+}
+
 /** The buyer's choice, as long as the API still offers it. */
 export function paymentMethodFor(
   payWith: PayWith,

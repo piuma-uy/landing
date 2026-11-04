@@ -688,11 +688,13 @@
                         <td>
                           {{ p.size }} · {{ p.color }}<small>{{ p.sku }}</small>
                         </td>
-                        <td>
+                        <td data-label="Precio">
                           {{ shop.money(p.priceMinor, p.currency) }}
                         </td>
-                        <td>{{ p.stock }}</td>
-                        <td>{{ p.active ? "Visible" : "Oculto" }}</td>
+                        <td data-label="Stock">{{ p.stock }}</td>
+                        <td data-label="Estado">
+                          {{ p.active ? "Visible" : "Oculto" }}
+                        </td>
                         <td>
                           <button
                             class="text-button"

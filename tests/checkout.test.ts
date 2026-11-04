@@ -5,6 +5,7 @@ import {
   CheckoutAttempts,
   checkoutAttempt,
   clearSession,
+  contactName,
   fingerprintHash,
   defaultPayWith,
   paymentMethodFor,
@@ -176,4 +177,19 @@ test("logout drops every piuma-* slot and nothing else (FE-06)", () => {
     removeItem: (k: string) => void slots.delete(k),
   });
   assert.deepEqual([...slots.keys()], ["other-app"]);
+});
+
+test("the contact name is sent as the API accepts it, whatever the account shows (T103)", () => {
+  const api = /^[\p{L}\p{M}][\p{L}\p{M} .,'’-]*$/u;
+  assert.equal(contactName("María José O'Neill"), "María José O'Neill");
+  assert.equal(contactName("ana.perez99"), "ana.perez");
+  assert.equal(contactName("t103-qa-comprador"), "t qa-comprador");
+  assert.equal(contactName("t103-sin-nombre-99"), "t sin-nombre");
+  assert.equal(contactName("juan_gomez"), "juan gomez");
+  assert.equal(contactName("  Lucía 🌙 "), "Lucía");
+  assert.equal(contactName("12345"), "Cliente");
+  assert.equal(contactName(""), "Cliente");
+  assert.equal(contactName("a".repeat(150)).length, 100);
+  for (const n of ["ana.perez99", "t103-qa-comprador", "_x", "Lucía 🌙", "x".repeat(150), "a" + " -".repeat(60)])
+    assert.match(contactName(n), api);
 });
