@@ -103,7 +103,7 @@ export function legalDocs(
           "Mercado Pago: el cobro con tarjeta. Al pagar aceptás también su política de privacidad.",
           "Google: sólo si elegís entrar con Google; nos comparte tu nombre y tu mail.",
           "WhatsApp: los mensajes con los que coordinamos la entrega.",
-          "PostHog (servidores en la Unión Europea): estadísticas de uso sin datos personales; ver más abajo.",
+          "PostHog (servidores en Estados Unidos): estadísticas de uso sin datos personales; ver más abajo.",
           "Autoridades, cuando una ley o una orden judicial lo exija.",
         ],
       },
@@ -132,7 +132,7 @@ export function legalDocs(
       {
         title: "Estadísticas de uso sin cookies",
         paragraphs: [
-          "Cuando está activada, usamos PostHog (servidores en la Unión Europea) para saber cómo se usa la tienda y corregir errores. Se registran las páginas que visitás, los pasos de la compra (sin montos ni datos personales), los clics a WhatsApp y errores técnicos, con un identificador al azar que se borra al cerrar la pestaña.",
+          "Cuando está activada, usamos PostHog (servidores en Estados Unidos) para saber cómo se usa la tienda y corregir errores. Se registran las páginas que visitás, los pasos de la compra (sin montos ni datos personales), los clics a WhatsApp y errores técnicos, con un identificador al azar que se borra al cerrar la pestaña.",
           'No usamos cookies para esto ni enviamos tu nombre, mail, teléfono, dirección, datos de pago o de tu cuenta; los eventos son anónimos y no se pueden cruzar entre visitas ni dispositivos. Si tu navegador tiene activado "No rastrear" o Global Privacy Control, no se envía nada.',
         ],
       },
