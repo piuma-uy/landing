@@ -18,7 +18,7 @@ const aws = {
 };
 const docker = { commerceEnabled: true, apiBaseUrl: "http://localhost:3000" };
 const posthog = {
-  host: "https://eu.i.posthog.com",
+  host: "https://us.i.posthog.com",
   key: "phc_0123456789abcdefABCDEF0123456789abcdefABCD",
 };
 
@@ -117,8 +117,8 @@ test("PostHog survives with commerce off and is dropped when malformed (T97)", (
     posthog,
   );
   for (const bad of [
-    { ...posthog, host: "http://eu.i.posthog.com" },
-    { ...posthog, host: "https://eu.i.posthog.com/batch/" },
+    { ...posthog, host: "http://us.i.posthog.com" },
+    { ...posthog, host: "https://us.i.posthog.com/batch/" },
     { ...posthog, key: "" },
     // A personal API key (phx_) is a secret and never goes in a public file.
     { ...posthog, key: "phx_0123456789abcdefABCDEF0123456789abcdef" },

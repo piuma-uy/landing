@@ -117,11 +117,11 @@ cambiar la URL y su tarjeta enlaza a la categoría.
 
 ## Uso y errores (PostHog, T97)
 
-Apagado por defecto. Con la clave `posthog` en `runtime-config.json` (en AWS, vía `FRONTEND_RUNTIME_CONFIG`) la tienda manda
-uso y errores a [PostHog Cloud](https://posthog.com) región EU, sin cargar su SDK:
+Apagado por defecto (prendido en dev y prod desde `FRONTEND_RUNTIME_CONFIG`). Con la clave `posthog` en `runtime-config.json` (en AWS, vía `FRONTEND_RUNTIME_CONFIG`) la tienda manda
+uso y errores a [PostHog Cloud](https://posthog.com) región **US** (proyecto 707747, [dashboard](https://us.posthog.com/project/707747/dashboard/2299097)), sin cargar su SDK:
 
 ```json
-"posthog": { "host": "https://eu.i.posthog.com", "key": "phc_…" }
+"posthog": { "host": "https://us.i.posthog.com", "key": "phc_…" }
 ```
 
 `key` es la Project API key **pública** del proyecto (`phc_…`, no es un secreto); una clave personal `phx_…` se rechaza.
@@ -131,7 +131,7 @@ uso y errores a [PostHog Cloud](https://posthog.com) región EU, sin cargar su S
 (`ReportingErrorHandler`, con `provideBrowserGlobalErrorListeners`; mensaje y stack recortados, sin mails ni números largos,
 hasta 10 distintos por visita). Sin cookies: `distinct_id` es un UUIDv7 al azar de la pestaña (`sessionStorage`), eventos
 anónimos, sólo la ruta de la URL y el origen del referrer. Respeta Do Not Track y Global Privacy Control. Al activarlo,
-sumar `https://eu.i.posthog.com` a `frontend_connect_src` de `piuma-backend/infra` (CSP `connect-src`). Qué ver dónde,
+sumar `https://us.i.posthog.com` a `frontend_connect_src` de `piuma-backend/infra` (CSP `connect-src`). Qué ver dónde,
 alta de la cuenta y privacidad: [`piuma-backend/docs/monitoreo.md`](https://github.com/piuma-uy/piuma-backend/blob/main/docs/monitoreo.md).
 
 ## Estructura

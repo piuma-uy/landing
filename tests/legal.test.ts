@@ -66,7 +66,7 @@ test("privacidad: responsable, Ley 18.331, alojamiento, proveedores, derechos y 
     "Google",
     "Amazon SES",
     "PostHog",
-    "Unión Europea",
+    "PostHog (servidores en Estados Unidos)",
     "No vendemos",
     "sessionStorage",
     "rectificación",
@@ -74,6 +74,8 @@ test("privacidad: responsable, Ley 18.331, alojamiento, proveedores, derechos y 
     "URCDP",
   ])
     assert.ok(text.includes(needed), needed);
+  // T102: the PostHog project lives in PostHog Cloud US (project 707747), not in the EU.
+  assert.ok(!text.includes("Unión Europea"), "PostHog no está en la UE");
 });
 
 test("términos y cambios: Ley 17.250, IVA, arrepentimiento de 5 días hábiles y lugar para la política propia", () => {
