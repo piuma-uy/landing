@@ -1,0 +1,168 @@
+<section class="panel users" aria-labelledby="users-title">
+  <h2 id="users-title">Administradores</h2>
+  <p class="muted">
+    Pueden entrar a Administrar con su mail: cambiar productos y stock,
+    confirmar pagos y modificar la configuración de la tienda.
+  </p>
+  <form
+    class="add-admin"
+    (ngSubmit)="askAdd()"
+    aria-label="Agregar administrador"
+  >
+    <label for="admin-email">Mail de la persona</label>
+    <div class="add-admin__row">
+      <input
+        id="admin-email"
+        name="email"
+        type="email"
+        inputmode="email"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        maxlength="254"
+        placeholder="nombre@gmail.com"
+        [(ngModel)]="email"
+        (ngModelChange)="emailError.set('')"
+        aria-describedby="admin-email-hint"
+        [attr.aria-invalid]="!!emailError()"
+        required
+      />
+      <button
+        class="btn btn--primary"
+        [disabled]="shop.busy() || !email.trim()"
+      >
+        Agregar administrador
+      </button>
+    </div>
+    <p id="admin-email-hint" class="muted small">
+      @if (emailError(); as problem) {
+        <span class="sure__error" role="alert">{{ problem }}</span>
+      } @else {
+        Si todavía no tiene cuenta en Piuma, le llega un mail con una contraseña
+        temporal para entrar.
+      }
+    </p>
+  </form>
+</section>
+
+@if (loadError(); as problem) {
+  <div class="panel" role="alert">
+    <p>{{ problem }}</p>
+    <div class="actions">
+      <button class="btn btn--outline" type="button" (click)="load()">
+        Reintentar
+      </button>
+    </div>
+  </div>
+} @else if (list(); as l) {
+  <ul class="admin-list" aria-label="Administradores actuales">
+    @for (admin of l.items; track admin.id) {
+      <li class="panel admin-row">
+        <div class="admin-row__who">
+          <p class="admin-row__email">
+            {{ admin.email }}
+            @if (admin.self) {
+              <span class="admin-row__self">Vos</span>
+            }
+          </p>
+          <p class="muted small">{{ sinceLabel(admin) }}</p>
+          <p class="muted small">{{ accessLabel(admin) }}</p>
+        </div>
+        @if (!admin.self) {
+          <button
+            type="button"
+            class="btn btn--outline admin-row__remove"
+            [disabled]="shop.busy()"
+            aria-haspopup="dialog"
+            [attr.aria-label]="'Quitar permisos a ' + admin.email"
+            (click)="askRemove(admin)"
+          >
+            Quitar permisos
+          </button>
+        }
+      </li>
+    }
+  </ul>
+  @if (l.items.length === 1) {
+    <p class="muted small">
+      Sos el único administrador. Agregá a alguien de confianza para no quedarte
+      sin acceso si perdés tu cuenta.
+    </p>
+  }
+  @if (l.changes.length) {
+    <section class="panel changes" aria-labelledby="changes-title">
+      <h3 id="changes-title">Últimos cambios</h3>
+      <ul>
+        @for (c of l.changes; track c.at + c.targetEmail) {
+          <li>
+            <span class="muted small">{{ dateTime(c.at) }}</span>
+            <span>{{ changeText(c) }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+} @else {
+  <p role="status">Cargando administradores…</p>
+}
+
+<!-- "¿Estás seguro?" as in Transferencias (T74): native modal dialog, bottom sheet on the phone. -->
+<dialog
+  #sureDialog
+  class="sure"
+  aria-labelledby="users-sure-title"
+  aria-describedby="users-sure-lead"
+  (close)="pending.set(null)"
+  (click)="closeOnBackdrop($event)"
+>
+  @if (pending(); as p) {
+    <form class="sure__body" (ngSubmit)="confirm(p)">
+      <h2 id="users-sure-title" class="sure__title">¿Estás seguro?</h2>
+      @if (p.kind === "add") {
+        <p id="users-sure-lead" class="sure__lead">
+          Le das permisos de administrador. Va a poder cambiar productos,
+          confirmar pagos y modificar los datos bancarios de la tienda.
+        </p>
+        <dl class="sure__facts">
+          <div>
+            <dt>Mail</dt>
+            <dd>{{ p.email }}</dd>
+          </div>
+        </dl>
+      } @else {
+        <p id="users-sure-lead" class="sure__lead">
+          Deja de ser administrador. Su cuenta sigue activa para comprar. Si
+          tiene el panel abierto, puede seguir viéndolo hasta 15 minutos.
+        </p>
+        <dl class="sure__facts">
+          <div>
+            <dt>Mail</dt>
+            <dd>{{ p.admin.email }}</dd>
+          </div>
+        </dl>
+      }
+      @if (dialogError(); as problem) {
+        <p class="sure__error" role="alert">{{ problem }}</p>
+      }
+      <div class="sure__actions">
+        <button class="btn btn--primary" [disabled]="shop.busy()">
+          @if (shop.busy()) {
+            Guardando…
+          } @else if (p.kind === "add") {
+            Sí, darle permisos
+          } @else {
+            Sí, quitar permisos
+          }
+        </button>
+        <button
+          type="button"
+          class="btn btn--outline"
+          autofocus
+          (click)="sureDialog.close()"
+        >
+          Volver
+        </button>
+      </div>
+    </form>
+  }
+</dialog>

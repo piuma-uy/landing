@@ -1,0 +1,89 @@
+// Administrar → Usuarios (T106): same panels, tokens and dialog as the rest of the panel.
+h2 {
+  font-size: 1.4rem;
+}
+h3 {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.users p {
+  margin: 0 0 1rem;
+}
+.add-admin label {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+.add-admin__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.add-admin__row input {
+  flex: 1 1 16rem;
+  min-width: 0;
+  min-height: 44px;
+}
+.add-admin .muted {
+  margin: 0.5rem 0 0;
+}
+.admin-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.admin-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 1rem 1.2rem;
+}
+.admin-row p {
+  margin: 0;
+}
+.admin-row__who {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.admin-row__email {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.admin-row__self {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 30px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  vertical-align: 0.1em;
+}
+.changes ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.changes li {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+.changes li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+@media (max-width: 599.98px) {
+  // Thumb-sized, full width under the email.
+  .add-admin__row .btn,
+  .admin-row__remove {
+    flex: 1 1 100%;
+  }
+}

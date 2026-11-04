@@ -21,6 +21,7 @@ import {
   statusLabel,
   transferOffered,
   transferSearch,
+  type Request as ApiRequest,
 } from "./transfer";
 import {
   Address,
@@ -448,6 +449,9 @@ export class CommerceService {
   private readonly transfers = new TransferApi((path, method, body) =>
     this.request(path, method, body),
   );
+  /** The API with the session, for panel tabs in their own chunk (Usuarios, T106). */
+  readonly api: ApiRequest = (path, method, body) =>
+    this.request(path, method, body);
   private readonly cards = new CardApi(
     (path, method, body, headers) => this.request(path, method, body, headers),
     sessionStorage,
