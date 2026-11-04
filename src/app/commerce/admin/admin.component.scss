@@ -51,3 +51,11 @@ h2 {
 .paid-order__summary {
   font-weight: 500;
 }
+// «Botón de arrepentimiento» (T109): el motivo lo escribe el comprador, con sus saltos de línea.
+.withdrawal-reason {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.withdrawal-contact {
+  overflow-wrap: anywhere;
+}

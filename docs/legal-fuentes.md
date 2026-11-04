@@ -15,7 +15,8 @@ Todas las fuentes se abrieron y leyeron el **2026-11-04** (texto actualizado de 
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Ley 17.250, Relaciones de consumo (texto actualizado)                           | <https://www.impo.com.uy/bases/leyes/17250-2000>                                                                                                               |
 | Decreto 244/000, reglamento de la Ley 17.250                                    | <https://www.impo.com.uy/bases/decretos/244-2000>                                                                                                              |
-| Ley 20.531, Rendición de Cuentas 2025 (art. 2 vigencia, art. 108 nuevo art. 16) | <https://www.impo.com.uy/bases/leyes/20531-2026>                                                                                                               |
+| Ley 20.531, Rendición de Cuentas 2025 (art. 2 vigencia, art. 108 nuevo art. 16) | <https://www.impo.com.uy/bases/leyes/20531-2026> · art. 108: <https://www.impo.com.uy/bases/leyes/20531-2026/108>                                               |
+| Ley 17.250 art. 16 (texto actualizado, notas de vigencia y reglamentación; T109) | <https://www.impo.com.uy/bases/leyes/17250-2000/16>                                                                                                            |
 | Decreto 167/021 (incorpora la Res. GMC 37/19, comercio electrónico)             | <https://www.impo.com.uy/bases/decretos/167-2021> · anexo: <https://www.impo.com.uy/bases/decretos-internacional/167-2021/1>                                    |
 | Decreto 51/026 (comercio electrónico con intermediarios; no aplica a Piuma)     | <https://www.impo.com.uy/bases/decretos/51-2026>                                                                                                               |
 | Ley 18.331, Protección de datos personales (texto actualizado)                  | <https://www.impo.com.uy/bases/leyes/18331-2008>                                                                                                               |
@@ -53,13 +54,29 @@ Todas las fuentes se abrieron y leyeron el **2026-11-04** (texto actualizado de 
 | Garantía contractual: sólo si se ofrece, por escrito y con contenido mínimo. **Piuma no ofrece una**, así que no se publica                                 | Ley 17.250 art. 23                                            | —                                                        |
 | Atención de consultas y reclamos                                                                                                                             | Res. 37/19 art. 7; Ley 17.250 art. 6 G                        | Términos › Consultas y reclamos                          |
 
-### Cambia el 1/1/2027 y no es texto: «Botón de arrepentimiento»
+### «Botón de arrepentimiento» (T109)
 
-La Ley 20.531 (art. 108, nuevo art. 16 inc. 3, rige desde el 1/1/2027) obliga a las tiendas en línea a tener, **visible,
-destacado y desde el primer acceso**, un vínculo llamado «Botón de arrepentimiento» para pedir el arrepentimiento, y
-lo considera medio fehaciente. Hace falta una tarea de UI aparte (p. ej. enlace en el pie y en Mis pedidos que abra el
-pedido por mail/WhatsApp o en el API). Hasta entonces el aviso por mail o WhatsApp (escrito, con fecha) sirve como medio
-fehaciente.
+Releído el **2026-11-04** en IMPO: la Ley 20.531 (art. 108, que sustituye el art. 16 de la Ley 17.250; vigencia
+1/1/2027 por su art. 2) dice que, en las ventas por medios informáticos, el proveedor tiene que mostrar **un vínculo
+visible, en un lugar destacado y desde el primer acceso, llamado «Botón de arrepentimiento»**, y que usarlo **vale como
+medio fehaciente** para comunicar el arrepentimiento. No pide campos, plazo de respuesta, acuse por mail ni registro
+de datos. **Reglamentación**: el art. 16 en el texto actualizado de IMPO no tiene nota «Reglamentado por» propia (sólo
+«Ver vigencia: Ley 20.531 arts. 2 y 108»); la ley entera sigue reglamentada por el Decreto 244/000 (su art. 6 trata la
+devolución de lo pagado) y a esa fecha no se encontró un decreto del Poder Ejecutivo sobre el botón. Si sale uno,
+revisar esto.
+
+| Lo que pide la norma                                         | Cómo quedó                                                                                                                                                                                                                 |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vínculo llamado «Botón de arrepentimiento»                    | Ese texto exacto (`WITHDRAWAL_LABEL` en `src/app/core/withdrawal.ts`; un test lo fija)                                                                                                                                    |
+| Visible, destacado, desde el primer acceso                    | Botón contorneado en el pie de **todas** las páginas (también en el HTML prerenderizado y con el borrador legal en prod) y en cada pedido pagado de «Mis pedidos»; abre `/arrepentimiento/`                                |
+| Que sirva para ejercer el derecho (medio fehaciente)          | Formulario mínimo: número de pedido, mail o teléfono de la compra y motivo **opcional** (la ley dice «sin responsabilidad alguna» y no pide motivo). Sin sesión. Constancia en pantalla con número de solicitud y fecha      |
+| (Operativo) que la tienda se entere                           | `POST /withdrawal-requests` lo guarda en DynamoDB; mail al mail de avisos si las notificaciones están desplegadas, y siempre en el panel, «Resumen» › «Pedidos de arrepentimiento» (`piuma-backend` docs/architecture.md, invariante 20) |
+| Plazo: 10 días corridos desde la compra o la entrega (2027)   | La página lo dice, con el de hoy (5 días hábiles hasta el 31/12/2026). La API no rechaza pedidos fuera de plazo: lo evalúa la tienda                                                                                         |
+
+También quedan los otros medios: la página ofrece mail y WhatsApp (y el HTML sin JavaScript sólo eso), y
+`/terminos/` y `/cambios-y-devoluciones/` remiten al botón con un enlace. Interpretación abierta: «desde el primer
+acceso» se cumple con el pie, que está en la primera página que se abre; si un reglamento pidiera el vínculo en la
+parte visible sin bajar, habría que sumarlo al encabezado.
 
 ## Datos personales (privacidad)
 

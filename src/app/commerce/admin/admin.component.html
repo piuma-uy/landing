@@ -165,6 +165,43 @@
           ><strong>{{ activeCount() }}</strong>
         </article>
       </div>
+      @if (shop.withdrawalRequests(); as requests) {
+        <!-- «Botón de arrepentimiento» (T109): visible acá aunque no haya avisos por mail. -->
+        <section class="paid-orders" aria-labelledby="withdrawals-title">
+          <h2 id="withdrawals-title">
+            Pedidos de arrepentimiento
+            @if (requests.length) {
+              ({{ requests.length }})
+            }
+          </h2>
+          <p class="muted small">
+            Llegan por el Botón de arrepentimiento de la tienda. Buscá el
+            pedido, revisá que el mail o el teléfono coincidan y escribile al
+            comprador para coordinar la devolución y el reintegro.
+          </p>
+          @for (r of requests; track r.id) {
+            <article class="panel paid-order" [attr.data-request]="r.number">
+              <header>
+                <h3>Pedido #{{ r.orderCode }}</h3>
+                <span class="muted small">{{ r.number }}</span>
+              </header>
+              <p class="muted small">Recibido el {{ dateTime(r.createdAt) }}</p>
+              <p class="small">
+                <a class="withdrawal-contact" [href]="contactHref(r)">{{
+                  r.contactType === "phone"
+                    ? phoneDisplay(r.contact)
+                    : r.contact
+                }}</a>
+              </p>
+              @if (r.reason) {
+                <p class="small withdrawal-reason">Motivo: {{ r.reason }}</p>
+              }
+            </article>
+          } @empty {
+            <p class="panel">Ninguno por ahora.</p>
+          }
+        </section>
+      }
       @if (shop.paidOrders(); as paid) {
         <section class="paid-orders" aria-labelledby="paid-orders-title">
           <h2 id="paid-orders-title">Pedidos pagados</h2>

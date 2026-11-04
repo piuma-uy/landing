@@ -11,7 +11,12 @@ import {
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { DomSanitizer } from "@angular/platform-browser";
-import { CommerceService, Order, Product } from "../commerce.service";
+import {
+  CommerceService,
+  Order,
+  Product,
+  type WithdrawalRequest,
+} from "../commerce.service";
 import { dateTime } from "../orders";
 import {
   orderCode,
@@ -78,6 +83,12 @@ export class AdminComponent {
   readonly orderCode = orderCode;
   readonly orderZone = orderZone;
   readonly phoneDisplay = phoneDisplay;
+  /** Reply to a «Botón de arrepentimiento» request: mail, or a call to the E.164 phone. */
+  contactHref(r: WithdrawalRequest) {
+    return r.contactType === "email"
+      ? "mailto:" + r.contact
+      : "tel:" + r.contact;
+  }
   readonly shippingSummary = shippingSummary;
   readonly sales = computed(() =>
     this.shop.metrics().reduce((s, m) => s + m.grossSalesMinor, 0),

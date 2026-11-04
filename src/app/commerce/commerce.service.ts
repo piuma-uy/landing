@@ -45,6 +45,11 @@ import {
 import { type LegalId, legalIdFor, legalPage as legalInfo } from "../core/legal-pages";
 import { LEGAL_LINKS } from "../core/site-env";
 import {
+  WITHDRAWAL_PATH,
+  isWithdrawalPath,
+  type WithdrawalPrefill,
+} from "../core/withdrawal";
+import {
   CardApi,
   Checkout,
   cardOffered,
@@ -84,15 +89,8 @@ import {
   needsOlder,
   ALERT_MAX_PAGES,
 } from "./settings-history";
-import {
-  SECTION_CONFLICT,
-  SECTION_SAVED,
-  applySection,
-  sameForm,
-  sectionForm,
-  type Forms,
-  type SectionId,
-} from "./settings-form";
+// Only Configuración saves with it: loaded on the first save, outside the initial bundle (T109).
+import type { Forms, SectionId } from "./settings-form";
 import {
   ORDERS_LINK_CODES,
   ORDER_CANCELLED,
@@ -197,6 +195,17 @@ export interface Metric {
   unitsSold: number;
   currency: string;
 }
+/** GET /admin/withdrawal-requests (T109). */
+export interface WithdrawalRequest {
+  id: string;
+  number: string;
+  orderCode: string;
+  contactType: "email" | "phone";
+  /** Lower-case mail or E.164 phone. */
+  contact: string;
+  reason: string | null;
+  createdAt: string;
+}
 export interface Quote {
   items: (Line & {
     name: string;
@@ -249,6 +258,10 @@ export class CommerceService {
    * published ones: the draft in prod has no page, and its URL is the 404 (T99).
    */
   readonly legalPage = signal<LegalId | null>(legalIdFor(location.pathname, LEGAL_LINKS));
+  /** /arrepentimiento/, the «Botón de arrepentimiento» form (T109); like /envios/. */
+  readonly withdrawalPage = signal(isWithdrawalPath(location.pathname));
+  /** Order code and mail when it was opened from «Mis pedidos»; null from the footer. */
+  readonly withdrawalPrefill = signal<WithdrawalPrefill | null>(null);
   /**
    * The view /envios/ or a legal page was opened from ("¿Cómo funcionan los envíos?" or the
    * terms in the checkout); null from the shop.
@@ -330,6 +343,8 @@ export class CommerceService {
   readonly paidOrders = signal<Order[] | null>(null);
   private readonly paidCursor = signal<string | undefined>(undefined);
   readonly morePaid = computed(() => !!this.paidCursor());
+  /** «Botón de arrepentimiento» requests for the Resumen (T109); null when the API has no list. */
+  readonly withdrawalRequests = signal<WithdrawalRequest[] | null>(null);
   readonly quote = signal<Quote | null>(null);
   readonly completed = signal<Order | null>(null);
   /** Card order created, its tab on the way to Mercado Pago: only "Te llevamos…" shows (T72c). */
@@ -439,6 +454,7 @@ export class CommerceService {
     this.metrics.set([]);
     this.paidOrders.set(null);
     this.paidCursor.set(undefined);
+    this.withdrawalRequests.set(null);
     this.pendingTransfers.set([]);
     this.transferSearch.set(null);
     this.settings.set(null);
@@ -525,11 +541,17 @@ export class CommerceService {
     addEventListener("popstate", () => {
       const shipping = isShippingPath(location.pathname);
       const legal = legalIdFor(location.pathname, LEGAL_LINKS);
-      if (shipping === this.shippingPage() && legal === this.legalPage())
+      const withdrawal = isWithdrawalPath(location.pathname);
+      if (
+        shipping === this.shippingPage() &&
+        legal === this.legalPage() &&
+        withdrawal === this.withdrawalPage()
+      )
         return;
       this.shippingPage.set(shipping);
       this.legalPage.set(legal);
-      if (shipping || legal) return;
+      this.withdrawalPage.set(withdrawal);
+      if (shipping || legal || withdrawal) return;
       const from = this.shippingFrom();
       if (from) this.view.set(from);
       this.shippingFrom.set(null);
@@ -717,6 +739,7 @@ export class CommerceService {
       history.replaceState(history.state, "", "/" + location.search);
     this.shippingPage.set(false);
     this.legalPage.set(null);
+    this.withdrawalPage.set(false);
     this.notFound.set(false);
     this.view.set("shop");
     requestAnimationFrame(() =>
@@ -725,10 +748,11 @@ export class CommerceService {
   }
   open(view: View) {
     if (view === "orders" && this.user()?.admin) view = "admin";
-    if (this.shippingPage() || this.legalPage()) {
+    if (this.shippingPage() || this.legalPage() || this.withdrawalPage()) {
       history.replaceState(history.state, "", "/" + location.search);
       this.shippingPage.set(false);
       this.legalPage.set(null);
+      this.withdrawalPage.set(false);
     }
     this.view.set(view);
     this.notFound.set(false);
@@ -1073,18 +1097,20 @@ export class CommerceService {
   /** Loads the panel; without a second factor it only leaves the enrollment on screen. */
   async loadAdmin() {
     try {
-      const [p, m, paid, t, s] = await Promise.all([
+      const [p, m, paid, t, s, w] = await Promise.all([
         this.pages<Product>("/admin/products"),
         this.pages<Metric>("/admin/metrics"),
         this.loadPaidOrders(),
         this.transfers.pending<Order>(),
         this.transfers.settings(),
+        this.loadWithdrawals(),
         this.loadHistory(),
       ]);
       this.mfaRequired.set(false);
       this.adminProducts.set(p);
       this.metrics.set(m);
       this.setPaid(paid);
+      this.withdrawalRequests.set(w);
       this.pendingTransfers.set(t);
       this.settings.set(s);
     } catch (e) {
@@ -1103,6 +1129,15 @@ export class CommerceService {
     } catch (e) {
       if (e instanceof ApiError && e.code === "INVALID_STATUS_FILTER")
         return null;
+      throw e;
+    }
+  }
+  /** All «Botón de arrepentimiento» requests, newest first; null from an API deployed before T109. */
+  private async loadWithdrawals(): Promise<WithdrawalRequest[] | null> {
+    try {
+      return await this.pages<WithdrawalRequest>("/admin/withdrawal-requests");
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
       throw e;
     }
   }
@@ -1247,6 +1282,8 @@ export class CommerceService {
     await this.run(async () => {
       let base = this.settings();
       if (!base) return;
+      const { SECTION_CONFLICT, SECTION_SAVED, applySection, sameForm, sectionForm } =
+        await import("./settings-form");
       for (let attempt = 0; ; attempt++) {
         const next = applySection(id, form, base);
         let r: Awaited<ReturnType<TransferApi["saveSettings"]>>;
@@ -1317,6 +1354,7 @@ export class CommerceService {
   showShipping(event?: MouseEvent) {
     if (this.showPage(SHIPPING_PATH, event)) {
       this.legalPage.set(null);
+      this.withdrawalPage.set(false);
       this.shippingPage.set(true);
     }
   }
@@ -1324,8 +1362,25 @@ export class CommerceService {
   showLegal(id: LegalId, event?: MouseEvent) {
     if (this.showPage(legalInfo(id).path, event)) {
       this.shippingPage.set(false);
+      this.withdrawalPage.set(false);
       this.legalPage.set(id);
     }
+  }
+  /**
+   * «Botón de arrepentimiento» (footer, «Mis pedidos», cambios y devoluciones): /arrepentimiento/ in
+   * the same document, with the order code and mail when it comes from an order.
+   */
+  showWithdrawal(event?: MouseEvent, prefill: WithdrawalPrefill | null = null) {
+    if (this.showPage(WITHDRAWAL_PATH, event)) {
+      this.shippingPage.set(false);
+      this.legalPage.set(null);
+      this.withdrawalPrefill.set(prefill);
+      this.withdrawalPage.set(true);
+    }
+  }
+  /** A public route of the API (T109: POST /withdrawal-requests), without the session. */
+  publicFetch(path: string, init: RequestInit) {
+    return safeFetch(this.base + path, { ...init, credentials: "omit" });
   }
   /** Pushes an info page's URL, remembering the view it was opened from; false on a modified click. */
   private showPage(path: string, event?: MouseEvent): boolean {
@@ -1335,7 +1390,7 @@ export class CommerceService {
     if (modified) return false;
     event?.preventDefault();
     if (location.pathname.replace(/\/?$/, "/") !== path) {
-      if (!this.shippingPage() && !this.legalPage())
+      if (!this.shippingPage() && !this.legalPage() && !this.withdrawalPage())
         this.shippingFrom.set(this.view() === "shop" ? null : this.view());
       history.pushState(null, "", path + location.search);
     }

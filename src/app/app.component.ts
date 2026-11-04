@@ -17,6 +17,7 @@ import { FooterComponent } from "./components/footer/footer.component";
 import { ShippingPolicyComponent } from "./components/shipping-policy/shipping-policy.component";
 import { LegalPageComponent } from "./components/legal-page/legal-page.component";
 import { NotFoundComponent } from "./components/not-found/not-found.component";
+import { WithdrawalComponent } from "./components/withdrawal/withdrawal.component";
 import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.component";
 
 @Component({
@@ -33,6 +34,7 @@ import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.compone
     ShippingPolicyComponent,
     LegalPageComponent,
     NotFoundComponent,
+    WithdrawalComponent,
     WhatsappFabComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,6 +45,11 @@ import { WhatsappFabComponent } from "./shared/whatsapp-fab/whatsapp-fab.compone
       @if (shop.notFound() && (!shop.enabled || shop.view() === "shop")) {
         @defer {
           <app-not-found />
+        }
+      } @else if (shop.withdrawalPage() && (!shop.enabled || shop.view() === "shop")) {
+        <!-- «Botón de arrepentimiento» (T109): su formulario, en su propio chunk. -->
+        @defer (on immediate) {
+          <app-withdrawal />
         }
       } @else if (shop.legalPage() && (!shop.enabled || shop.view() === "shop")) {
         <!-- Privacidad, términos y cambios (T89): texto largo, en su propio chunk. -->

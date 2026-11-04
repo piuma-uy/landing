@@ -64,6 +64,11 @@
   }
 }
 
+// «Botón de arrepentimiento» (T109) al final de la sección de arrepentimiento.
+.legal__link {
+  margin-top: var(--space-sm);
+}
+
 .legal__more {
   margin-top: var(--space-lg);
   padding: var(--space-md);

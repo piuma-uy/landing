@@ -27,7 +27,16 @@ export interface LegalSection {
   title: string;
   paragraphs: string[];
   items?: string[];
+  /** Un enlace al final de la sección: el «Botón de arrepentimiento» (T109). */
+  link?: { label: string; path: string };
 }
+
+/**
+ * El «Botón de arrepentimiento» (T109, Ley 20.531 art. 108): mismo nombre y ruta que
+ * core/withdrawal.ts, repetidos porque este archivo no importa valores; tests/withdrawal.test.ts
+ * comprueba que coincidan.
+ */
+export const WITHDRAWAL_LINK = { label: "Botón de arrepentimiento", path: "/arrepentimiento/" } as const;
 
 export interface LegalDoc extends LegalPage {
   title: string;
@@ -63,7 +72,7 @@ export function legalDocs(
     "Compras desde el 1 de enero de 2027: dentro de los 10 días corridos desde la compra o desde que recibiste el producto, lo que elijas.",
   ];
   const withdrawalHow = [
-    `Avisanos por ${contact}, con el número de pedido, dentro de ese plazo.`,
+    `Avisanos dentro de ese plazo con el ${WITHDRAWAL_LINK.label}, al pie de cada página y en Mis pedidos, o por ${contact}, con el número de pedido.`,
     "Devolvés el producto sin uso y en el mismo estado en que lo recibiste; podés abrir el empaque para revisarlo. El costo de enviárnoslo es tuyo.",
     "Te devolvemos todo lo que pagaste, envío incluido, al recibir el producto. Si pagaste con tarjeta, hacemos la devolución en Mercado Pago y se anulan las cuotas que falten.",
   ];
@@ -193,6 +202,7 @@ export function legalDocs(
         title: "Derecho de arrepentimiento",
         paragraphs: withdrawal,
         items: [...withdrawalTerms, ...withdrawalHow],
+        link: { ...WITHDRAWAL_LINK },
       },
       {
         title: "Productos con defectos",
@@ -222,6 +232,7 @@ export function legalDocs(
         title: "Te arrepentiste de la compra",
         paragraphs: withdrawal,
         items: [...withdrawalTerms, ...withdrawalHow],
+        link: { ...WITHDRAWAL_LINK },
       },
       {
         title: "Llegó con un defecto o no es lo que pediste",
@@ -230,7 +241,7 @@ export function legalDocs(
       {
         title: "Cómo pedirlo",
         paragraphs: [
-          `Escribinos por ${contact} con el número de pedido y qué querés hacer. Te respondemos con los pasos para devolver el producto y recibir el reintegro, que va por el mismo medio de pago: con tarjeta, en Mercado Pago; con transferencia, a una cuenta a tu nombre.`,
+          `Si te arrepentiste, usá el ${WITHDRAWAL_LINK.label}. Por un defecto, o si preferís, escribinos por ${contact} con el número de pedido y qué querés hacer. Te respondemos con los pasos para devolver el producto y recibir el reintegro, que va por el mismo medio de pago: con tarjeta, en Mercado Pago; con transferencia, a una cuenta a tu nombre.`,
         ],
       },
     ],
