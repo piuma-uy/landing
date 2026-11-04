@@ -442,7 +442,8 @@ export class CognitoAuth {
   /**
    * Sign-in after a password reset that ends every other session first. The sign-out also
    * revokes this sign-in, so it signs in once more. A failed sign-out keeps the first
-   * session, and a step after the password (TOTP) skips it.
+   * session. When the account asks for TOTP the sign-out waits for the code:
+   * completeTotpEndingOtherSessions.
    */
   async signInEndingOtherSessions(
     email: string,
@@ -456,6 +457,25 @@ export class CognitoAuth {
       return first;
     }
     return this.signIn(email, password);
+  }
+
+  /**
+   * The TOTP step of the sign-in after a password reset (T104): with the code the sign-in
+   * completes and then every session ends, this one too, because a fresh TOTP code is needed
+   * to sign in again. "signedOut" asks the user to sign in once more; a failed sign-out keeps
+   * the session, as signInEndingOtherSessions does.
+   */
+  async completeTotpEndingOtherSessions(
+    code: string,
+  ): Promise<SignInResult | "signedOut"> {
+    const result = await this.completeTotp(code);
+    if (!("user" in result)) return result;
+    try {
+      await this.signOutEverywhere();
+    } catch {
+      return result;
+    }
+    return "signedOut";
   }
 
   /** Builds the hosted UI URL and stores the attempt; the caller navigates to it. */

@@ -205,6 +205,7 @@ test("guardedFetch turns a rejection into the shop's error and adds a timeout", 
 });
 
 test("a request without an answer is dropped after the timeout", async () => {
+  const causes: unknown[] = [];
   const hung = guardedFetch(
     (_input, init) =>
       new Promise<Response>((_resolve, reject) =>
@@ -212,11 +213,23 @@ test("a request without an answer is dropped after the timeout", async () => {
           reject(init.signal!.reason),
         ),
       ),
-    (cause) =>
-      new Error(isNetworkError(cause) ? NETWORK_MESSAGE : "otro error"),
+    (cause) => {
+      causes.push(cause);
+      return new Error(isNetworkError(cause) ? NETWORK_MESSAGE : "otro error");
+    },
     20,
   );
-  await assert.rejects(hung("https://api.example/products"), {
-    message: NETWORK_MESSAGE,
-  });
+  // AbortSignal.timeout() runs on an unref'd timer: in Node it does not keep the event loop alive. With
+  // nothing else pending, Node 22 drains the loop before the timer fires and node:test cancels the test
+  // ("Promise resolution is still pending but the event loop has already resolved"). Browsers have no such
+  // notion, so the code stays as is; the test holds a ref'd timer until the request settles (T104).
+  const keepAlive = setInterval(() => {}, 1000);
+  try {
+    await assert.rejects(hung("https://api.example/products"), {
+      message: NETWORK_MESSAGE,
+    });
+  } finally {
+    clearInterval(keepAlive);
+  }
+  assert.equal((causes[0] as DOMException).name, "TimeoutError");
 });
