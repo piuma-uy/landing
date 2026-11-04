@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ya está pronto</title>
+<link rel="stylesheet" href="campana.css">
+<script src="motor.js"></script>
+</head>
+<body>
+<div class="lienzo">
+  <!-- Fotos 800 × 1000 del repo en un marco de 824 × 1030 (1,03×); el acercamiento llega a 1,06 → 1,09× en total. -->
+  <div class="marco" id="marco" style="left:128px; top:470px; width:824px; height:1030px;">
+    <img id="f1" src="../../../../src/assets/images/productos/producto-funda-nordica-lino-3.webp" alt="">
+    <img id="f2" src="../../../../src/assets/images/productos/producto-funda-nordica-saten-beige-4.webp" alt="">
+    <img id="f3" src="../../../../src/assets/images/productos/producto-funda-nordica-saten-beige.webp" alt="">
+  </div>
+  <div class="telefono" id="telefono">
+    <div class="pantalla"><img class="cuadro" id="web" alt=""></div>
+  </div>
+  <div class="franja" style="background:transparent">
+    <p class="titulo" id="titulo">Ya está <em>pronto.</em></p>
+  </div>
+  <div class="cierre" id="cierre" style="padding-top:700px">
+    <img class="logo" src="../../../../src/assets/images/logo/logo-piuma-terracota.webp" alt="Piuma">
+    <span class="filete"></span>
+    <p class="web" style="margin-top:0">piuma.uy</p>
+  </div>
+</div>
+<script>
+// Guion (≈ 9,4 s): «Ya está pronto.» desde el primer fotograma sobre tres fotos reales (se prepara la cama → el
+// paquete de Piuma → la cama tendida), después piuma.uy real en el teléfono y cierre con logo y «piuma.uy».
+const FOTOS = [
+  { id: 'f1', desde: 0, hasta: 1.5, de: [1.0, 0, 0], a: [1.06, 0, -14] },
+  { id: 'f2', desde: 1.2, hasta: 2.75, de: [1.06, 0, 0], a: [1.0, 0, 0] },
+  { id: 'f3', desde: 2.45, hasta: 4.0, de: [1.0, 10, 0], a: [1.06, -10, 0] },
+];
+const X = 0.3;
+const TEL_DESDE = 3.65; // entra el teléfono
+let WEB = null; // tramo de la grabación de piuma.uy
+let INICIO_CIERRE = 0;
+const CIERRE = 2.5;
+
+window.alPreparar = () => {
+  const m = window.GRABACIONES.web.marcas;
+  WEB = { desde: m.inicio, hasta: m.fin };
+  INICIO_CIERRE = TEL_DESDE + (WEB.hasta - WEB.desde) - 0.4;
+  window.DURACION = +(INICIO_CIERRE + CIERRE).toFixed(3);
+  return listoImagenes();
+};
+
+window.render = async (t) => {
+  for (const f of FOTOS) {
+    const el = $('#' + f.id);
+    const k = lin(t, f.desde, f.hasta);
+    // Cada foto entra fundiéndose sobre la anterior (que queda debajo).
+    el.style.opacity = f.desde === 0 ? 1 : entre(t, f.desde, f.desde + X);
+    const e = suave(k);
+    el.style.transform = `translate(${mezcla(f.de[1], f.a[1], e)}px, ${mezcla(f.de[2], f.a[2], e)}px) scale(${mezcla(f.de[0], f.a[0], e)})`;
+  }
+  // El marco de fotos se va mientras entra el teléfono.
+  const kt = entre(t, TEL_DESDE - 0.1, TEL_DESDE + 0.45);
+  $('#marco').style.opacity = 1 - kt;
+  $('#marco').style.transform = `scale(${mezcla(1, 0.96, kt)})`;
+  const tel = $('#telefono');
+  tel.style.opacity = kt;
+  tel.style.transform = `translateY(${(1 - kt) * 60}px)`;
+  const ts = WEB.desde + clamp(t - TEL_DESDE, 0, WEB.hasta - WEB.desde);
+  await cuadro($('#web'), 'web', ts);
+
+  // La frase queda hasta el cierre.
+  $('#titulo').style.opacity = 1 - entre(t, INICIO_CIERRE, INICIO_CIERRE + 0.35);
+
+  const kc = entre(t, INICIO_CIERRE, INICIO_CIERRE + 0.45);
+  const ci = $('#cierre');
+  ci.style.opacity = kc;
+  const d = t - INICIO_CIERRE;
+  const items = ci.children;
+  for (let i = 0; i < items.length; i++) {
+    const e = entre(d, 0.15 + i * 0.12, 0.65 + i * 0.12);
+    items[i].style.opacity = e;
+    items[i].style.transform = `translateY(${(1 - e) * 22}px) scale(${mezcla(1, 1.015, lin(d, 0.6, CIERRE))})`;
+  }
+};
+</script>
+</body>
+</html>

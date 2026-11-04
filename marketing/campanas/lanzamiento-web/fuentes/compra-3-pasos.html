@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Comprá en 3 pasos</title>
+<link rel="stylesheet" href="campana.css">
+<script src="motor.js"></script>
+</head>
+<body>
+<div class="lienzo">
+  <div class="telefono" id="telefono">
+    <div class="pantalla">
+      <img class="cuadro" id="a" alt="">
+      <img class="cuadro" id="b" alt="">
+      <div class="toque" id="toque"></div>
+      <div class="anillo" id="anillo"></div>
+    </div>
+  </div>
+  <div class="franja">
+    <div class="paso" id="p1"><span class="num">1</span><span class="verbo">Elegí</span></div>
+    <div class="paso" id="p2"><span class="num">2</span><span class="verbo">Agregá</span></div>
+    <div class="paso" id="p3"><span class="num">3</span><span class="verbo">Pagá</span></div>
+  </div>
+  <div class="cierre" id="cierre">
+    <img class="logo" src="../../../../src/assets/images/logo/logo-piuma-terracota.webp" alt="Piuma">
+    <span class="filete"></span>
+    <p class="linea">Envío gratis desde $&nbsp;3.000</p>
+    <p class="web">piuma.uy</p>
+  </div>
+</div>
+<script>
+// Guion: tres tramos de la misma grabación real (compra-3-pasos.mp4). Entre «Agregá» y «Pagá» se saltean los
+// datos de contacto y la entrega (están grabados, pero no hacen falta para entender el flujo).
+const X = 0.3; // fundido entre tramos (s)
+const CIERRE = 4.0; // duración del cierre (s)
+const FUNDIDO_CIERRE = 0.45;
+let TRAMOS = [];
+let INICIO_CIERRE = 0;
+
+window.alPreparar = () => {
+  const g = window.GRABACIONES.compra;
+  const m = g.marcas;
+  const toque = (n) => g.toques.find((x) => x.nombre === n);
+  TRAMOS = [
+    { paso: 1, desde: m.elegi, hasta: toque('chiara').t + 1.35, antes: 0.6, despues: 0 },
+    { paso: 2, desde: m.agrega - 0.1, hasta: m.carrito + 1.3, antes: 0, despues: 0 },
+    // Termina justo antes del toque real en «Pagar con Mercado Pago» (después la página sale hacia Mercado Pago y
+    // muestra el número de pedido de prueba); el anillo del toque sigue sobre el último cuadro.
+    { paso: 3, desde: m.paga, hasta: toque('pagar').t + 0.33, antes: 0, despues: 0.9 },
+  ];
+  let s = 0;
+  for (const tr of TRAMOS) {
+    tr.inicio = s;
+    tr.dur = tr.antes + (tr.hasta - tr.desde) + tr.despues;
+    tr.fin = s + tr.dur;
+    tr.toques = g.toques.filter((x) => x.t >= tr.desde - 0.1 && x.t <= tr.hasta);
+    s = tr.fin - X;
+  }
+  const ultimo = TRAMOS[TRAMOS.length - 1];
+  INICIO_CIERRE = ultimo.fin - FUNDIDO_CIERRE;
+  window.DURACION = +(INICIO_CIERRE + CIERRE).toFixed(3);
+  return listoImagenes();
+};
+
+// Tiempo de la grabación para el tramo `tr` en el instante de salida t.
+const fuente = (tr, t) => tr.desde + clamp(t - tr.inicio - tr.antes, 0, tr.hasta - tr.desde);
+
+function camara(tr, ts) {
+  let s = 1, ox = 334, oy = 700, ty = 0;
+  for (const q of tr.toques) {
+    const px = 14 + q.x * K, py = 14 + q.y * K;
+    if (q.nombre === 'pagar') {
+      // El botón «Pagar» está fijo abajo: la cámara sube el teléfono para que quede sobre la zona de la interfaz de Instagram.
+      ty = -558 * entre(ts, q.t - 1.0, q.t - 0.25);
+      const k = entre(ts, q.t - 0.6, q.t);
+      if (k > 0) { s = 1 + 0.07 * k; ox = px; oy = py; }
+      continue;
+    }
+    const k = entre(ts, q.t - 0.6, q.t) * (1 - entre(ts, q.t + 0.55, q.t + 1.1));
+    if (k > 0) { s = 1 + 0.08 * k; ox = px; oy = py; }
+  }
+  return { s, ox, oy, ty };
+}
+
+window.render = async (t) => {
+  const actual = TRAMOS.filter((tr) => t >= tr.inicio && t < tr.fin + 1e-6);
+  const tr = actual[actual.length - 1] ?? TRAMOS[TRAMOS.length - 1];
+  const previo = actual.length > 1 ? actual[0] : null;
+  const ts = fuente(tr, t);
+
+  await cuadro($('#a'), 'compra', previo ? fuente(previo, t) : ts);
+  const kb = previo ? entre(t, tr.inicio, tr.inicio + X) : 0;
+  if (previo) await cuadro($('#b'), 'compra', ts);
+  $('#b').style.opacity = kb;
+
+  // Cámara (en el fundido manda el tramo que entra, ambos están en reposo).
+  const c = camara(tr, ts);
+  const sube = (1 - entre(t, 0, 0.6)) * 36;
+  const tel = $('#telefono');
+  tel.style.transformOrigin = `${c.ox}px ${c.oy}px`;
+  tel.style.transform = `translateY(${c.ty + sube}px) scale(${c.s})`;
+
+  // Toque visible del tramo actual.
+  const libre = tr.desde + (t - tr.inicio - tr.antes); // sin congelar: el toque sigue animado en las pausas
+  const q = tr.toques.find((x) => libre - x.t > -0.06 && libre - x.t < 1.0);
+  dibujarToque($('#toque'), $('#anillo'), q, libre);
+
+  // Pasos: cambia el verbo con el tramo.
+  for (const [i, tramo] of TRAMOS.entries()) {
+    const el = $('#p' + (i + 1));
+    // Uno sale y después entra el otro (sin superponer palabras).
+    const entra = i === 0 ? 1 : entre(t, tramo.inicio + 0.12, tramo.inicio + 0.42);
+    const sigue = TRAMOS[i + 1];
+    const sale = sigue ? 1 - entre(t, sigue.inicio - 0.06, sigue.inicio + 0.12) : 1;
+    el.style.opacity = entra * sale;
+    el.style.transform = `translateY(${(1 - entra) * 24 - (1 - sale) * 24}px)`;
+  }
+
+  // Cierre.
+  const k = entre(t, INICIO_CIERRE, INICIO_CIERRE + FUNDIDO_CIERRE);
+  const ci = $('#cierre');
+  ci.style.opacity = k;
+  const d = t - INICIO_CIERRE;
+  const items = ci.children;
+  for (let i = 0; i < items.length; i++) {
+    const e = entre(d, 0.15 + i * 0.12, 0.65 + i * 0.12);
+    items[i].style.opacity = e;
+    items[i].style.transform = `translateY(${(1 - e) * 22}px)`;
+  }
+};
+</script>
+</body>
+</html>

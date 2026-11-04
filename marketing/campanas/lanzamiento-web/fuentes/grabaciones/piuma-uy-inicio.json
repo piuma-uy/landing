@@ -1,0 +1,15 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "escala": 3,
+  "fps": 30,
+  "duracion": 4.265,
+  "marcas": {
+    "inicio": 0.313,
+    "coleccion": 2.862,
+    "fin": 4.063
+  },
+  "toques": []
+}

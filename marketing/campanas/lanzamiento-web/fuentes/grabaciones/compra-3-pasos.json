@@ -1,0 +1,50 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "escala": 3,
+  "fps": 30,
+  "duracion": 14.828,
+  "marcas": {
+    "elegi": 0.31,
+    "producto": 2.761,
+    "agrega": 4.163,
+    "carrito": 7.639,
+    "datos": 9.24,
+    "paga": 10.057,
+    "fin": 14.424
+  },
+  "toques": [
+    {
+      "nombre": "chiara",
+      "t": 2.363,
+      "x": 288.5,
+      "y": 327.7
+    },
+    {
+      "nombre": "agregar",
+      "t": 5.524,
+      "x": 195,
+      "y": 352.8
+    },
+    {
+      "nombre": "carrito",
+      "t": 7.242,
+      "x": 276.4,
+      "y": 34
+    },
+    {
+      "nombre": "tarjeta",
+      "t": 11.076,
+      "x": 195,
+      "y": 196.1
+    },
+    {
+      "nombre": "pagar",
+      "t": 12.66,
+      "x": 195,
+      "y": 807
+    }
+  ]
+}
