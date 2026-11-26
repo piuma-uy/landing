@@ -27,7 +27,11 @@
   }
 }
 
+// h1 en el inicio, p en /catalogo/...: lo que daba el h1 global va acá para que se vean igual.
 .hero__title {
+  font-family: var(--font-heading);
+  line-height: 1.2;
+  margin-top: 0;
   font-size: clamp(3rem, 12vw, 5.5rem);
   font-weight: 700;
   letter-spacing: 0.02em;

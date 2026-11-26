@@ -94,6 +94,8 @@ export class CatalogComponent {
   constructor() {
     // Title, description y canonical siguen a lo abierto, también en una entrada directa.
     effect(() => this.applyMeta());
+    // Con una categoría o ficha abierta, el H1 de la página es su nombre (no el "Piuma" del hero).
+    effect(() => this.catalogService.catalogHeading.set(this.activeCategory() !== null));
     if (this.initial) {
       // Entrada directa a una página del catálogo: llevar la vista a la sección cuando cargue.
       const scroll = effect(() => {

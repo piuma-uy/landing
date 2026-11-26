@@ -2,7 +2,12 @@
   <div class="hero__inner container">
     <div class="hero__content">
       <span class="eyebrow">Textiles para el hogar</span>
-      <h1 class="hero__title">{{ config.brandName }}</h1>
+      @if (catalogHeading()) {
+        <!-- En /catalogo/... el H1 es la categoría o el producto (lo pone el catálogo). -->
+        <p class="hero__title">{{ config.brandName }}</p>
+      } @else {
+        <h1 class="hero__title">{{ config.brandName }}</h1>
+      }
       <p class="hero__tagline">
         En Piuma seleccionamos ropa de cama de calidad, con productos que combinan confort y estilo
         para transformar cada dormitorio en un espacio cálido y especial para que descanses.

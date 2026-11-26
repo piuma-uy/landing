@@ -9,6 +9,10 @@
     @if (categories(); as cats) {
       @if (cats.length) {
         @if (activeCategory(); as category) {
+          @if (!activeType()) {
+            <!-- H1 de la página de categoría; en la ficha, el H1 es el nombre del producto. -->
+            <h1 class="sr-only">{{ category.name }}</h1>
+          }
           <!-- Nivel 1 como tabs, para saltar de categoría sin volver atrás. -->
           <div class="tabs" role="tablist" aria-label="Categorías del catálogo">
             @for (item of cats; track item.id) {

@@ -1,4 +1,4 @@
-import { Injectable, inject } from "@angular/core";
+import { Injectable, inject, signal } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { toObservable } from "@angular/core/rxjs-interop";
 import {
@@ -15,6 +15,11 @@ import { sortCatalogSizes } from "../core/sizes";
 import { CommerceService, Product } from "../commerce/commerce.service";
 @Injectable({ providedIn: "root" })
 export class CatalogService {
+  /**
+   * El catálogo tiene abierta una categoría o una ficha y muestra el H1 de la página (su nombre).
+   * El hero baja "Piuma" a párrafo para que cada página tenga un único H1 que sea su tema.
+   */
+  readonly catalogHeading = signal(false);
   private readonly http = inject(HttpClient);
   private readonly shop = inject(CommerceService);
   private readonly source = this.http

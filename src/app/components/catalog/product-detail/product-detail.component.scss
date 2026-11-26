@@ -134,7 +134,9 @@
   }
 }
 
+// H1 de la ficha con el tamaño de h3 que tuvo siempre.
 .detail__name {
+  font-size: clamp(1.15rem, 2.5vw, 1.4rem);
   margin-bottom: 0.25rem;
 }
 

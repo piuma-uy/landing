@@ -29,7 +29,10 @@
     <!-- main.ts lo lee antes de arrancar: pedirlo ya, en paralelo con los scripts (LCP). -->
     <link rel="preload" href="runtime-config.json" as="fetch" crossorigin />
 
+    <!-- favicon.ico para navegadores y lectores que piden /favicon.ico; el SVG gana donde se soporta. -->
+    <link rel="icon" href="favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

@@ -5,7 +5,7 @@
 @if (type().longDescription; as paragraphs) {
   <div class="detail__long">
     @if (type().longDescriptionTitle; as longTitle) {
-      <h4 class="detail__long-title">{{ longTitle }}</h4>
+      <h2 class="detail__long-title">{{ longTitle }}</h2>
     }
     @for (paragraph of paragraphs; track $index) {
       <p>{{ paragraph }}</p>
@@ -24,7 +24,7 @@
 <!-- Sólo los acolchados traen peso; el resto de los productos no muestra este bloque. -->
 @if (weights().length) {
   <section class="weights">
-    <h4 class="weights__title">Peso por medida</h4>
+    <h2 class="weights__title">Peso por medida</h2>
     <table class="weights__table">
       <tbody>
         @for (option of weights(); track option.size) {
