@@ -136,3 +136,8 @@
     }
   }
 }
+
+// El número no se corta entre líneas ("+598 91 345 / 454" a 1280 px, T116).
+.footer__phone {
+  white-space: nowrap;
+}

@@ -217,7 +217,8 @@ Super King no vienen en azul), por eso `colors` va dentro de cada variante.
 
 - `name` es el nombre corto del nivel 2; `fullName` es el que va al mensaje de WhatsApp.
 - `bedSize` es opcional; `material: null` significa que el dato falta y la UI oculta la línea.
-- `_todo` marca datos incompletos o contradicciones entre el catálogo y la lista de precios.
+- Nada de notas internas en el JSON (se publica tal cual): van en [`catalogo-notas.md`](catalogo-notas.md). Un test
+  rechaza cualquier clave que empiece con `_`.
 - El **"Desde $X"** es el mínimo de `variants[].price`, calculado en el componente.
 - Los **colores de los swatches** viven en [`color-swatches.ts`](../src/app/core/color-swatches.ts), no en el JSON, porque
   son aproximaciones visuales.

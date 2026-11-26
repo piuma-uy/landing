@@ -84,8 +84,7 @@
           { "size": "Queen", "productSize": "240x260 cm", "colors": ["Blanco"], "price": 4800, "weightGrams": 3620 },
           { "size": "King", "productSize": "270x260 cm", "colors": ["Blanco"], "price": 5300, "weightGrams": 4090 },
           { "size": "Super King", "productSize": "300x260 cm", "colors": ["Blanco"], "price": 5800, "weightGrams": 4580 }
-        ],
-        "_todo": "FALTA LA MEDIDA PLAZA Y MEDIA (180x240 cm): la tabla de pesos de la marca le asigna 2550 g, así que el producto existe, pero la lista de precios 2026 no tiene precio para esa medida en pluma sintética. No se carga la variante hasta tener el precio. || Nota: la misma tabla de pesos confirma que Dos plazas / Full (220x240) existe, algo que el catálogo de marzo no listaba."
+        ]
       },
       {
         "id": "relleno-nordico-polyester",
@@ -115,8 +114,7 @@
         "variants": [
           { "size": "Twin", "productSize": "160x230 cm", "colors": ["Blanco"], "price": 2000 },
           { "size": "Queen", "productSize": "240x260 cm", "colors": ["Blanco"], "price": 2900 }
-        ],
-        "_todo": "Resuelto: el nombre pasó a 'Relleno nórdico' (sin 'de polyester'), así ya no choca con 'Poliéster' del título de la descripción. El id relleno-nordico-polyester no cambia (SKUs y URLs). || Resuelto: el material pasó de '100% algodón' (catálogo 2026) a '100% poliéster', confirmado por el texto de la marca — quedaba contradictorio con el nombre del producto."
+        ]
       }
     ]
   },
@@ -248,8 +246,7 @@
           { "size": "Dos plazas / Full", "bedSize": "140x190 cm", "productSize": "220x260 cm", "colors": ["Blanco"], "price": 7900 },
           { "size": "Queen", "bedSize": "160x200 cm", "productSize": "240x270 cm", "colors": ["Blanco"], "price": 8500 },
           { "size": "Super King", "bedSize": "200x200 cm", "productSize": "300x270 cm", "colors": ["Blanco"], "price": 9900 }
-        ],
-        "_todo": "Resuelto: la foto de la funda de lino BLANCA entera llegó en la carpeta PIUMA CLARA (lino/Piuma 2-76). También quedó cerrada la contradicción de material que traía el catálogo 2026 ('100% algodón'): el texto de la marca confirma 55% lino / 45% algodón."
+        ]
       }
     ]
   },
@@ -431,8 +428,7 @@
           { "size": "Twin", "productSize": "160x230 cm", "colors": ["Blanco", "Azul"], "price": 3000 },
           { "size": "Plaza y media", "productSize": "180x240 cm", "colors": ["Blanco", "Azul"], "price": 3600 },
           { "size": "Dos plazas", "productSize": "220x240 cm", "colors": ["Blanco"], "price": 4300 }
-        ],
-        "_todo": "Petra viene en BLANCO y, en Twin y Plaza y media, también en AZUL (cambios del cliente 2026-10-30, mismo precio que el blanco). El azul todavía no tiene foto propia: la ficha muestra la del blanco como referencia y lo aclara. Se sacó de la galería la foto de los cubrecamas apilados en rosa, blanco y azul (producto-cubrecama-petra-2.webp) porque mostraba colores que ya no se venden."
+        ]
       },
       {
         "id": "cubrecama-charo",
@@ -474,8 +470,7 @@
         "variants": [
           { "size": "Queen", "productSize": "240x260 cm", "colors": ["Blanco", "Natural"], "price": 4900 },
           { "size": "Super King", "productSize": "300x260 cm", "colors": ["Blanco", "Natural"], "price": 6100 }
-        ],
-        "_todo": "Resuelto: la marca indicó qué fotos corresponden al color Natural (IMG_0108, IMG_0110, IMG_0114) y cuáles al Blanco (IMG_0095, IMG_0098). A tener en cuenta: IMG_0114 (natural-3) muestra dos cubrecamas blancos doblados encima del natural, así que en esa foto conviven los dos tonos."
+        ]
       }
     ]
   },

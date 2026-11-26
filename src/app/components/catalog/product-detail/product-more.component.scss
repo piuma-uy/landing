@@ -108,4 +108,9 @@
   .weights__value {
     font-weight: 600;
   }
+
+  // El gris secundario sobre el beige queda en 4.45:1; el texto principal llega a AA.
+  .weights__size {
+    color: var(--color-text);
+  }
 }

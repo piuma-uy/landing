@@ -57,9 +57,9 @@
     </div>
 
     <div class="detail__info">
-      <h3 class="detail__name">
+      <h1 class="detail__name">
         {{ selectedProduct()?.name ?? type().fullName }}
-      </h3>
+      </h1>
 
       @if (type().material; as material) {
         <p class="detail__material">{{ material }}</p>

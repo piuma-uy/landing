@@ -83,11 +83,6 @@ export interface ProductType {
    */
   galleryByColor?: Record<string, Photo[]>;
   variants: Variant[];
-  /**
-   * TODO pendiente de confirmar con la marca: dato incompleto o contradicción
-   * entre el catálogo 2026 y la lista de precios.
-   */
-  _todo?: string;
 }
 
 export interface Category {

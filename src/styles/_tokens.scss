@@ -7,7 +7,9 @@
 
 :root {
   // --- Paleta -------------------------------------------------
-  --color-primary: #b07a5c; // terracota suave (botones, acentos)
+  // Terracota suave (botones, acentos). #9f6a4d = el #b07a5c original con menos luz (mismo tono):
+  // texto blanco encima pasa de 3.63:1 a 4.52:1 (AA, T116).
+  --color-primary: #9f6a4d;
   --color-primary-dark: #8c5e44; // hover / estados activos
   --color-secondary: #efe6da; // beige (fondos de sección alternos)
   --color-accent: #c9a68c; // terracota claro (detalles, bordes suaves)

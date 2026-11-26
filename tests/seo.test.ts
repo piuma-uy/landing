@@ -354,3 +354,46 @@ test("alt de las fotos: descriptivos y sin materiales que el producto no tiene (
     }
   }
 });
+
+test("un único H1 por página prerenderizada y es su tema: producto, categoría o marca (T116)", () => {
+  const h1s = (html: string) =>
+    [...html.matchAll(/<h1\b[^>]*>(.*?)<\/h1>/gs)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
+  for (const p of pages) assert.equal(h1s(p.html).length, 1, `${p.path}: ${h1s(p.html).join(" | ")}`);
+  const unescape = (s: string) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  assert.match(h1s(page("/"))[0]!, new RegExp(`^${site.brandName}\\b`));
+  for (const c of categories) {
+    assert.equal(unescape(h1s(page(catalogPath(c.id)))[0]!), c.name, catalogPath(c.id));
+    for (const t of c.types)
+      assert.equal(unescape(h1s(page(catalogPath(c.id, t.id)))[0]!), t.fullName, catalogPath(c.id, t.id));
+  }
+});
+
+test("la app no repite el H1: en /catalogo/... el de la página es la categoría o el producto (T116)", async () => {
+  const tpl = (path: string) => readFile(new URL(`../src/app/components/${path}`, import.meta.url), "utf8");
+  const h1 = (html: string) => html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/g) ?? [];
+  // Hero: "Piuma" es H1 sólo en el inicio; con categoría o ficha abierta pasa a <p> con la misma clase.
+  const hero = await tpl("hero/hero.component.html");
+  assert.match(
+    hero,
+    /@if \(catalogHeading\(\)\) \{[\s\S]*?<p class="hero__title">[\s\S]*?\} @else \{\s*<h1 class="hero__title">/,
+  );
+  assert.equal(h1(hero).length, 1);
+  // Categoría: H1 con su nombre, sólo sin ficha abierta.
+  const catalog = await tpl("catalog/catalog.component.html");
+  assert.deepEqual(h1(catalog), ['<h1 class="sr-only">{{ category.name }}</h1>']);
+  assert.match(catalog, /@if \(!activeType\(\)\) \{\s*(<!--.*?-->\s*)?<h1 class="sr-only">/);
+  // Ficha: el nombre del producto es el H1.
+  const detail = await tpl("catalog/product-detail/product-detail.component.html");
+  assert.equal(h1(detail).length, 1);
+  assert.match(detail, /<h1 class="detail__name">\s*\{\{ selectedProduct\(\)\?\.name \?\? type\(\)\.fullName \}\}/);
+  // Nada más de lo que se ve en esas páginas trae un H1.
+  for (const other of [
+    "catalog/product-detail/product-more.component.html",
+    "catalog/size-guide/size-guide.component.html",
+    "about/about.component.html",
+    "contact/contact.component.html",
+    "footer/footer.component.html",
+    "header/header.component.html",
+  ])
+    assert.equal(h1(await tpl(other)).length, 0, other);
+});
